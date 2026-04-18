@@ -1,0 +1,260 @@
+@import "tailwindcss";
+
+@theme {
+  --color-surface-container-low: #f6f3ee;
+  --color-on-secondary-container: #656461;
+  --color-on-tertiary-fixed-variant: #713700;
+  --color-background: #fcf9f4;
+  --color-surface-bright: #fcf9f4;
+  --color-on-tertiary-container: #ee8428;
+  --color-tertiary-container: #582a00;
+  --color-on-secondary-fixed-variant: #474743;
+  --color-inverse-on-surface: #f3f0eb;
+  --color-secondary-fixed-dim: #c9c6c2;
+  --color-surface-container: #f0ede8;
+  --color-surface-container-high: #ebe8e3;
+  --color-secondary-fixed: #e5e2dd;
+  --color-tertiary: #381800;
+  --color-on-primary: #ffffff;
+  --color-error: #ba1a1a;
+  --color-surface-tint: #43655c;
+  --color-on-error-container: #93000a;
+  --color-surface: #fcf9f4;
+  --color-primary: #01261f;
+  --color-error-container: #ffdad6;
+  --color-on-background: #1c1c19;
+  --color-on-secondary-fixed: #1c1c19;
+  --color-on-primary-container: #83a69c;
+  --color-primary-fixed-dim: #aacec3;
+  --color-outline-variant: #c1c8c4;
+  --color-on-tertiary: #ffffff;
+  --color-on-error: #ffffff;
+  --color-secondary-container: #e5e2dd;
+  --color-on-primary-fixed-variant: #2b4d44;
+  --color-tertiary-fixed: #ffdcc5;
+  --color-secondary: #5f5e5b;
+  --color-primary-container: #1a3c34;
+  --color-on-surface-variant: #414846;
+  --color-on-surface: #1c1c19;
+  --color-on-primary-fixed: #00201a;
+  --color-inverse-surface: #31302d;
+  --color-surface-dim: #dcdad5;
+  --color-surface-container-highest: #e5e2dd;
+  --color-on-tertiary-fixed: #301400;
+  --color-surface-container-lowest: #ffffff;
+  --color-primary-fixed: #c5eadf;
+  --color-on-secondary: #ffffff;
+  --color-outline: #717976;
+  --color-surface-variant: #e5e2dd;
+  --color-inverse-primary: #aacec3;
+  --color-tertiary-fixed-dim: #ffb783;
+
+  --font-headline: "Noto Serif", serif;
+  --font-body: "Inter", sans-serif;
+  --font-label: "Inter", sans-serif;
+}
+
+/* Deep forest hero gradient */
+.deep-forest-gradient {
+  background: linear-gradient(135deg, #01261f 0%, #1a3c34 100%);
+}
+
+/* Material Symbols */
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+/* Scroll-reveal animation base */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-60px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-left.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.reveal-right {
+  opacity: 0;
+  transform: translateX(60px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-right.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.reveal-scale {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-scale.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Staggered children */
+.stagger-children > .reveal:nth-child(1) { transition-delay: 0ms; }
+.stagger-children > .reveal:nth-child(2) { transition-delay: 120ms; }
+.stagger-children > .reveal:nth-child(3) { transition-delay: 240ms; }
+.stagger-children > .reveal:nth-child(4) { transition-delay: 360ms; }
+
+/* Hero text cascade */
+.hero-cascade > *:nth-child(1) {
+  animation: heroSlideUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+}
+.hero-cascade > *:nth-child(2) {
+  animation: heroSlideUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+}
+.hero-cascade > *:nth-child(3) {
+  animation: heroSlideUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.6s both;
+}
+
+@keyframes heroSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hero background parallax-like slow zoom */
+@keyframes heroZoom {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.08);
+  }
+}
+
+.hero-bg-animate {
+  animation: heroZoom 20s ease-out forwards;
+}
+
+/* Floating animation for dashboard image */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+.float-animation {
+  animation: float 5s ease-in-out infinite;
+}
+
+/* Step counter pulse */
+@keyframes stepPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(1, 38, 31, 0.3);
+  }
+  70% {
+    box-shadow: 0 0 0 20px rgba(1, 38, 31, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(1, 38, 31, 0);
+  }
+}
+
+.step-pulse:hover {
+  animation: stepPulse 1.5s ease-out infinite;
+}
+
+/* Feature card hover lift */
+.feature-card {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.3s;
+}
+
+.feature-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.1);
+}
+
+/* CTA shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.cta-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Smooth header */
+.header-scrolled {
+  backdrop-filter: blur(12px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* Icon bounce on card hover */
+.feature-card:hover .feature-icon {
+  animation: iconBounce 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes iconBounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Connector lines between steps */
+@media (min-width: 768px) {
+  .step-connector::after {
+    content: "";
+    position: absolute;
+    top: 40px;
+    left: calc(50% + 50px);
+    width: calc(100% - 100px);
+    height: 2px;
+    background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-outline-variant) 100%);
+    opacity: 0.3;
+  }
+}
