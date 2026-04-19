@@ -39,16 +39,21 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
   # ─── BACKEND → Railway ───
-  # Railway deploy is handled via GitHub integration (auto-deploy on push to main)
-  # Setup: railway.com → project espoa → New Service → GitHub Repo → apps/api as root
-  # No CI step needed — Railway watches the repo directly
+  deploy-api:
+    name: Deploy API → Railway
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    timeout-minutes: 2
+    steps:
+      - name: Trigger Railway Deploy
+        run: curl -fsSX POST "${{ secrets.RAILWAY_DEPLOY_HOOK }}"
 
   # ─── DATABASE MIGRATIONS ───
   migrate:
     name: Run Migrations
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    needs: [deploy-web]
+    needs: [deploy-api]
     timeout-minutes: 5
 
     steps:
