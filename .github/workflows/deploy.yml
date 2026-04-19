@@ -39,8 +39,22 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
   # ─── BACKEND → Railway ───
-  # Railway auto-deploys via GitHub integration when CI passes ("Wait for CI" enabled)
-  # Root directory: /apps/api | Branch: main
+  deploy-api:
+    name: Deploy API → Railway
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        run: railway up --service api --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
   # ─── DATABASE MIGRATIONS ───
   migrate:
