@@ -10,6 +10,6 @@ app.get("/health", (req, res) => {
   res.send({ status: "ok" });
 });
 
-app.listen(3001, () => {
-  console.log("API rodando na porta 3001");
+app.listen(process.env.PORT || 8080, () => {
+  console.log(`API rodando na porta ${process.env.PORT || 8080}`);
 });
