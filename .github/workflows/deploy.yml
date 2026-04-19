@@ -67,6 +67,6 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run Drizzle migrations
-        run: pnpm --filter @espoa/database drizzle-kit push
+        run: pnpm --filter @espoa/database run db:push
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
