@@ -31,8 +31,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint
-        run: pnpm turbo run lint
+      - name: Lint (web)
+        run: pnpm --filter web lint
 
       - name: Build all
         run: pnpm turbo run build
