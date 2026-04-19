@@ -8,7 +8,7 @@ const DASHBOARD_IMG =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuATURYJwzmVAO-C1VjMWV-4lt8QQ9gJOSTWKxI9SmrUNkTDXtVMXv6rvSTLNfvY5PT8GzuX8JkMqsGS_ZHfVAA0Gg8Rk9p4ZKOST02_pqMsnus22NxXVDf55Dk4LCQGhvalQ-ZdhcbrkA2Qh2-0k2gowsO-QtFh0xJC_l6W6laYYZm36git9QEhjSfD3M_B2jhFX5WuXqz-64PORj7sW_ANbFNAem2H-fKR9QnX3_zHg5PESlRHmzmnYHMfvVE3Z98iez3X2VxFvO5f";
 
 const NAV_LINKS = [
-  { label: "Associação", href: "#associacao", active: true },
+  { label: "Associação", href: "#associacao" },
   { label: "Sobre", href: "#sobre" },
   { label: "Solução", href: "#solucao" },
   { label: "Funcionalidades", href: "#funcionalidades" },
@@ -89,11 +89,27 @@ const STEPS = [
 export default function LandingPage() {
   const scrollRef = useScrollReveal();
   const [scrolled, setScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState("#associacao");
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const ids = NAV_LINKS.map((l) => l.href.slice(1));
+    const observers = ids.map((id) => {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const obs = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) setActiveSection(`#${id}`); },
+        { rootMargin: "-40% 0px -55% 0px" }
+      );
+      obs.observe(el);
+      return obs;
+    });
+    return () => observers.forEach((obs) => obs?.disconnect());
   }, []);
 
   return (
@@ -120,7 +136,7 @@ export default function LandingPage() {
                 key={link.label}
                 href={link.href}
                 className={`nav-item-animate font-headline font-medium text-lg transition-colors ${
-                  link.active
+                  activeSection === link.href
                     ? "text-primary-container border-b-2 border-primary-container pb-1"
                     : "text-on-surface/70 hover:text-primary-container"
                 }`}
@@ -142,7 +158,7 @@ export default function LandingPage() {
 
       <main>
         {/* ─── HERO ─── */}
-        <section className="deep-forest-gradient min-h-[870px] flex items-center relative overflow-hidden pt-20">
+        <section id="associacao" className="deep-forest-gradient min-h-[870px] flex items-center relative overflow-hidden pt-20">
           <div className="absolute inset-0 opacity-20">
             <img
               className="w-full h-full object-cover hero-bg-animate"
