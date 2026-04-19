@@ -34,35 +34,21 @@ jobs:
 
       - name: Deploy to Vercel
         run: npx vercel@latest --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
-        working-directory: apps/web
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
   # ─── BACKEND → Railway ───
-  deploy-api:
-    name: Deploy API → Railway
-    runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    timeout-minutes: 10
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Deploy to Railway
-        run: railway up --service api --detach
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+  # Railway deploy is handled via GitHub integration (auto-deploy on push to main)
+  # Setup: railway.com → project espoa → New Service → GitHub Repo → apps/api as root
+  # No CI step needed — Railway watches the repo directly
 
   # ─── DATABASE MIGRATIONS ───
   migrate:
     name: Run Migrations
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    needs: [deploy-api]
+    needs: [deploy-web]
     timeout-minutes: 5
 
     steps:
