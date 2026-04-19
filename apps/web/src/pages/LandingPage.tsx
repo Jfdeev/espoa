@@ -100,34 +100,41 @@ export default function LandingPage() {
     <div ref={scrollRef} className="font-body bg-background text-on-surface selection:bg-on-tertiary-container selection:text-white">
       {/* ─── HEADER ─── */}
       <header
-        className={`fixed top-0 w-full z-50 transition-all duration-300 ${
+        className={`nav-animate fixed top-0 w-full z-50 transition-all duration-300 ${
           scrolled
             ? "bg-background/90 header-scrolled"
             : "bg-background"
         }`}
       >
         <nav className="flex justify-between items-center h-20 px-6 md:px-12 w-full max-w-screen-2xl mx-auto">
-          <span className="font-headline text-2xl font-bold text-primary-container">
+          <span
+            className="nav-item-animate font-headline text-2xl font-bold text-primary-container"
+            style={{ animationDelay: "0.1s" }}
+          >
             Espoa
           </span>
 
           <div className="hidden md:flex gap-10 items-center">
-            {NAV_LINKS.map((link) => (
+            {NAV_LINKS.map((link, i) => (
               <a
                 key={link.label}
                 href={link.href}
-                className={`font-headline font-medium text-lg transition-colors ${
+                className={`nav-item-animate font-headline font-medium text-lg transition-colors ${
                   link.active
                     ? "text-primary-container border-b-2 border-primary-container pb-1"
                     : "text-on-surface/70 hover:text-primary-container"
                 }`}
+                style={{ animationDelay: `${0.15 + i * 0.07}s` }}
               >
                 {link.label}
               </a>
             ))}
           </div>
 
-          <button className="bg-primary-container text-white px-8 py-3 rounded-xl font-medium hover:opacity-80 transition-opacity">
+          <button
+            className="nav-item-animate bg-primary-container text-white px-8 py-3 rounded-xl font-medium hover:opacity-80 transition-opacity"
+            style={{ animationDelay: "0.55s" }}
+          >
             Entre com Google
           </button>
         </nav>
