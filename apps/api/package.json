@@ -4,6 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
+    "build": "tsc -p tsconfig.json",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -11,7 +13,10 @@
   "license": "ISC",
   "packageManager": "pnpm@10.33.0",
   "dependencies": {
+    "@espoa/database": "workspace:*",
     "cors": "^2.8.6",
+    "dotenv": "^16.5.0",
+    "drizzle-orm": "^0.44.0",
     "express": "^5.2.1"
   },
   "devDependencies": {
