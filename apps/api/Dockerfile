@@ -5,18 +5,11 @@ RUN corepack enable
 
 WORKDIR /app
 
-# Copy workspace manifests for layer caching
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
-COPY apps/api/package.json ./apps/api/
-COPY packages/database/package.json ./packages/database/
+# Copy entire monorepo (respects .dockerignore)
+COPY . .
 
-# Install all workspace dependencies (scripts run manually below)
+# Install all workspace dependencies
 RUN pnpm install --frozen-lockfile --ignore-scripts
-
-# Copy source code
-COPY packages/database ./packages/database
-COPY apps/api/tsconfig.json ./apps/api/
-COPY apps/api/src ./apps/api/src
 
 # Build database package first (API depends on it at runtime)
 WORKDIR /app/packages/database
@@ -26,7 +19,7 @@ RUN pnpm run build
 WORKDIR /app/apps/api
 RUN pnpm run build
 
-# Create standalone production bundle (resolves workspace symlinks to real files)
+# Create standalone production bundle (resolves workspace symlinks)
 WORKDIR /app
 RUN pnpm --filter=api deploy --prod /prod/api
 
