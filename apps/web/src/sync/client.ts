@@ -2,7 +2,7 @@ import axios from "axios";
 import type { SyncRequestBody, SyncResponseBody } from "./types";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001",
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080",
   timeout: 10000,
 });
 
