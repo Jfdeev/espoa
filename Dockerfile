@@ -7,9 +7,6 @@ WORKDIR /app
 
 COPY . .
 
-# DEBUG: verificar o que chegou no container
-RUN echo "=== /app ===" && ls /app && echo "=== packages ===" && ls /app/packages 2>/dev/null || echo "packages/ NAO ENCONTRADO" && echo "=== apps ===" && ls /app/apps 2>/dev/null || echo "apps/ NAO ENCONTRADO"
-
 RUN pnpm install --ignore-scripts
 
 # Build database package first (API depends on it)
