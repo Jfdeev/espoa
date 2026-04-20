@@ -8,7 +8,7 @@ const DASHBOARD_IMG =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuATURYJwzmVAO-C1VjMWV-4lt8QQ9gJOSTWKxI9SmrUNkTDXtVMXv6rvSTLNfvY5PT8GzuX8JkMqsGS_ZHfVAA0Gg8Rk9p4ZKOST02_pqMsnus22NxXVDf55Dk4LCQGhvalQ-ZdhcbrkA2Qh2-0k2gowsO-QtFh0xJC_l6W6laYYZm36git9QEhjSfD3M_B2jhFX5WuXqz-64PORj7sW_ANbFNAem2H-fKR9QnX3_zHg5PESlRHmzmnYHMfvVE3Z98iez3X2VxFvO5f";
 
 const NAV_LINKS = [
-  { label: "Associação", href: "#associacao", active: true },
+  { label: "Associação", href: "#associacao" },
   { label: "Sobre", href: "#sobre" },
   { label: "Solução", href: "#solucao" },
   { label: "Funcionalidades", href: "#funcionalidades" },
@@ -89,45 +89,66 @@ const STEPS = [
 export default function LandingPage() {
   const scrollRef = useScrollReveal();
   const [scrolled, setScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState("#associacao");
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    const ids = NAV_LINKS.map((l) => l.href.slice(1));
+
+    const getActive = () => {
+      const scrollY = window.scrollY + 120; // offset for fixed navbar
+      let current = ids[0];
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el && el.offsetTop <= scrollY) current = id;
+      }
+      setScrolled(window.scrollY > 20);
+      setActiveSection(`#${current}`);
+    };
+
+    window.addEventListener("scroll", getActive, { passive: true });
+    getActive(); // run on mount
+    return () => window.removeEventListener("scroll", getActive);
   }, []);
 
   return (
     <div ref={scrollRef} className="font-body bg-background text-on-surface selection:bg-on-tertiary-container selection:text-white">
       {/* ─── HEADER ─── */}
       <header
-        className={`fixed top-0 w-full z-50 transition-all duration-300 ${
+        className={`nav-animate fixed top-0 w-full z-50 transition-all duration-300 ${
           scrolled
             ? "bg-background/90 header-scrolled"
             : "bg-background"
         }`}
       >
         <nav className="flex justify-between items-center h-20 px-6 md:px-12 w-full max-w-screen-2xl mx-auto">
-          <span className="font-headline text-2xl font-bold text-primary-container">
+          <span
+            className="nav-item-animate font-headline text-2xl font-bold text-primary-container"
+            style={{ animationDelay: "0.1s" }}
+          >
             Espoa
           </span>
 
           <div className="hidden md:flex gap-10 items-center">
-            {NAV_LINKS.map((link) => (
+            {NAV_LINKS.map((link, i) => (
               <a
                 key={link.label}
                 href={link.href}
-                className={`font-headline font-medium text-lg transition-colors ${
-                  link.active
+                className={`nav-item-animate font-headline font-medium text-lg transition-colors ${
+                  activeSection === link.href
                     ? "text-primary-container border-b-2 border-primary-container pb-1"
                     : "text-on-surface/70 hover:text-primary-container"
                 }`}
+                style={{ animationDelay: `${0.15 + i * 0.07}s` }}
               >
                 {link.label}
               </a>
             ))}
           </div>
 
-          <button className="bg-primary-container text-white px-8 py-3 rounded-xl font-medium hover:opacity-80 transition-opacity">
+          <button
+            className="nav-item-animate bg-primary-container text-white px-8 py-3 rounded-xl font-medium hover:opacity-80 transition-opacity"
+            style={{ animationDelay: "0.55s" }}
+          >
             Entre com Google
           </button>
         </nav>
@@ -135,7 +156,7 @@ export default function LandingPage() {
 
       <main>
         {/* ─── HERO ─── */}
-        <section className="deep-forest-gradient min-h-[870px] flex items-center relative overflow-hidden pt-20">
+        <section id="associacao" className="deep-forest-gradient min-h-[870px] flex items-center relative overflow-hidden pt-20">
           <div className="absolute inset-0 opacity-20">
             <img
               className="w-full h-full object-cover hero-bg-animate"
