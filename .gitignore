@@ -1,7 +1,10 @@
 node_modules
-dist
 build
 .env
 .turbo
 apps/*/.turbo
 .vercel
+
+# Ignore all dist except api bundle (pre-built for Railway deploy)
+dist
+!apps/api/dist/
