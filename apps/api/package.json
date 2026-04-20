@@ -13,7 +13,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@espoa/database": "workspace:*",
     "cors": "^2.8.6",
+    "dotenv": "^16.5.0",
+    "drizzle-orm": "^0.44.0",
     "express": "^5.2.1"
   },
   "devDependencies": {

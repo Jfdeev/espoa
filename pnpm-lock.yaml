@@ -18,9 +18,18 @@ importers:
 
   apps/api:
     dependencies:
+      '@espoa/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       cors:
         specifier: ^2.8.6
         version: 2.8.6
+      dotenv:
+        specifier: ^16.5.0
+        version: 16.6.1
+      drizzle-orm:
+        specifier: ^0.44.0
+        version: 0.44.7(@neondatabase/serverless@1.1.0)
       express:
         specifier: ^5.2.1
         version: 5.2.1

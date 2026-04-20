@@ -2,4 +2,6 @@ node_modules
 dist
 build
 .env
+.turbo
+apps/*/.turbo
 .vercel

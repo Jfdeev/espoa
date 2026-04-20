@@ -5,3 +5,4 @@ export { ata } from "./ata";
 export { producao } from "./producao";
 export { editalPnae } from "./edital-pnae";
 export { relatorioPnae } from "./relatorio-pnae";
+export { syncQueue } from "./sync-queue";
