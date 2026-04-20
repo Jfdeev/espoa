@@ -29,45 +29,50 @@ export async function applyPushOperations(
       continue;
     }
 
-    const inserted = await db
-      .insert(syncQueue)
-      .values({
-        operationId: op.operationId,
-        deviceId,
-        tableName: op.tableName,
-        recordId: op.recordId,
-        operation: op.operation,
-        payload: op.payload,
-      })
-      .onConflictDoNothing()
-      .returning({ id: syncQueue.id });
+    const processed = await db.transaction(async (tx) => {
+      const inserted = await tx
+        .insert(syncQueue)
+        .values({
+          operationId: op.operationId,
+          deviceId,
+          tableName: op.tableName,
+          recordId: op.recordId,
+          operation: op.operation,
+          payload: op.payload,
+        })
+        .onConflictDoNothing()
+        .returning({ id: syncQueue.id });
 
-    if (inserted.length === 0) {
+      if (inserted.length === 0) {
+        return false;
+      }
+
+      await applyOperation(tx, op);
+      return true;
+    });
+
+    if (processed) {
       ackedOperationIds.push(op.operationId);
-      continue;
     }
-
-    await applyOperation(op);
-    ackedOperationIds.push(op.operationId);
   }
 
   return ackedOperationIds;
 }
 
-async function applyOperation(op: PushOperation) {
+async function applyOperation(tx: any, op: PushOperation) {
   const table = syncTables[op.tableName] as any;
   const payload = normalizePayload(toCamelObject(op.payload));
   const now = new Date();
 
   if (op.operation === "delete") {
-    await db
+    await tx
       .update(table)
       .set({ deletedAt: now, updatedAt: now })
       .where(eq(table.id, op.recordId));
     return;
   }
 
-  await db
+  await tx
     .insert(table)
     .values(payload)
     .onConflictDoUpdate({
