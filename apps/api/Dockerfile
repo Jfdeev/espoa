@@ -9,7 +9,7 @@ WORKDIR /app
 COPY . .
 
 # Install all workspace dependencies
-RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN pnpm install --ignore-scripts
 
 # Build database package first (API depends on it at runtime)
 WORKDIR /app/packages/database
@@ -21,7 +21,7 @@ RUN pnpm run build
 
 # Create standalone production bundle (resolves workspace symlinks)
 WORKDIR /app
-RUN pnpm --filter=api deploy --prod /prod/api
+RUN pnpm --filter=api deploy --prod --legacy /prod/api
 
 # Production stage
 FROM node:22-alpine AS runner
