@@ -74,7 +74,7 @@ async function applyOperation(tx: any, op: PushOperation) {
 
   await tx
     .insert(table)
-    .values(payload)
+    .values({ ...payload, id: op.recordId, updatedAt: now })
     .onConflictDoUpdate({
       target: table.id,
       set: {
