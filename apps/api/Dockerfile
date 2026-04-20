@@ -8,6 +8,9 @@ WORKDIR /app
 # Copy entire monorepo (respects .dockerignore)
 COPY . .
 
+# DEBUG: verificar o que chegou no container
+RUN echo "=== /app ===" && ls /app && echo "=== /app/packages ===" && (ls /app/packages || echo "NAO ENCONTRADO")
+
 # Install all workspace dependencies
 RUN pnpm install --ignore-scripts
 
