@@ -9,7 +9,7 @@ WORKDIR /app
 COPY . .
 
 # Install all workspace dependencies
-RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN pnpm install --ignore-scripts
 
 # Build database package first (API depends on it at runtime)
 WORKDIR /app/packages/database
