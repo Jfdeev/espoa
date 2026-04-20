@@ -14,6 +14,7 @@
   "license": "ISC",
   "dependencies": {
     "@espoa/database": "workspace:*",
+    "@neondatabase/serverless": "^1.0.0",
     "cors": "^2.8.6",
     "dotenv": "^16.5.0",
     "drizzle-orm": "^0.44.0",
