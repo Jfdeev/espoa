@@ -4,6 +4,10 @@ import type { PulledRows, PushOperation, SyncTableName } from "./types";
 
 const LAST_PULL_CURSOR_KEY = "espoa.sync.lastPullCursor";
 
+type WritableSyncTable = {
+  put: (row: Record<string, unknown>) => Promise<unknown>;
+};
+
 const tableMap = {
   associado: db.associado,
   mensalidade: db.mensalidade,
@@ -96,7 +100,7 @@ async function applyPulledRows(pulled: PulledRows) {
       continue;
     }
 
-    const table = tableMap[tableName] as any;
+    const table = tableMap[tableName] as WritableSyncTable;
     for (const row of rows) {
       await table.put(row);
     }
