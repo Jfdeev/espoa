@@ -1,4 +1,4 @@
-export { associado } from "./associado";
+export { associado, associacao } from "./associado";
 export { mensalidade } from "./mensalidade";
 export { transacaoFinanceira } from "./transacao-financeira";
 export { ata } from "./ata";
