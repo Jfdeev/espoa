@@ -18,7 +18,7 @@ if (envPath) {
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
-    "DATABASE_URL is required. Set it in the project root .env file.",
+    "DATABASE_URL environment variable is required. Set it in your .env file (local) or in your deployment environment variables (Railway, etc.).",
   );
 }
 
