@@ -1,4 +1,4 @@
-''' 1   ''c 'c1 '1  C'''''c1    c'c'1   ''1 1   'cc''c''    'cachesimport { db } from "../database/db";
+import { db } from "../database/db";
 import type { Associado } from "../database/types";
 
 export type CreateAssociadoInput = Omit<

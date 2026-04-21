@@ -74,7 +74,7 @@ describe("transacaoRepository.delete (soft)", () => {
 describe("transacaoRepository.list", () => {
   it("returns only active records", async () => {
     await transacaoRepository.create({ ...baseTransacao, tipo: "despesa" });
-    const active = await transacaoRepository.create(baseTransacao);
+    await transacaoRepository.create(baseTransacao);
     await transacaoRepository.delete(
       (await transacaoRepository.list())[0].id!
     );

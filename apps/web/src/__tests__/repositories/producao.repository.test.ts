@@ -93,7 +93,7 @@ describe("producaoRepository.delete (soft)", () => {
 
 describe("producaoRepository.list", () => {
   it("returns only active records", async () => {
-    const a = await producaoRepository.create(base);
+    await producaoRepository.create(base);
     const b = await producaoRepository.create({ ...base, cultura: "Soja" });
     await producaoRepository.delete(b.id!);
 

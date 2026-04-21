@@ -92,7 +92,7 @@ describe("associadoRepository.delete (soft)", () => {
 
 describe("associadoRepository.list", () => {
   it("returns only non-deleted records", async () => {
-    const a = await associadoRepository.create({ ...base, nome: "A" });
+    await associadoRepository.create({ ...base, nome: "A" });
     const b = await associadoRepository.create({ ...base, nome: "B" });
     await associadoRepository.delete(b.id!);
 
