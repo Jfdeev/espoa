@@ -3,12 +3,12 @@
 **Created:** 2026-04-18
 **Milestone:** v1.0
 **Granularity:** Standard (7 phases)
-**Requirements:** 31 mapped
+**Requirements:** 34 mapped
 
 ## Phases
 
 - [ ] **Phase 1: Schema Migration + Shared Validation** — Fix currency types, add missing fields, unify client/server schemas via Zod
-- [ ] **Phase 2: Authentication + Profiles** — Google OAuth with offline session, role-based navigation (admin/agricultor)
+- [ ] **Phase 2: Authentication + Onboarding + Multi-Associação** — Login Google + email/senha (GCP Firebase Auth), seleção de papel, vínculo/criação de associação via shadcn, tabelas usuario/associacao/usuario_associacao, navegação role-based
 - [ ] **Phase 3: Core CRUD** — Offline-first CRUD for Associados, Mensalidades, Finanças, Atas, and Produção
 - [ ] **Phase 4: Sync Engine + API REST** — Batched push/pull sync with conflict resolution and full REST API
 - [ ] **Phase 5: Dashboard + Analytical Views** — Admin dashboard, financial analysis, production aggregates, member 360° view
@@ -28,15 +28,23 @@
   4. Zod schemas generated from Drizzle serve as single source of truth, with snake_case mapping for Dexie
 **Plans:** TBD
 
-### Phase 2: Authentication + Profiles
-**Goal:** Users can log in, stay authenticated offline, and see role-appropriate navigation
+### Phase 2: Authentication + Onboarding + Multi-Associação
+**Goal:** Usuários podem se autenticar (Google ou email/senha via Firebase Auth GCP), escolher seu papel, vincular-se a uma associação existente ou criar uma nova, e acessar navegação adequada ao seu role. Tabelas de usuário, associação e vínculo criadas no banco com migração Drizzle.
 **Depends on:** Phase 1
-**Requirements:** FUND-03, FUND-04
+**Requirements:** FUND-03, FUND-04, FUND-07, FUND-08, FUND-09
+**Note:** ⚠️ Esta fase REQUER INTERNET — depende de Firebase Auth (GCP) e Neon PostgreSQL
 **Success Criteria** (what must be TRUE):
-  1. User can log in with Google account and access the app
-  2. User can open the app offline after initial login and access all local data (30-day grace period)
-  3. Admin sees management navigation (side nav with all entity sections)
-  4. Farmer sees simplified navigation (bottom nav, personal data + transparency placeholders)
+  1. Usuário faz login via Google OAuth (Firebase Auth) e acessa o app
+  2. Usuário faz login convencional (email + senha) com cadastro, verificação de email e recuperação de senha
+  3. Pós-primeiro login, usuário vê tela de seleção de papel com dois cards: "Sou Associado" e "Sou Administrador de Associação"
+  4. **Fluxo Associado:** seleção de papel → Combobox (shadcn Command + Popover) para buscar associação por nome/município → solicitação de vínculo criada com status `pendente`
+  5. **Fluxo ADM:** seleção de papel → formulário de criação de associação (nome, CNPJ, município, UF, telefone, email) → associação criada e usuário vinculado como `adm` com status `ativo`
+  6. Tabelas `usuario`, `associacao` e `usuario_associacao` existem no Neon com campos corretos e migração Drizzle aplicada
+  7. Todas as tabelas de domínio têm FK `associacao_id` para row-level scoping
+  8. App abre offline após login inicial (JWT Firebase armazenado localmente, grâcia de 30 dias)
+  9. ADM autenticado vê side nav com todas as seções de gestão, scoped à associação ativa
+  10. Associado autenticado vê bottom nav simplificada com dados pessoais e placeholders de transparência
+  11. Usuário com múltiplos vínculos consegue alternar entre associações
 **Plans:** TBD
 **UI hint:** yes
 
@@ -108,7 +116,7 @@
 | Phase | Plans | Status | Completed |
 |-------|-------|--------|-----------|
 | 1. Schema Migration + Shared Validation | 0/? | Not started | — |
-| 2. Authentication + Profiles | 0/? | Not started | — |
+| 2. Authentication + Onboarding + Multi-Associação | 0/? | Not started | — |
 | 3. Core CRUD | 0/? | Not started | — |
 | 4. Sync Engine + API REST | 0/? | Not started | — |
 | 5. Dashboard + Analytical Views | 0/? | Not started | — |
@@ -125,6 +133,9 @@
 | FUND-04 | 2 |
 | FUND-05 | 4 |
 | FUND-06 | 4 |
+| FUND-07 | 2 |
+| FUND-08 | 2 |
+| FUND-09 | 2 |
 | ASSC-01 | 3 |
 | ASSC-02 | 3 |
 | ASSC-03 | 5 |
@@ -151,7 +162,8 @@
 | IA-02 | 7 |
 | IA-03 | 7 |
 
-**31/31 requirements mapped ✓ — No orphans**
+**34/34 requirements mapped ✓ — No orphans**
 
 ---
 *Created: 2026-04-18*
+*Last updated: 2026-04-20 — Phase 2 refinada com auth dual, onboarding, multi-associação*

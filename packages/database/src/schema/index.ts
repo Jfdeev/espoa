@@ -1,3 +1,6 @@
+export { usuario } from "./usuario";
+export { associacao } from "./associacao";
+export { usuarioAssociacao } from "./usuario-associacao";
 export { associado } from "./associado";
 export { mensalidade } from "./mensalidade";
 export { transacaoFinanceira } from "./transacao-financeira";
