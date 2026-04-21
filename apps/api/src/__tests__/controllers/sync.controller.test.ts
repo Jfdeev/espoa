@@ -1,12 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import request from "supertest";
-import { app } from "../../create-app";
 
-// Mock the entire service chain so @espoa/database is never loaded
+// Mock all services that import @espoa/database so it is never loaded
 vi.mock("../../services/sync.service", () => ({
   runSync: vi.fn(),
 }));
 
+vi.mock("../../services/associado.service", () => ({
+  createAssociado: vi.fn(),
+  listAssociados: vi.fn(),
+  getAssociado: vi.fn(),
+  updateAssociado: vi.fn(),
+  deleteAssociado: vi.fn(),
+}));
+
+vi.mock("../../services/associacao.service", () => ({
+  createAssociacao: vi.fn(),
+  listAssociacoes: vi.fn(),
+  getAssociacao: vi.fn(),
+  updateAssociacao: vi.fn(),
+  deleteAssociacao: vi.fn(),
+}));
+
+import { app } from "../../create-app";
 import { runSync } from "../../services/sync.service";
 
 const mockRunSync = vi.mocked(runSync);
@@ -15,6 +31,7 @@ const mockSyncResult = {
   ackedOperationIds: ["op-1"],
   pulled: {
     associado: [],
+    associacao: [],
     mensalidade: [],
     transacao_financeira: [],
     ata: [],
