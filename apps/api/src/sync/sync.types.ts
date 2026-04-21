@@ -1,5 +1,6 @@
 export const SYNC_TABLE_NAMES = [
   "associado",
+  "associacao",
   "mensalidade",
   "transacao_financeira",
   "ata",

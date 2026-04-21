@@ -1,5 +1,6 @@
 import {
   associado,
+  associacao,
   ata,
   mensalidade,
   producao,
@@ -9,6 +10,7 @@ import type { PulledRows, SyncTableName } from "./sync.types";
 
 export const syncTables = {
   associado,
+  associacao,
   mensalidade,
   transacao_financeira: transacaoFinanceira,
   ata,
@@ -20,6 +22,7 @@ export const syncTableNames = Object.keys(syncTables) as SyncTableName[];
 export function createEmptyPulledRows(): PulledRows {
   return {
     associado: [],
+    associacao: [],
     mensalidade: [],
     transacao_financeira: [],
     ata: [],
