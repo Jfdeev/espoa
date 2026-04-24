@@ -1,246 +1,330 @@
 import { useState } from "react";
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-  sendPasswordResetEmail,
-} from "firebase/auth";
-import { auth } from "@/lib/firebase";
 import api from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useNavigate, Link, Navigate } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
+import { resolverDestino } from "@/lib/utils";
 
 type Modo = "login" | "cadastro" | "recuperar";
 
-export default function LoginPage() {
-  const [modo, setModo] = useState<Modo>("login");
+// ─── Layout compartilhado ─────────────────────────────────────────────────────
+
+function LeftPanel() {
+  return (
+    <section className="hidden lg:flex w-1/2 relative overflow-hidden bg-[#01261f]">
+      <img
+        alt="Paisagem rural"
+        className="absolute inset-0 w-full h-full object-cover opacity-80"
+        src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYi6UyDdUb2KRVBV8Fze6bcC7xO3Pu6Shu9LyrDA0LSGtYSCMscp46MF6ptiTk3OkUpvn-mvwtHKZxyIVHZRRkbphplIknRubP0dJOyJnrNfYoyI80ze83tUf6SDcVRhxWRhth0ywgVCsaRftTZ64kvPsCvCrFsagf5Hz653EeyRbTszpI7Mj3PQuMqEhzBxBuoGhuFKnhr2CkNzYFrAHN8Pxikonlg0E9rfW4EF1Xv3rmdIerhIqf-TjI3hxK6jNG0m01rjPBIHWY"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#01261f]/80 to-transparent" />
+      <div className="relative z-10 flex flex-col justify-between p-16 w-full h-full text-white">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-3xl">park</span>
+            <span style={{ fontFamily: "Noto Serif, serif" }} className="text-2xl font-bold tracking-tight">Espoa</span>
+          </div>
+          <Link to="/" className="flex items-center gap-1 text-sm text-white bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition-colors font-medium">
+            <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+            Voltar ao site
+          </Link>
+        </div>
+        <div className="max-w-md">
+          <h1 style={{ fontFamily: "Noto Serif, serif" }} className="text-5xl leading-tight mb-6">
+            Cultivando o futuro da nossa comunidade rural.
+          </h1>
+          <p className="text-lg text-[#c5eadf] opacity-90 leading-relaxed">
+            Junte-se à Espoa para gerenciar sua propriedade com a tradição do campo e a tecnologia de hoje.
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-px bg-[#c5eadf]/30" />
+          <span className="text-xs uppercase tracking-[0.2em] text-[#c5eadf]/60">
+            Associação Rural Espoa
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MobileLogo() {
+  return (
+    <div className="lg:hidden flex items-center justify-between mb-8">
+      <div className="flex items-center gap-2">
+        <span className="material-symbols-outlined text-[#01261f]">park</span>
+        <span style={{ fontFamily: "Noto Serif, serif" }} className="text-xl font-bold text-[#01261f]">Espoa</span>
+      </div>
+      <Link to="/" className="flex items-center gap-1 text-sm text-[#01261f] bg-[#ebe8e3] hover:bg-[#dedad4] px-3 py-1.5 rounded-lg transition-colors font-medium">
+        <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+        Voltar ao site
+      </Link>
+    </div>
+  );
+}
+
+function PageFooter({ modo, setModo }: { modo: Modo; setModo: (m: Modo) => void }) {
+  return (
+    <footer className="mt-12 flex flex-col items-center gap-4">
+      {modo === "login" && (
+        <p className="text-[#414846]">
+          Não tem conta?{" "}
+          <button type="button" onClick={() => setModo("cadastro")} className="text-[#01261f] font-bold hover:underline">
+            Criar conta
+          </button>
+        </p>
+      )}
+      {(modo === "cadastro" || modo === "recuperar") && (
+        <p className="text-[#414846]">
+          Já possui uma conta?{" "}
+          <button type="button" onClick={() => setModo("login")} className="text-[#01261f] font-bold hover:underline">
+            Entrar
+          </button>
+        </p>
+      )}
+      <div className="w-full h-px bg-[#e5e2dd]" />
+      <div className="flex flex-wrap justify-center gap-6">
+        {["Privacidade", "Termos", "Suporte"].map((l) => (
+          <a key={l} href="#" className="text-[10px] uppercase tracking-widest text-[#414846]/60 hover:text-[#01261f] transition-colors">{l}</a>
+        ))}
+      </div>
+      <p className="text-[10px] uppercase tracking-widest text-[#414846]/40 mt-2">© 2025 Espoa Associação Rural</p>
+    </footer>
+  );
+}
+
+// ─── Input estilizado ─────────────────────────────────────────────────────────
+
+interface FieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label: string;
+  icon?: string;
+}
+
+function Field({ label, icon, id, ...props }: FieldProps) {
+  return (
+    <div className="flex flex-col gap-2">
+      <label htmlFor={id} className="text-xs font-semibold uppercase tracking-wider text-[#414846]">
+        {label}
+      </label>
+      <div className="relative">
+        {icon && (
+          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#414846]/60 text-[20px]">
+            {icon}
+          </span>
+        )}
+        <input
+          id={id}
+          className={`w-full py-4 rounded-xl border-none bg-[#ebe8e3] focus:outline-none focus:ring-2 focus:ring-[#1a3c34] transition-all placeholder:text-[#414846]/40 text-[#1c1c19] ${icon ? "pl-12 pr-4" : "px-4"}`}
+          {...props}
+        />
+      </div>
+    </div>
+  );
+}
+
+function SubmitButton({ loading, label }: { loading: boolean; label: string }) {
+  return (
+    <button
+      type="submit"
+      disabled={loading}
+      className="w-full py-4 px-8 bg-[#ee8428] text-white font-bold rounded-xl shadow-lg hover:opacity-90 active:scale-[0.98] transition-all flex justify-center items-center gap-3 disabled:opacity-60"
+    >
+      <span>{loading ? "Aguarde..." : label}</span>
+      {!loading && <span className="material-symbols-outlined text-xl">arrow_forward</span>}
+    </button>
+  );
+}
+
+// ─── Formulário de Login ──────────────────────────────────────────────────────
+
+function LoginForm({ setModo }: { setModo: (m: Modo) => void }) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [nome, setNome] = useState("");
   const [carregando, setCarregando] = useState(false);
   const navigate = useNavigate();
-  const setPerfil = useAuthStore((s) => s.setPerfil);
+  const setAuth = useAuthStore((s) => s.setAuth);
 
-  async function sincronizarUsuario(provider: "google" | "email", nomeOverride?: string) {
-    const { data } = await api.post("/auth/sync-user", {
-      nome: nomeOverride ?? email.split("@")[0],
-      authProvider: provider,
-      avatarUrl: auth.currentUser?.photoURL ?? undefined,
-    });
-    const me = await api.get("/auth/me");
-    setPerfil(me.data.usuario, me.data.vinculos);
-    return me.data.vinculos;
-  }
-
-  async function handleLoginEmail(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setCarregando(true);
     try {
-      await signInWithEmailAndPassword(auth, email, senha);
-      const vinculos = await sincronizarUsuario("email");
-      navigate(vinculos.length > 0 ? "/app" : "/onboarding");
+      const { data } = await api.post("/auth/login", { email, password: senha });
+      const me = await api.get("/auth/me", { headers: { Authorization: `Bearer ${data.token}` } });
+      setAuth(data.token, me.data.usuario, me.data.vinculos);
+      navigate(resolverDestino(me.data.vinculos));
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro ao fazer login";
-      toast.error(msg);
+      toast.error((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Credenciais inválidas");
     } finally {
       setCarregando(false);
     }
   }
 
-  async function handleCadastro(e: React.FormEvent) {
-    e.preventDefault();
+  const handleGoogle = async (credentialResponse: { credential?: string }) => {
+    if (!credentialResponse.credential) return;
     setCarregando(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, senha);
-      const vinculos = await sincronizarUsuario("email", nome);
-      navigate(vinculos.length > 0 ? "/app" : "/onboarding");
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro ao criar conta";
-      toast.error(msg);
+      const { data } = await api.post("/auth/google", { idToken: credentialResponse.credential });
+      const me = await api.get("/auth/me", { headers: { Authorization: `Bearer ${data.token}` } });
+      setAuth(data.token, me.data.usuario, me.data.vinculos);
+      navigate(resolverDestino(me.data.vinculos));
+    } catch {
+      toast.error("Erro ao fazer login com Google");
     } finally {
       setCarregando(false);
     }
-  }
+  };
 
-  async function handleGoogle() {
-    setCarregando(true);
-    try {
-      await signInWithPopup(auth, new GoogleAuthProvider());
-      const vinculos = await sincronizarUsuario("google", auth.currentUser?.displayName ?? undefined);
-      navigate(vinculos.length > 0 ? "/app" : "/onboarding");
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro ao entrar com Google";
-      toast.error(msg);
-    } finally {
-      setCarregando(false);
-    }
-  }
+  return (
+    <>
+      <header className="mb-12">
+        <MobileLogo />
+        <h2 style={{ fontFamily: "Noto Serif, serif" }} className="text-4xl text-[#01261f] mb-2">Entrar</h2>
+        <p className="text-[#414846]">Bem-vindo de volta. Acesse sua conta.</p>
+      </header>
+      <form onSubmit={handleSubmit} className="space-y-6 flex-grow">
+        <Field label="Email" id="email" type="email" icon="mail" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+        <Field label="Senha" id="senha" type="password" icon="lock" placeholder="••••••••" value={senha} onChange={(e) => setSenha(e.target.value)} required autoComplete="current-password" />
+        <div className="flex justify-end">
+          <button type="button" onClick={() => setModo("recuperar")} className="text-sm text-[#01261f] hover:underline font-medium">
+            Esqueci minha senha
+          </button>
+        </div>
+        <SubmitButton loading={carregando} label="Entrar" />
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-[#c1c8c4]" /></div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-[#fcf9f4] px-3 text-[#414846]/60">ou</span>
+          </div>
+        </div>
+        <div className="flex justify-center">
+          <GoogleLogin onSuccess={handleGoogle} onError={() => toast.error("Login com Google cancelado")} locale="pt-BR" useOneTap={false} />
+        </div>
+      </form>
+    </>
+  );
+}
 
-  async function handleRecuperar(e: React.FormEvent) {
+// ─── Formulário de Cadastro ───────────────────────────────────────────────────
+
+function CadastroForm() {
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [confirmar, setConfirmar] = useState("");
+  const [aceito, setAceito] = useState(false);
+  const [carregando, setCarregando] = useState(false);
+  const navigate = useNavigate();
+  const setAuth = useAuthStore((s) => s.setAuth);
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (senha !== confirmar) { toast.error("As senhas não coincidem"); return; }
+    if (!aceito) { toast.error("Aceite os Termos de Uso para continuar"); return; }
     setCarregando(true);
     try {
-      await sendPasswordResetEmail(auth, email);
-      toast.success("Email de recuperação enviado!");
-      setModo("login");
+      const { data } = await api.post("/auth/register", { nome, email, password: senha });
+      const me = await api.get("/auth/me", { headers: { Authorization: `Bearer ${data.token}` } });
+      setAuth(data.token, me.data.usuario, me.data.vinculos);
+      navigate(resolverDestino(me.data.vinculos));
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro ao enviar email";
-      toast.error(msg);
+      toast.error((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Erro ao criar conta");
     } finally {
       setCarregando(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
+    <>
+      <header className="mb-12">
+        <MobileLogo />
+        <h2 style={{ fontFamily: "Noto Serif, serif" }} className="text-4xl text-[#01261f] mb-2">Criar conta</h2>
+        <p className="text-[#414846]">Preencha os dados abaixo para iniciar sua jornada.</p>
+      </header>
+      <form onSubmit={handleSubmit} className="space-y-6 flex-grow">
+        <Field label="Nome" id="nome" type="text" placeholder="Seu nome completo" value={nome} onChange={(e) => setNome(e.target.value)} required autoComplete="name" />
+        <Field label="Email" id="email" type="email" icon="mail" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Field label="Senha" id="senha" type="password" placeholder="••••••••" value={senha} onChange={(e) => setSenha(e.target.value)} required minLength={8} autoComplete="new-password" />
+          <Field label="Confirmação de Senha" id="confirmar_senha" type="password" placeholder="••••••••" value={confirmar} onChange={(e) => setConfirmar(e.target.value)} required autoComplete="new-password" />
+        </div>
+        <div className="flex items-start gap-3 pt-2">
+          <input type="checkbox" id="terms" checked={aceito} onChange={(e) => setAceito(e.target.checked)} className="mt-1 w-5 h-5 rounded accent-[#ee8428]" />
+          <label htmlFor="terms" className="text-sm text-[#414846] leading-relaxed">
+            Eu li e concordo com os{" "}
+            <a href="#" className="text-[#01261f] font-semibold hover:underline">Termos de Uso</a>
+            {" "}e a{" "}
+            <a href="#" className="text-[#01261f] font-semibold hover:underline">Política de Privacidade</a>
+            {" "}da Espoa.
+          </label>
+        </div>
+        <div className="pt-2">
+          <SubmitButton loading={carregando} label="Criar Conta" />
+        </div>
+      </form>
+    </>
+  );
+}
+
+// ─── Formulário de Recuperação ────────────────────────────────────────────────
+
+function RecuperarForm({ setModo }: { setModo: (m: Modo) => void }) {
+  const [email, setEmail] = useState("");
+  const [carregando, setCarregando] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setCarregando(true);
+    try {
+      await api.post("/auth/forgot-password", { email });
+      toast.success("Se o e-mail estiver cadastrado, você receberá as instruções!");
+      setModo("login");
+    } catch {
+      toast.error("Erro ao enviar e-mail de recuperação");
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  return (
+    <>
+      <header className="mb-12">
+        <MobileLogo />
+        <h2 style={{ fontFamily: "Noto Serif, serif" }} className="text-4xl text-[#01261f] mb-2">Recuperar senha</h2>
+        <p className="text-[#414846]">Informe seu e-mail e enviaremos as instruções para redefinir sua senha.</p>
+      </header>
+      <form onSubmit={handleSubmit} className="space-y-6 flex-grow">
+        <Field label="Email" id="email-rec" type="email" icon="mail" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+        <SubmitButton loading={carregando} label="Enviar instruções" />
+      </form>
+    </>
+  );
+}
+
+// ─── Página principal ─────────────────────────────────────────────────────────
+
+export default function LoginPage() {
+  const [modo, setModo] = useState<Modo>("login");
+  const token = useAuthStore((s) => s.token);
+  const vinculos = useAuthStore((s) => s.vinculos);
+
+  if (token) {
+    return <Navigate to={resolverDestino(vinculos)} replace />;
+  }
+
+  return (
+    <main className="flex min-h-screen bg-[#fcf9f4] text-[#1c1c19]">
       <Toaster />
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Espoa</CardTitle>
-          <CardDescription>
-            {modo === "login" && "Entre na sua conta"}
-            {modo === "cadastro" && "Crie sua conta"}
-            {modo === "recuperar" && "Recuperar senha"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {modo !== "recuperar" && (
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={handleGoogle}
-              disabled={carregando}
-            >
-              <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  fill="#EA4335"
-                />
-              </svg>
-              Entrar com Google
-            </Button>
-          )}
-
-          {modo !== "recuperar" && (
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">ou</span>
-              </div>
-            </div>
-          )}
-
-          <form
-            onSubmit={
-              modo === "login"
-                ? handleLoginEmail
-                : modo === "cadastro"
-                  ? handleCadastro
-                  : handleRecuperar
-            }
-            className="space-y-3"
-          >
-            {modo === "cadastro" && (
-              <div className="space-y-1">
-                <Label htmlFor="nome">Nome</Label>
-                <Input
-                  id="nome"
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  placeholder="Seu nome completo"
-                  required
-                />
-              </div>
-            )}
-            <div className="space-y-1">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu@email.com"
-                required
-              />
-            </div>
-            {modo !== "recuperar" && (
-              <div className="space-y-1">
-                <Label htmlFor="senha">Senha</Label>
-                <Input
-                  id="senha"
-                  type="password"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  minLength={6}
-                />
-              </div>
-            )}
-            <Button type="submit" className="w-full" disabled={carregando}>
-              {carregando
-                ? "Aguarde..."
-                : modo === "login"
-                  ? "Entrar"
-                  : modo === "cadastro"
-                    ? "Criar conta"
-                    : "Enviar email de recuperação"}
-            </Button>
-          </form>
-
-          <div className="text-center text-sm space-y-1">
-            {modo === "login" && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setModo("recuperar")}
-                  className="text-muted-foreground hover:underline block w-full"
-                >
-                  Esqueci minha senha
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setModo("cadastro")}
-                  className="text-primary hover:underline block w-full"
-                >
-                  Não tem conta? Cadastre-se
-                </button>
-              </>
-            )}
-            {(modo === "cadastro" || modo === "recuperar") && (
-              <button
-                type="button"
-                onClick={() => setModo("login")}
-                className="text-primary hover:underline"
-              >
-                Voltar para o login
-              </button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+      <LeftPanel />
+      <section className="w-full lg:w-1/2 flex flex-col bg-[#fcf9f4] overflow-y-auto">
+        <div className="max-w-xl mx-auto w-full px-8 py-12 flex flex-col min-h-full">
+          {modo === "login" && <LoginForm setModo={setModo} />}
+          {modo === "cadastro" && <CadastroForm />}
+          {modo === "recuperar" && <RecuperarForm setModo={setModo} />}
+          <PageFooter modo={modo} setModo={setModo} />
+        </div>
+      </section>
+    </main>
   );
 }

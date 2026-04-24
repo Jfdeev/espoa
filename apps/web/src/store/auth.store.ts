@@ -3,11 +3,12 @@ import { persist } from "zustand/middleware";
 import type { UsuarioPerfil, UsuarioVinculo } from "../types/auth";
 
 interface AuthState {
+  token: string | null;
   perfil: UsuarioPerfil | null;
   vinculos: UsuarioVinculo[];
   associacaoAtiva: UsuarioVinculo | null;
-  carregando: boolean;
 
+  setAuth: (token: string, perfil: UsuarioPerfil, vinculos: UsuarioVinculo[]) => void;
   setPerfil: (perfil: UsuarioPerfil, vinculos: UsuarioVinculo[]) => void;
   setAssociacaoAtiva: (vinculo: UsuarioVinculo) => void;
   limpar: () => void;
@@ -16,10 +17,16 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
+      token: null,
       perfil: null,
       vinculos: [],
       associacaoAtiva: null,
-      carregando: false,
+
+      setAuth: (token, perfil, vinculos) => {
+        localStorage.setItem("espoa-token", token);
+        const ativa = vinculos.find((v) => v.status === "ativo") ?? null;
+        set({ token, perfil, vinculos, associacaoAtiva: ativa });
+      },
 
       setPerfil: (perfil, vinculos) => {
         const ativa = vinculos.find((v) => v.status === "ativo") ?? null;
@@ -28,8 +35,10 @@ export const useAuthStore = create<AuthState>()(
 
       setAssociacaoAtiva: (vinculo) => set({ associacaoAtiva: vinculo }),
 
-      limpar: () =>
-        set({ perfil: null, vinculos: [], associacaoAtiva: null }),
+      limpar: () => {
+        localStorage.removeItem("espoa-token");
+        set({ token: null, perfil: null, vinculos: [], associacaoAtiva: null });
+      },
     }),
     { name: "espoa-auth" },
   ),

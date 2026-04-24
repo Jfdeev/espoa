@@ -10,10 +10,11 @@ export interface UsuarioVinculo {
 
 export interface UsuarioPerfil {
   id: string;
-  firebaseUid: string;
   email: string;
   nome: string;
   telefone?: string;
   avatarUrl?: string;
   authProvider: "google" | "email";
+  emailVerified: boolean;
+  googleId?: string | null;
 }

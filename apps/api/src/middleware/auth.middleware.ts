@@ -1,8 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
-import { firebaseAuth } from "../lib/firebase-admin";
+import { verifyToken } from "../lib/jwt";
 
 export interface AuthenticatedRequest extends Request {
-  uid?: string;
+  userId?: string;
   email?: string;
 }
 
@@ -19,9 +19,9 @@ export async function requireAuth(
 
   const token = authHeader.split("Bearer ")[1];
   try {
-    const decoded = await firebaseAuth.verifyIdToken(token);
-    req.uid = decoded.uid;
-    req.email = decoded.email;
+    const payload = verifyToken(token);
+    req.userId = payload.sub;
+    req.email = payload.email;
     next();
   } catch {
     res.status(401).json({ error: "Token inválido ou expirado" });

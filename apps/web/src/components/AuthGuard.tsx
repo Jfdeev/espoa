@@ -1,32 +1,33 @@
 import { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 import api from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 
 export default function AuthGuard() {
   const [verificando, setVerificando] = useState(true);
-  const [autenticado, setAutenticado] = useState(false);
-  const setPerfil = useAuthStore((s) => s.setPerfil);
+  const { token, perfil, setPerfil, limpar } = useAuthStore();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const me = await api.get("/auth/me");
-          setPerfil(me.data.usuario, me.data.vinculos);
-          setAutenticado(true);
-        } catch {
-          setAutenticado(false);
-        }
-      } else {
-        setAutenticado(false);
-      }
+    if (!token) {
       setVerificando(false);
-    });
-    return () => unsubscribe();
-  }, [setPerfil]);
+      return;
+    }
+    // Se já tem perfil em cache, não bater na API a cada navegação
+    if (perfil) {
+      setVerificando(false);
+      return;
+    }
+    api
+      .get("/auth/me")
+      .then(({ data }) => {
+        setPerfil(data.usuario, data.vinculos);
+        setVerificando(false);
+      })
+      .catch(() => {
+        limpar();
+        setVerificando(false);
+      });
+  }, [token, perfil, setPerfil, limpar]);
 
   if (verificando) {
     return (
@@ -36,5 +37,5 @@ export default function AuthGuard() {
     );
   }
 
-  return autenticado ? <Outlet /> : <Navigate to="/login" replace />;
+  return token ? <Outlet /> : <Navigate to="/login" replace />;
 }
