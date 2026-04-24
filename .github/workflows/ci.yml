@@ -37,5 +37,8 @@ jobs:
       - name: Build all
         run: pnpm turbo run build
 
-      # - name: Test
-      #   run: pnpm turbo run test
+      - name: Test (api)
+        run: pnpm --filter api test
+
+      - name: Test (web)
+        run: pnpm --filter web test
