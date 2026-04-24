@@ -7,6 +7,7 @@ export default defineConfig({
     include: ["src/**/*.test.ts"],
     env: {
       JWT_SECRET: "test-secret-for-vitest",
+      DATABASE_URL: "postgresql://test:test@localhost/test",
     },
     coverage: {
       provider: "v8",
