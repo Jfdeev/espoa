@@ -4,19 +4,11 @@ import api from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 
 export default function AuthGuard() {
-  const [verificando, setVerificando] = useState(true);
   const { token, perfil, setPerfil, limpar } = useAuthStore();
+  const [verificando, setVerificando] = useState(() => !!token && !perfil);
 
   useEffect(() => {
-    if (!token) {
-      setVerificando(false);
-      return;
-    }
-    // Se já tem perfil em cache, não bater na API a cada navegação
-    if (perfil) {
-      setVerificando(false);
-      return;
-    }
+    if (!token || perfil) return;
     api
       .get("/auth/me")
       .then(({ data }) => {

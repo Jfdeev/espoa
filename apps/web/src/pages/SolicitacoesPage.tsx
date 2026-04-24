@@ -95,8 +95,18 @@ export default function SolicitacoesPage() {
   const navigate = useNavigate();
 
   const primeiroNome = perfil?.nome?.split(" ")[0] ?? "usuário";
-  const pendentes = vinculos.filter((v) => v.status === "pendente");
-  const temAtivo = vinculos.some((v) => v.status === "ativo");
+
+  const statusMessage = (() => {
+    const temAtivo = vinculos.some((v) => v.status === "ativo");
+    const pendentes = vinculos.filter((v) => v.status === "pendente");
+    if (temAtivo) return "Você já tem acesso ativo a uma associação.";
+    if (pendentes.length > 0) {
+      return pendentes.length === 1
+        ? "Sua solicitação está sendo analisada. Você receberá acesso assim que um administrador aprovar."
+        : `Você tem ${pendentes.length} solicitações em análise. Você receberá acesso assim que um administrador aprovar.`;
+    }
+    return "Nenhuma solicitação pendente. Solicite acesso a uma associação abaixo.";
+  })();
 
   function sair() {
     limpar();
