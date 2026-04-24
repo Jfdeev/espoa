@@ -199,7 +199,7 @@ function LoginForm({ setModo }: Readonly<{ setModo: (m: Modo) => void }>) {
           </div>
         </div>
         <div className="flex justify-center">
-          <GoogleLogin onSuccess={handleGoogle} onError={() => toast.error("Login com Google cancelado")} locale="pt-BR" useOneTap={false} />
+          <GoogleLogin onSuccess={handleGoogle} onError={() => toast.error("Login com Google cancelado")} useOneTap={false} />
         </div>
       </form>
     </>
