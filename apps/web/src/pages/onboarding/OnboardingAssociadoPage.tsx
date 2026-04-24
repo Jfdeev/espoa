@@ -12,7 +12,7 @@ interface AssocacaoBusca {
   estado: string;
 }
 
-function OnboardingLayout({ children }: { children: React.ReactNode }) {
+function OnboardingLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <main className="min-h-screen bg-[#fcf9f4] text-[#1c1c19] flex flex-col">
       <Toaster />
@@ -112,7 +112,7 @@ export default function OnboardingAssociadoPage() {
         {/* Header */}
         <div className="space-y-3">
           <button type="button" onClick={() => navigate("/onboarding")} className="flex items-center gap-1 text-sm text-[#414846] hover:text-[#01261f] transition-colors">
-            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>{" "}
             Voltar
           </button>
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#1a3c34]">

@@ -17,7 +17,7 @@ const STATUS_CONFIG: Record<
 
 // ─── Card de vínculo ──────────────────────────────────────────────────────────
 
-function VinculoCard({ v }: { v: UsuarioVinculo }) {
+function VinculoCard({ v }: Readonly<{ v: UsuarioVinculo }>) {
   const navigate = useNavigate();
   const cfg = STATUS_CONFIG[v.status];
 
@@ -120,7 +120,7 @@ export default function SolicitacoesPage() {
           onClick={sair}
           className="text-sm text-[#414846] hover:text-[#01261f] flex items-center gap-1 transition-colors"
         >
-          <span className="material-symbols-outlined text-[18px]">logout</span>
+          <span className="material-symbols-outlined text-[18px]">logout</span>{" "}
           Sair
         </button>
       </header>
@@ -138,21 +138,7 @@ export default function SolicitacoesPage() {
             >
               Suas solicitações
             </h1>
-            {temAtivo ? (
-              <p className="text-[#414846] leading-relaxed">
-                Você já tem acesso ativo a uma associação.
-              </p>
-            ) : pendentes.length > 0 ? (
-              <p className="text-[#414846] leading-relaxed">
-                {pendentes.length === 1
-                  ? "Sua solicitação está sendo analisada. Você receberá acesso assim que um administrador aprovar."
-                  : `Você tem ${pendentes.length} solicitações em análise. Você receberá acesso assim que um administrador aprovar.`}
-              </p>
-            ) : (
-              <p className="text-[#414846] leading-relaxed">
-                Nenhuma solicitação pendente. Solicite acesso a uma associação abaixo.
-              </p>
-            )}
+            <p className="text-[#414846] leading-relaxed">{statusMessage}</p>
           </div>
 
           {/* Cards */}
@@ -170,7 +156,7 @@ export default function SolicitacoesPage() {
             onClick={() => navigate("/onboarding")}
             className="w-full py-4 border-2 border-dashed border-[#c1c8c4] rounded-2xl text-[#414846] hover:border-[#01261f] hover:text-[#01261f] transition-all flex items-center justify-center gap-2 font-semibold"
           >
-            <span className="material-symbols-outlined">add</span>
+            <span className="material-symbols-outlined">add</span>{" "}
             Solicitar acesso a outra associação
           </button>
         </div>

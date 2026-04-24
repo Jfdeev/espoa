@@ -3,8 +3,8 @@
 require("dotenv").config({ path: "../../.env" });
 
 const { neon } = require("@neondatabase/serverless");
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const sql = neon(process.env.DATABASE_URL);
 

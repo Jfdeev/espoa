@@ -5,8 +5,8 @@
  */
 import { config } from "dotenv";
 import { neon } from "@neondatabase/serverless";
-import { readFileSync, readdirSync } from "fs";
-import { join } from "path";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 
 config({ path: "../../.env" });
 

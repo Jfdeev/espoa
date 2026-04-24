@@ -1,8 +1,7 @@
-import { db } from "@espoa/database";
-import { usuario, associacao, usuarioAssociacao } from "@espoa/database";
+import { db, usuario, associacao, usuarioAssociacao } from "@espoa/database";
 import { and, eq, ilike, or } from "drizzle-orm";
 import bcryptjs from "bcryptjs";
-import { randomBytes } from "crypto";
+import { randomBytes } from "node:crypto";
 import { signToken } from "../lib/jwt";
 import type { AuthenticatedRequest } from "../middleware/auth.middleware";
 import type { Request, Response } from "express";
@@ -57,7 +56,7 @@ export async function register(req: Request, res: Response) {
     })
     .returning();
 
-  // TODO: enviar e-mail de verificação com verificationToken
+  // PENDING: enviar e-mail de verificação com verificationToken
   // await sendVerificationEmail(created.email, verificationToken);
 
   const token = signToken({ sub: created.id, email: created.email });
@@ -75,7 +74,7 @@ export async function login(req: Request, res: Response) {
   }
 
   const [user] = await getUserByEmail(email.toLowerCase().trim());
-  if (!user || !user.passwordHash) {
+  if (!user?.passwordHash) {
     res.status(401).json({ error: "Credenciais inválidas" });
     return;
   }
@@ -192,7 +191,7 @@ export async function forgotPassword(req: Request, res: Response) {
     .set({ resetToken, resetTokenExpiresAt })
     .where(eq(usuario.id, user.id));
 
-  // TODO: await sendPasswordResetEmail(user.email, resetToken);
+  // PENDING: await sendPasswordResetEmail(user.email, resetToken);
 
   res.json({ message: "Se o e-mail estiver cadastrado, você receberá as instruções" });
 }
@@ -217,7 +216,7 @@ export async function resetPassword(req: Request, res: Response) {
     .where(eq(usuario.resetToken, token))
     .limit(1);
 
-  if (!user || !user.resetTokenExpiresAt || user.resetTokenExpiresAt < new Date()) {
+  if (!user?.resetTokenExpiresAt || user.resetTokenExpiresAt < new Date()) {
     res.status(400).json({ error: "Token inválido ou expirado" });
     return;
   }
@@ -408,7 +407,7 @@ export async function gerenciarVinculo(req: AuthenticatedRequest, res: Response)
     )
     .limit(1);
 
-  if (!vinculoAdm || vinculoAdm.role !== "adm" || vinculoAdm.status !== "ativo") {
+  if (vinculoAdm?.role !== "adm" || vinculoAdm?.status !== "ativo") {
     res.status(403).json({ error: "Sem permissão para gerenciar esta associação" });
     return;
   }

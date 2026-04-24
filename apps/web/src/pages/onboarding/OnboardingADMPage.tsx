@@ -15,7 +15,7 @@ const ESTADOS_BR = [
 
 function formatarCNPJ(v: string) {
   return v
-    .replace(/\D/g, "")
+    .replaceAll(/\D/g, "")
     .replace(/^(\d{2})(\d)/, "$1.$2")
     .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
     .replace(/\.(\d{3})(\d)/, ".$1/$2")
@@ -40,7 +40,7 @@ interface FieldProps {
   children: React.ReactNode;
 }
 
-function FormField({ label, error, children }: FieldProps) {
+function FormField({ label, error, children }: Readonly<FieldProps>) {
   return (
     <div className="flex flex-col gap-2">
       <label className="text-xs font-semibold uppercase tracking-wider text-[#414846]">{label}</label>
@@ -63,7 +63,7 @@ interface AssociacaoBusca {
 
 // ─── Layout compartilhado ─────────────────────────────────────────────────────
 
-function PageLayout({ children, onBack }: { children: React.ReactNode; onBack: () => void }) {
+function PageLayout({ children, onBack }: Readonly<{ children: React.ReactNode; onBack: () => void }>) {
   return (
     <main className="min-h-screen bg-[#fcf9f4] text-[#1c1c19] flex flex-col">
       <Toaster />
@@ -74,7 +74,7 @@ function PageLayout({ children, onBack }: { children: React.ReactNode; onBack: (
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-16">
         <div className="w-full max-w-lg space-y-8">
           <button type="button" onClick={onBack} className="flex items-center gap-1 text-sm text-[#414846] hover:text-[#01261f] transition-colors">
-            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>{" "}
             Voltar
           </button>
           {children}
@@ -86,7 +86,7 @@ function PageLayout({ children, onBack }: { children: React.ReactNode; onBack: (
 
 // ─── Tela de escolha ─────────────────────────────────────────────────────────
 
-function EscolhaView({ onEscolher }: { onEscolher: (opcao: "criar" | "entrar") => void }) {
+function EscolhaView({ onEscolher }: Readonly<{ onEscolher: (opcao: "criar" | "entrar") => void }>) {
   const navigate = useNavigate();
   return (
     <PageLayout onBack={() => navigate("/onboarding")}>
@@ -133,7 +133,7 @@ function EscolhaView({ onEscolher }: { onEscolher: (opcao: "criar" | "entrar") =
 
 // ─── Entrar como ADM em associação existente ──────────────────────────────────
 
-function EntrarView({ onVoltar }: { onVoltar: () => void }) {
+function EntrarView({ onVoltar }: Readonly<{ onVoltar: () => void }>) {
   const [busca, setBusca] = useState("");
   const [opcoes, setOpcoes] = useState<AssociacaoBusca[]>([]);
   const [selecionada, setSelecionada] = useState<AssociacaoBusca | null>(null);
@@ -279,7 +279,7 @@ function EntrarView({ onVoltar }: { onVoltar: () => void }) {
 
 // ─── Criar associação ─────────────────────────────────────────────────────────
 
-function CriarView({ onVoltar }: { onVoltar: () => void }) {
+function CriarView({ onVoltar }: Readonly<{ onVoltar: () => void }>) {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FormData>({
     resolver: zodResolver(schema),
   });

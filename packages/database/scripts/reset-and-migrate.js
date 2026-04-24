@@ -1,14 +1,14 @@
 // Reset falsos registros de migração e reaplicar corretamente
 require("dotenv").config({ path: "../../.env" });
 const { neon } = require("@neondatabase/serverless");
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const sql = neon(process.env.DATABASE_URL);
 
 // Chamar neon com sql.query() executa SQL raw sem template literals
 async function execSQL(stmt) {
-  if (!stmt || !stmt.trim()) return;
+  if (!stmt?.trim()) return;
   return sql.query(stmt, []);
 }
 

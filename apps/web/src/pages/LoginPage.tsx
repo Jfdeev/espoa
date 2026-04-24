@@ -27,7 +27,7 @@ function LeftPanel() {
             <span style={{ fontFamily: "Noto Serif, serif" }} className="text-2xl font-bold tracking-tight">Espoa</span>
           </div>
           <Link to="/" className="flex items-center gap-1 text-sm text-white bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition-colors font-medium">
-            <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+            <span className="material-symbols-outlined text-[16px]">arrow_back</span>{" "}
             Voltar ao site
           </Link>
         </div>
@@ -58,14 +58,14 @@ function MobileLogo() {
         <span style={{ fontFamily: "Noto Serif, serif" }} className="text-xl font-bold text-[#01261f]">Espoa</span>
       </div>
       <Link to="/" className="flex items-center gap-1 text-sm text-[#01261f] bg-[#ebe8e3] hover:bg-[#dedad4] px-3 py-1.5 rounded-lg transition-colors font-medium">
-        <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+        <span className="material-symbols-outlined text-[16px]">arrow_back</span>{" "}
         Voltar ao site
       </Link>
     </div>
   );
 }
 
-function PageFooter({ modo, setModo }: { modo: Modo; setModo: (m: Modo) => void }) {
+function PageFooter({ modo, setModo }: Readonly<{ modo: Modo; setModo: (m: Modo) => void }>) {
   return (
     <footer className="mt-12 flex flex-col items-center gap-4">
       {modo === "login" && (
@@ -87,7 +87,7 @@ function PageFooter({ modo, setModo }: { modo: Modo; setModo: (m: Modo) => void 
       <div className="w-full h-px bg-[#e5e2dd]" />
       <div className="flex flex-wrap justify-center gap-6">
         {["Privacidade", "Termos", "Suporte"].map((l) => (
-          <a key={l} href="#" className="text-[10px] uppercase tracking-widest text-[#414846]/60 hover:text-[#01261f] transition-colors">{l}</a>
+          <a key={l} href={`/${l.toLowerCase()}`} className="text-[10px] uppercase tracking-widest text-[#414846]/60 hover:text-[#01261f] transition-colors">{l}</a>
         ))}
       </div>
       <p className="text-[10px] uppercase tracking-widest text-[#414846]/40 mt-2">© 2025 Espoa Associação Rural</p>
@@ -102,7 +102,7 @@ interface FieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
   icon?: string;
 }
 
-function Field({ label, icon, id, ...props }: FieldProps) {
+function Field({ label, icon, id, ...props }: Readonly<FieldProps>) {
   return (
     <div className="flex flex-col gap-2">
       <label htmlFor={id} className="text-xs font-semibold uppercase tracking-wider text-[#414846]">
@@ -124,7 +124,7 @@ function Field({ label, icon, id, ...props }: FieldProps) {
   );
 }
 
-function SubmitButton({ loading, label }: { loading: boolean; label: string }) {
+function SubmitButton({ loading, label }: Readonly<{ loading: boolean; label: string }>) {
   return (
     <button
       type="submit"
@@ -139,7 +139,7 @@ function SubmitButton({ loading, label }: { loading: boolean; label: string }) {
 
 // ─── Formulário de Login ──────────────────────────────────────────────────────
 
-function LoginForm({ setModo }: { setModo: (m: Modo) => void }) {
+function LoginForm({ setModo }: Readonly<{ setModo: (m: Modo) => void }>) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [carregando, setCarregando] = useState(false);
@@ -253,9 +253,9 @@ function CadastroForm() {
           <input type="checkbox" id="terms" checked={aceito} onChange={(e) => setAceito(e.target.checked)} className="mt-1 w-5 h-5 rounded accent-[#ee8428]" />
           <label htmlFor="terms" className="text-sm text-[#414846] leading-relaxed">
             Eu li e concordo com os{" "}
-            <a href="#" className="text-[#01261f] font-semibold hover:underline">Termos de Uso</a>
+            <a href="/termos" className="text-[#01261f] font-semibold hover:underline">Termos de Uso</a>
             {" "}e a{" "}
-            <a href="#" className="text-[#01261f] font-semibold hover:underline">Política de Privacidade</a>
+            <a href="/privacidade" className="text-[#01261f] font-semibold hover:underline">Política de Privacidade</a>
             {" "}da Espoa.
           </label>
         </div>
@@ -269,7 +269,7 @@ function CadastroForm() {
 
 // ─── Formulário de Recuperação ────────────────────────────────────────────────
 
-function RecuperarForm({ setModo }: { setModo: (m: Modo) => void }) {
+function RecuperarForm({ setModo }: Readonly<{ setModo: (m: Modo) => void }>) {
   const [email, setEmail] = useState("");
   const [carregando, setCarregando] = useState(false);
 

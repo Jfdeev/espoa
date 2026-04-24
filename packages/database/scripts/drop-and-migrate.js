@@ -1,13 +1,13 @@
 // Drop all tables and reapply all migrations from scratch
 require("dotenv").config({ path: "../../.env" });
 const { neon } = require("@neondatabase/serverless");
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const sql = neon(process.env.DATABASE_URL);
 
 async function execSQL(stmt) {
-  if (!stmt || !stmt.trim()) return;
+  if (!stmt?.trim()) return;
   return sql.query(stmt, []);
 }
 
