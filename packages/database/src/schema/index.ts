@@ -1,4 +1,7 @@
-export { associado, associacao } from "./associado";
+export { usuario } from "./usuario";
+export { associacao } from "./associacao";
+export { usuarioAssociacao } from "./usuario-associacao";
+export { associado } from "./associado";
 export { mensalidade } from "./mensalidade";
 export { transacaoFinanceira } from "./transacao-financeira";
 export { ata } from "./ata";

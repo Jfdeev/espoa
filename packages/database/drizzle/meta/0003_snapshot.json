@@ -1,6 +1,6 @@
 {
-  "id": "c25469b0-3f6a-4590-ad57-97af1a3327d7",
-  "prevId": "80fb201a-7a8a-4d11-b64f-11df108fc253",
+  "id": "ba419298-033d-450f-a331-9337733767ed",
+  "prevId": "c25469b0-3f6a-4590-ad57-97af1a3327d7",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -768,7 +768,7 @@
         "id": {
           "name": "id",
           "type": "uuid",
-          "primaryKey": false,
+          "primaryKey": true,
           "notNull": true,
           "default": "gen_random_uuid()"
         },
@@ -841,15 +841,7 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {
-        "usuario_associacao_usuario_id_associacao_id_pk": {
-          "name": "usuario_associacao_usuario_id_associacao_id_pk",
-          "columns": [
-            "usuario_id",
-            "associacao_id"
-          ]
-        }
-      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},

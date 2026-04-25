@@ -1,6 +1,6 @@
 {
-  "id": "c25469b0-3f6a-4590-ad57-97af1a3327d7",
-  "prevId": "80fb201a-7a8a-4d11-b64f-11df108fc253",
+  "id": "98617826-124f-4b83-8610-ee6cea5b4e1b",
+  "prevId": "ba419298-033d-450f-a331-9337733767ed",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -686,12 +686,6 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "firebase_uid": {
-          "name": "firebase_uid",
-          "type": "varchar(128)",
-          "primaryKey": false,
-          "notNull": true
-        },
         "email": {
           "name": "email",
           "type": "varchar(255)",
@@ -723,6 +717,43 @@
           "notNull": true,
           "default": "'email'"
         },
+        "google_id": {
+          "name": "google_id",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email_verified": {
+          "name": "email_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "verification_token": {
+          "name": "verification_token",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reset_token": {
+          "name": "reset_token",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reset_token_expires_at": {
+          "name": "reset_token_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -742,18 +773,18 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "usuario_firebase_uid_unique": {
-          "name": "usuario_firebase_uid_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "firebase_uid"
-          ]
-        },
         "usuario_email_unique": {
           "name": "usuario_email_unique",
           "nullsNotDistinct": false,
           "columns": [
             "email"
+          ]
+        },
+        "usuario_google_id_unique": {
+          "name": "usuario_google_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "google_id"
           ]
         }
       },
@@ -768,7 +799,7 @@
         "id": {
           "name": "id",
           "type": "uuid",
-          "primaryKey": false,
+          "primaryKey": true,
           "notNull": true,
           "default": "gen_random_uuid()"
         },
@@ -841,15 +872,7 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {
-        "usuario_associacao_usuario_id_associacao_id_pk": {
-          "name": "usuario_associacao_usuario_id_associacao_id_pk",
-          "columns": [
-            "usuario_id",
-            "associacao_id"
-          ]
-        }
-      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},

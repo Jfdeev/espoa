@@ -29,7 +29,10 @@ Associações rurais conseguem gerir seus associados, finanças e produção de 
 - [ ] Visualização de editais PNAE e preparação de dados para participação
 - [ ] Relatórios PNAE com dados consolidados
 - [ ] Dashboard administrativo com visão geral da associação
-- [ ] Autenticação via Google (OAuth)
+- [ ] Autenticação dual: Google OAuth + email/senha via Firebase Auth (GCP)
+- [ ] Onboarding pós-login: seleção de papel, vínculo ou criação de associação
+- [ ] Modelagem multi-associação: tabelas usuario, associacao, usuario_associacao + FK associacao_id em todas as entidades
+- [ ] Suporte a múltiplas associações por usuário com alternância e scoping
 - [ ] Sincronização offline→online (sync queue, conflict resolution)
 - [ ] API REST completa para todas as entidades
 - [ ] Transparência: membros podem visualizar finanças e atas da associação
@@ -41,16 +44,18 @@ Associações rurais conseguem gerir seus associados, finanças e produção de 
 - App nativo (iOS/Android) — PWA é suficiente para v1
 - Marketplace de produtos — foco é gestão interna primeiro
 - IA offline — toda IA será 100% online, fora de funcionalidades offline-críticas
-- Multi-tenancy complexo — v1 foca em uma associação por instância
 
 ## Context
 
 - **Domínio:** Gestão de associações rurais brasileiras, incluindo participação no PNAE
 - **Público:** Agricultores familiares e administradores de associações em áreas rurais com conectividade limitada
 - **Arquitetura:** Offline-first PWA com sync eventual para PostgreSQL serverless (Neon). O backend é a fonte oficial dos dados
-- **Codebase existente:** Schemas completos, infraestrutura de build configurada, landing page pronta. Falta: UI do app, API endpoints, sync layer, autenticação
-- **Dívida técnica conhecida:** Schema drift entre client (Dexie snake_case) e server (Drizzle camelCase), relatorio_pnae sem campos de sync, API vazia
+- **Codebase existente:** Schemas completos, infraestrutura de build configurada, landing page pronta. Falta: UI do app, API endpoints, sync layer, autenticação, onboarding, tabelas de usuário/associação
+- **Dívida técnica conhecida:** Schema drift entre client (Dexie snake_case) e server (Drizzle camelCase), relatorio_pnae sem campos de sync, API vazia, entidades sem `associacao_id`
 - **Linguagem do domínio:** Termos de domínio em português (associado, mensalidade, ata, produção, edital)
+- **Auth:** Firebase Auth (GCP) — Google OAuth + email/senha. SDK client no frontend, SDK admin no backend para verificação de tokens
+- **Multi-tenancy:** Multi-tenant leve desde v1 — banco compartilhado, dados isolados por `associacao_id` (row-level scoping)
+- **UI Components:** shadcn/ui — Command (combobox busca), Form (react-hook-form + zod), Card, Dialog, Select
 
 ## Constraints
 
@@ -67,7 +72,10 @@ Associações rurais conseguem gerir seus associados, finanças e produção de 
 | Dexie como banco local | IndexedDB wrapper maduro, API simples, suporta sync patterns | — Pending |
 | Neon PostgreSQL serverless | Zero infra management, HTTP driver, escala com demanda | — Pending |
 | Sync queue + conflict log | Padrão offline-first com operações enfileiradas e resolução de conflitos | — Pending |
-| Dois perfis de usuário (agricultor/admin) | Necessidades muito diferentes de UX e funcionalidades | — Pending |
+| Dois perfis de usuário (associado/admin) | Necessidades muito diferentes de UX e funcionalidades | — Pending |
+| Firebase Auth (GCP) para autenticação | Auth dual (Google + email/senha), gerencia verificação de email e recuperação de senha out-of-the-box, SDK maduro | — Pending |
+| Multi-tenant leve desde v1 | Escalabilidade — múltiplas associações no mesmo banco, scoping por `associacao_id`; evita re-arquitetura futura | — Pending |
+| shadcn/ui como component library | Componentes acessíveis baseados em Radix; Command ideal para busca de associação; Form + zod para validações de onboarding | — Pending |
 | IA somente online | Evita complexidade de modelos offline, features de IA não são críticas | — Pending |
 | Landing page com Tailwind CSS v4 | Design sistema consistente, utility-first, rápido para prototipar | — Pending |
 
@@ -89,4 +97,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-18 after initialization*
+*Last updated: 2026-04-20 — Phase 2 refinada: auth dual Firebase, onboarding, multi-associação desde v1*

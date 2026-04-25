@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useScrollReveal } from "../hooks/useScrollReveal";
 
 const HERO_BG =
@@ -87,6 +88,7 @@ const STEPS = [
 ];
 
 export default function LandingPage() {
+  const navigate = useNavigate();
   const scrollRef = useScrollReveal();
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState("#associacao");
@@ -146,10 +148,11 @@ export default function LandingPage() {
           </div>
 
           <button
+            onClick={() => navigate("/login")}
             className="nav-item-animate bg-primary-container text-white px-8 py-3 rounded-xl font-medium hover:opacity-80 transition-opacity"
             style={{ animationDelay: "0.55s" }}
           >
-            Entre com Google
+            Login
           </button>
         </nav>
       </header>
@@ -354,7 +357,7 @@ export default function LandingPage() {
                 Agende uma conversa com nossos especialistas em desenvolvimento
                 rural e descubra como o Espoa pode ajudar.
               </p>
-              <button className="bg-primary text-white px-12 py-5 rounded-xl font-bold text-xl hover:bg-primary/90 transition-all shadow-xl hover:scale-105 active:scale-95">
+              <button onClick={() => navigate("/login")} className="bg-primary text-white px-12 py-5 rounded-xl font-bold text-xl hover:bg-primary/90 transition-all shadow-xl hover:scale-105 active:scale-95">
                 Fazer Login
               </button>
               <p className="text-white/70 font-label tracking-widest text-xs uppercase">
