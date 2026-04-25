@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { requireAuth } from "../middleware/auth.middleware";
 import {
   postAssociacao,
   getAssociacoes,
@@ -9,8 +10,9 @@ import {
 
 export const associacaoRouter = Router();
 
-associacaoRouter.post("/associacoes", postAssociacao);
-associacaoRouter.get("/associacoes", getAssociacoes);
-associacaoRouter.get("/associacoes/:id", getAssociacaoById);
-associacaoRouter.put("/associacoes/:id", putAssociacao);
-associacaoRouter.delete("/associacoes/:id", deleteAssociacaoById);
+associacaoRouter.use(requireAuth);
+associacaoRouter.get("/manage/associacoes", getAssociacoes);
+associacaoRouter.get("/manage/associacoes/:id", getAssociacaoById);
+associacaoRouter.post("/manage/associacoes", postAssociacao);
+associacaoRouter.put("/manage/associacoes/:id", putAssociacao);
+associacaoRouter.delete("/manage/associacoes/:id", deleteAssociacaoById);

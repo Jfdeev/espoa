@@ -1,4 +1,5 @@
-import type { Request, Response } from "express";
+import type { Response } from "express";
+import type { AuthenticatedRequest } from "../middleware/auth.middleware";
 import {
   createAssociacao,
   listAssociacoes,
@@ -8,15 +9,20 @@ import {
 } from "../services/associacao.service";
 import { toSnakeObject, toCamelObject } from "../utils/case-mapper";
 
-export async function postAssociacao(req: Request, res: Response) {
+export async function postAssociacao(req: AuthenticatedRequest, res: Response) {
   try {
     const body = toCamelObject(req.body);
 
-    if (!body.nome) {
-      return res.status(400).json({ error: "nome is required" });
+    if (!body.nome || !body.cnpj || !body.municipio || !body.estado) {
+      return res
+        .status(400)
+        .json({ error: "nome, cnpj, municipio and estado are required" });
     }
 
-    const result = await createAssociacao(body as any);
+    const result = await createAssociacao({
+      ...(body as any),
+      createdBy: req.userId,
+    });
 
     if ("error" in result && result.error === "cnpj_duplicado") {
       return res.status(409).json({

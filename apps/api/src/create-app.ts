@@ -3,6 +3,8 @@ import express from "express";
 import { healthRouter } from "./routes/health.routes";
 import { syncRouter } from "./routes/sync.routes";
 import { authRouter } from "./routes/auth.routes";
+import { associadoRouter } from "./routes/associado.routes";
+import { associacaoRouter } from "./routes/associacao.routes";
 
 const app = express();
 
@@ -11,11 +13,8 @@ app.use(express.json());
 
 app.use(healthRouter);
 app.use(syncRouter);
-<<<<<<< HEAD
+app.use(authRouter);
 app.use(associadoRouter);
 app.use(associacaoRouter);
-=======
-app.use(authRouter);
->>>>>>> origin/main
 
 export { app };

@@ -4,23 +4,24 @@ import { eq, and, isNull } from "drizzle-orm";
 export async function createAssociacao(data: {
   id?: string;
   nome: string;
-  cnpj?: string | null;
+  cnpj: string;
+  municipio: string;
+  estado: string;
   endereco?: string | null;
   telefone?: string | null;
   email?: string | null;
   status?: string;
+  createdBy?: string | null;
   deviceId?: string | null;
 }) {
-  if (data.cnpj) {
-    const existing = await db
-      .select({ id: associacao.id })
-      .from(associacao)
-      .where(and(eq(associacao.cnpj, data.cnpj), isNull(associacao.deletedAt)))
-      .limit(1);
+  const existing = await db
+    .select({ id: associacao.id })
+    .from(associacao)
+    .where(and(eq(associacao.cnpj, data.cnpj), isNull(associacao.deletedAt)))
+    .limit(1);
 
-    if (existing.length > 0) {
-      return { error: "cnpj_duplicado", existing: existing[0].id };
-    }
+  if (existing.length > 0) {
+    return { error: "cnpj_duplicado", existing: existing[0].id };
   }
 
   const [created] = await db
@@ -28,11 +29,14 @@ export async function createAssociacao(data: {
     .values({
       ...(data.id && { id: data.id }),
       nome: data.nome,
-      cnpj: data.cnpj ?? null,
+      cnpj: data.cnpj,
+      municipio: data.municipio,
+      estado: data.estado,
       endereco: data.endereco ?? null,
       telefone: data.telefone ?? null,
       email: data.email ?? null,
       status: data.status ?? "ativa",
+      createdBy: data.createdBy ?? null,
       deviceId: data.deviceId ?? null,
     })
     .returning();
@@ -62,6 +66,8 @@ export async function updateAssociacao(
   data: Partial<{
     nome: string;
     cnpj: string | null;
+    municipio: string;
+    estado: string;
     endereco: string | null;
     telefone: string | null;
     email: string | null;
