@@ -7,6 +7,8 @@ vi.mock("@espoa/database", () => ({
   syncQueue: {},
   associado: {},
   associacao: {},
+  usuario: {},
+  usuarioAssociacao: {},
   ata: {},
   mensalidade: {},
   producao: {},

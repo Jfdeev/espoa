@@ -1,7 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import request from "supertest";
 
-// Mock all services that import @espoa/database so it is never loaded
+// Mock auth middleware to always pass through
+vi.mock("../../middleware/auth.middleware", () => ({
+  requireAuth: vi.fn((_req: any, _res: any, next: any) => {
+    _req.userId = "test-user-id";
+    _req.email = "test@test.com";
+    next();
+  }),
+}));
+
+vi.mock("../../controllers/auth.controller", () => ({
+  register: vi.fn(),
+  login: vi.fn(),
+  googleAuth: vi.fn(),
+  forgotPassword: vi.fn(),
+  resetPassword: vi.fn(),
+  verifyEmail: vi.fn(),
+  getMe: vi.fn(),
+  listarAssociacoes: vi.fn(),
+  criarAssociacao: vi.fn(),
+  solicitarVinculo: vi.fn(),
+  gerenciarVinculo: vi.fn(),
+}));
+
 vi.mock("../../services/sync.service", () => ({
   runSync: vi.fn(),
 }));
