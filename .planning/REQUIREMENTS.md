@@ -11,10 +11,13 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **FUND-01**: Schema migration — corrigir tipos financeiros para integer (centavos), adicionar campos faltantes em todas as entidades, adicionar sync fields em relatorio_pnae
 - [ ] **FUND-02**: Schemas Zod compartilhados como fonte única de tipos entre Dexie (client) e Drizzle (server)
-- [ ] **FUND-03**: Autenticação via Google OAuth com sessão persistente offline (JWT 30 dias via Arctic + jose)
-- [ ] **FUND-04**: Sistema de perfis com dois roles: administrador e agricultor, com navegação role-based
+- [ ] **FUND-03**: Autenticação dual — Google OAuth + login convencional (email/senha com cadastro, verificação de email e recuperação de senha) via GCP (Firebase Auth / Identity Platform), com sessão persistente offline (JWT 30 dias via jose)
+- [ ] **FUND-04**: Sistema de perfis com dois roles: Administrador de Associação e Associado, com navegação role-based (side nav para ADM, bottom nav para Associado)
 - [ ] **FUND-05**: Sync engine — push/pull batched com fila de operações, resolução de conflitos por tabela, resiliência para redes rurais (2G/3G)
 - [ ] **FUND-06**: API REST completa para todas as entidades com middleware de autenticação
+- [ ] **FUND-07**: Modelagem multi-associação — tabelas `usuario` (id, firebase_uid, email, nome, telefone, avatar_url, auth_provider, timestamps), `associacao` (id, nome, cnpj, municipio, estado, telefone, email, created_by) e `usuario_associacao` (usuario_id, associacao_id, role [adm/associado], status [pendente/ativo/inativo/rejeitado], timestamps) no PostgreSQL com migração Drizzle. Todas as tabelas de domínio recebem FK `associacao_id` para row-level scoping
+- [ ] **FUND-08**: Tela de onboarding pós-primeiro-login — seleção de papel ("Sou Associado" / "Sou Administrador de Associação") com cards visuais. Fluxo Associado: busca/seleção de associação via Combobox (shadcn Command + Popover) com solicitação de vínculo pendente de aprovação. Fluxo ADM: formulário de criação de associação (nome, CNPJ, município, estado, contato) com validação Zod
+- [ ] **FUND-09**: Suporte a múltiplas associações por usuário — tela de alternância de associação ativa (workspace switcher), scoping de todos os dados à associação selecionada
 
 ### Gestão de Associados
 
@@ -76,7 +79,7 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ### Escala
 
-- **ESCL-01**: Multi-tenancy — múltiplas associações em uma instância
+- **ESCL-01**: ~~Multi-tenancy — múltiplas associações em uma instância~~ → Promovido para v1 como FUND-07 + FUND-09 (multi-tenant leve por row-level scoping com `associacao_id`)
 - **ESCL-02**: Marketplace de produtos entre associações
 
 ### Integrações
@@ -110,6 +113,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FUND-04 | Phase 2 | Pending |
 | FUND-05 | Phase 4 | Pending |
 | FUND-06 | Phase 4 | Pending |
+| FUND-07 | Phase 2 | Pending |
+| FUND-08 | Phase 2 | Pending |
+| FUND-09 | Phase 2 | Pending |
 | ASSC-01 | Phase 3 | Pending |
 | ASSC-02 | Phase 3 | Pending |
 | ASSC-03 | Phase 5 | Pending |
@@ -137,10 +143,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | IA-03 | Phase 7 | Pending |
 
 **Coverage:**
-- v1 requirements: 31 total
-- Mapped to phases: 31 ✓
+- v1 requirements: 34 total
+- Mapped to phases: 34 ✓
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-18*
-*Last updated: 2026-04-18 — traceability updated with roadmap phases*
+*Last updated: 2026-04-20 — Phase 2 refinada: auth dual Firebase, onboarding, multi-associação (FUND-07/08/09 adicionados)*
