@@ -6,23 +6,7 @@ import {
   integer,
   timestamp,
 } from "drizzle-orm/pg-core";
-
-export const associacao = pgTable("associacao", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  nome: varchar("nome", { length: 255 }).notNull(),
-  cnpj: varchar("cnpj", { length: 18 }).unique(),
-  endereco: varchar("endereco", { length: 500 }),
-  telefone: varchar("telefone", { length: 20 }),
-  email: varchar("email", { length: 255 }),
-  status: varchar("status", { length: 50 }).notNull().default("ativa"),
-  version: integer("version").notNull().default(1),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-  deviceId: varchar("device_id", { length: 255 }),
-  deletedAt: timestamp("deleted_at", { withTimezone: true }),
-});
+import { associacao } from "./associacao";
 
 export const associado = pgTable("associado", {
   id: uuid("id").defaultRandom().primaryKey(),
