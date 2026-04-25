@@ -5,6 +5,5 @@ build
 apps/*/.turbo
 .vercel
 
-# Ignore all dist except api bundle (pre-built for Railway deploy)
+# Build outputs
 dist
-!apps/api/dist/
