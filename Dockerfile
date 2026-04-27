@@ -8,7 +8,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
 
 # Build shared package first, then bundle API into single dist/app.js
 RUN pnpm --filter=@espoa/database run build

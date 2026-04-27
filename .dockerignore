@@ -10,3 +10,4 @@ infra
 *.md
 .env
 .env.*
+!pnpm-lock.yaml
