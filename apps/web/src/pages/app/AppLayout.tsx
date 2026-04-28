@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Leaf,
   Settings,
@@ -8,6 +8,7 @@ import {
   User,
   Menu,
   X,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth.store";
@@ -97,6 +98,27 @@ function SettingsLink({ onClick }: { onClick?: () => void }) {
   );
 }
 
+function LogoutButton({ onClick }: { onClick?: () => void }) {
+  const navigate = useNavigate();
+  const limpar = useAuthStore((s) => s.limpar);
+
+  const handleLogout = () => {
+    onClick?.();
+    limpar();
+    navigate("/login", { replace: true });
+  };
+
+  return (
+    <button
+      onClick={handleLogout}
+      className="flex w-full items-center gap-3 py-3 pl-5 text-sm text-red-600/80 hover:bg-red-50 rounded-xl transition-colors"
+    >
+      <LogOut size={20} />
+      <span className="font-label">Sair</span>
+    </button>
+  );
+}
+
 // ── Main layout ──────────────────────────────────────────────────────────────
 
 export default function AppLayout({ children, navItems, title }: AppLayoutProps) {
@@ -126,6 +148,7 @@ export default function AppLayout({ children, navItems, title }: AppLayoutProps)
 
         <NavList items={navItems} currentPath={location.pathname} />
         <SettingsLink />
+        <LogoutButton />
       </nav>
 
       {/* ── Mobile Header ───────────────────────────────────── */}
@@ -164,6 +187,7 @@ export default function AppLayout({ children, navItems, title }: AppLayoutProps)
 
             <NavList items={navItems} currentPath={location.pathname} onNavigate={closeDrawer} />
             <SettingsLink onClick={closeDrawer} />
+            <LogoutButton onClick={closeDrawer} />
           </div>
         </div>
       )}
