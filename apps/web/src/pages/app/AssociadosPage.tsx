@@ -5,7 +5,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
-import AppLayout, { adminNavItems } from "./AppLayout";
+import AppLayout from "./AppLayout";
+import { adminNavItems } from "./nav-items";
 
 interface VinculoMembro {
   usuarioId: string;

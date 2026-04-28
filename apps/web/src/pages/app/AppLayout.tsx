@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard,
-  Wheat,
   Leaf,
-  Users,
   Settings,
   Home,
   ClipboardList,
@@ -15,11 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth.store";
 
-interface NavItem {
-  label: string;
-  icon: React.ReactNode;
-  href: string;
-}
+import type { NavItem } from "./nav-items";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -207,16 +200,4 @@ export default function AppLayout({ children, navItems, title }: AppLayoutProps)
   );
 }
 
-export const adminNavItems: NavItem[] = [
-  { label: "Menu Principal", icon: <LayoutDashboard size={20} />, href: "/app" },
-  { label: "Propriedades", icon: <Wheat size={20} />, href: "/app/propriedades" },
-  { label: "Colheitas", icon: <Leaf size={20} />, href: "/app/colheitas" },
-  { label: "Associados", icon: <Users size={20} />, href: "/app/associados" },
-];
 
-export const memberNavItems: NavItem[] = [
-  { label: "Dashboard", icon: <LayoutDashboard size={20} />, href: "/app" },
-  { label: "Propriedades", icon: <Wheat size={20} />, href: "/app/propriedades" },
-  { label: "Colheita", icon: <Leaf size={20} />, href: "/app/colheitas" },
-  { label: "Associações", icon: <Users size={20} />, href: "/app/associacoes" },
-];

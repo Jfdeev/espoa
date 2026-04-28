@@ -1,6 +1,7 @@
 import { Navigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth.store";
-import AppLayout, { adminNavItems, memberNavItems } from "./AppLayout";
+import AppLayout from "./AppLayout";
+import { adminNavItems, memberNavItems } from "./nav-items";
 import AdminDashboard from "./AdminDashboard";
 import MemberDashboard from "./MemberDashboard";
 
