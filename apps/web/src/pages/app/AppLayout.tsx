@@ -12,6 +12,16 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth.store";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 import type { NavItem } from "./nav-items";
 
@@ -99,23 +109,44 @@ function SettingsLink({ onClick }: { onClick?: () => void }) {
 }
 
 function LogoutButton({ onClick }: { onClick?: () => void }) {
+  const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const limpar = useAuthStore((s) => s.limpar);
 
   const handleLogout = () => {
+    setOpen(false);
     onClick?.();
     limpar();
     navigate("/login", { replace: true });
   };
 
   return (
-    <button
-      onClick={handleLogout}
-      className="flex w-full items-center gap-3 py-3 pl-5 text-sm text-red-600/80 hover:bg-red-50 rounded-xl transition-colors"
-    >
-      <LogOut size={20} />
-      <span className="font-label">Sair</span>
-    </button>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex w-full items-center gap-3 py-3 pl-5 text-sm text-red-600/80 hover:bg-red-50 rounded-xl transition-colors"
+      >
+        <LogOut size={20} />
+        <span className="font-label">Sair</span>
+      </button>
+
+      <DialogContent showCloseButton={false}>
+        <DialogHeader>
+          <DialogTitle>Sair da conta</DialogTitle>
+          <DialogDescription>
+            Tem certeza que deseja sair? Você precisará fazer login novamente.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" />}>
+            Cancelar
+          </DialogClose>
+          <Button variant="destructive" onClick={handleLogout}>
+            Sair
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
