@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  Leaf,
   Settings,
-  Home,
-  ClipboardList,
   User,
   Menu,
   X,
@@ -30,13 +27,6 @@ interface AppLayoutProps {
   navItems: NavItem[];
   title?: string;
 }
-
-const bottomNavItems = [
-  { id: "home", label: "Home", icon: <Home size={22} />, href: "/app" },
-  { id: "colheitas", label: "Colheitas", icon: <Leaf size={22} />, href: "/app/colheitas" },
-  { id: "solicitacoes", label: "Solicitações", icon: <ClipboardList size={22} />, href: "/solicitacoes" },
-  { id: "conta", label: "Conta", icon: <User size={22} />, href: "/app/conta" },
-];
 
 // ── Shared sub-components ────────────────────────────────────────────────────
 
@@ -224,33 +214,7 @@ export default function AppLayout({ children, navItems, title }: AppLayoutProps)
       )}
 
       {/* ── Main Content ─────────────────────────────────────── */}
-      <main className="lg:ml-72 pb-24 lg:pb-0">{children}</main>
-
-      {/* ── Mobile Bottom Nav ────────────────────────────────── */}
-      <nav className="lg:hidden fixed bottom-0 left-0 w-full z-40 flex justify-around items-center px-4 pt-2 pb-6 bg-[#F5F2ED] border-t border-[#1A3C34]/10">
-        {bottomNavItems.map((item) => {
-          const isActive = location.pathname === item.href;
-          return (
-            <Link
-              key={item.id}
-              to={item.href}
-              className="flex flex-col items-center gap-0.5 transition-colors"
-            >
-              <span
-                className={cn(
-                  "flex items-center justify-center w-14 h-9 rounded-2xl transition-colors",
-                  isActive ? "bg-[#1A3C34] text-[#F5F2ED]" : "text-[#1A3C34]/60",
-                )}
-              >
-                {item.icon}
-              </span>
-              <span className="font-label text-[10px] uppercase tracking-wider text-[#1A3C34]/60">
-                {item.label}
-              </span>
-            </Link>
-          );
-        })}
-      </nav>
+      <main className="lg:ml-72">{children}</main>
     </div>
   );
 }

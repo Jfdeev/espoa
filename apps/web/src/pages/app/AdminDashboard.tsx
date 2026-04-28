@@ -6,22 +6,39 @@ import {
   FileText,
   Wallet,
   Calendar,
-  CreditCard,
   Users,
   Banknote,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth.store";
+import { useEffect, useState } from "react";
+import api from "@/lib/api";
 
-type ActivityVariant = "default" | "error";
-
-interface ActivityItem {
+interface AtividadeRecente {
   id: string;
-  icon: React.ReactNode;
-  bold: string;
-  rest: string;
-  time: string;
-  variant: ActivityVariant;
+  tipo: string;
+  descricao: string;
+  data: string;
+}
+
+interface DashboardStats {
+  totalAssociados: number;
+  totalCaixa: number;
+  mensalidadesPendentes: number;
+  atividadesRecentes: AtividadeRecente[];
+}
+
+function timeAgo(dateStr: string): string {
+  const now = Date.now();
+  const diff = now - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "Agora";
+  if (minutes < 60) return `Há ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Há ${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "Ontem";
+  return `Há ${days} dias`;
 }
 
 interface QuickAction {
@@ -38,44 +55,27 @@ const quickActions: QuickAction[] = [
   { id: "reuniao", icon: <Calendar size={22} />, label: "Agendar Reunião" },
 ];
 
-const activityItems: ActivityItem[] = [
-  {
-    id: "act-1",
-    icon: <CreditCard size={18} />,
-    bold: "Pagamento recebido",
-    rest: " de Fazenda Esperança",
-    time: "Há 2 horas",
-    variant: "default",
-  },
-  {
-    id: "act-2",
-    icon: <UserPlus size={18} />,
-    bold: "Novo associado",
-    rest: " cadastrado: Sítio São João",
-    time: "Há 5 horas",
-    variant: "default",
-  },
-  {
-    id: "act-3",
-    icon: <TriangleAlert size={18} />,
-    bold: "Mensalidade atrasada",
-    rest: ": Cooperativa Vale Verde",
-    time: "Ontem",
-    variant: "error",
-  },
-  {
-    id: "act-4",
-    icon: <FileText size={18} />,
-    bold: "Relatório mensal",
-    rest: " gerado pelo sistema",
-    time: "Ontem",
-    variant: "default",
-  },
-];
+
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const associacaoAtiva = useAuthStore((s) => s.associacaoAtiva);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!associacaoAtiva?.associacaoId) return;
+    api
+      .get("/dashboard", { params: { associacao_id: associacaoAtiva.associacaoId } })
+      .then(({ data }) => setStats(data))
+      .catch(() => setStats(null))
+      .finally(() => setLoading(false));
+  }, [associacaoAtiva?.associacaoId]);
+
+  const formatCurrency = (value: number) => {
+    if (value >= 1000) return `R$ ${(value / 1000).toFixed(0)}k`;
+    return `R$ ${value.toLocaleString("pt-BR")}`;
+  };
 
   return (
     <div className="p-6 lg:p-12 max-w-7xl mx-auto space-y-12">
@@ -102,7 +102,9 @@ export default function AdminDashboard() {
               <p className="font-label text-xs text-[#414846] uppercase tracking-wider mb-1">
                 Total Associados
               </p>
-              <h3 className="font-headline text-4xl font-bold text-[#01261f]">1.248</h3>
+              <h3 className="font-headline text-4xl font-bold text-[#01261f]">
+                {loading ? "..." : (stats?.totalAssociados.toLocaleString("pt-BR") ?? "0")}
+              </h3>
             </div>
             <div className="w-12 h-12 rounded-full bg-[#f6f3ee] flex items-center justify-center text-[#01261f]">
               <Users size={24} />
@@ -110,8 +112,7 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center gap-2 text-sm text-[#414846] relative z-10">
             <TrendingUp size={16} className="text-[#01261f]" />
-            <span className="font-medium text-[#01261f]">+12%</span>
-            <span>este mês</span>
+            <span>associados ativos</span>
           </div>
         </div>
 
@@ -129,7 +130,9 @@ export default function AdminDashboard() {
               <p className="font-label text-xs text-white/80 uppercase tracking-wider mb-1">
                 Total em Caixa
               </p>
-              <h3 className="font-headline text-4xl font-bold text-white">R$ 452k</h3>
+              <h3 className="font-headline text-4xl font-bold text-white">
+                {loading ? "..." : formatCurrency(stats?.totalCaixa ?? 0)}
+              </h3>
             </div>
             <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white">
               <Banknote size={24} />
@@ -137,8 +140,7 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center gap-2 text-sm text-white/80 relative z-10">
             <TrendingUp size={16} className="text-[#aacec3]" />
-            <span className="font-medium text-[#aacec3]">+5,2%</span>
-            <span>vs mês anterior</span>
+            <span>total recebido</span>
           </div>
         </div>
 
@@ -149,7 +151,9 @@ export default function AdminDashboard() {
               <p className="font-label text-xs text-[#414846] uppercase tracking-wider mb-1">
                 Mensalidades Pendentes
               </p>
-              <h3 className="font-headline text-4xl font-bold text-[#1c1c19]">156</h3>
+              <h3 className="font-headline text-4xl font-bold text-[#1c1c19]">
+                {loading ? "..." : (stats?.mensalidadesPendentes ?? 0)}
+              </h3>
             </div>
             <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#381800] shadow-sm">
               <Clock size={24} />
@@ -198,26 +202,26 @@ export default function AdminDashboard() {
             </div>
 
             <div className="space-y-6">
-              {activityItems.map((item) => (
-                <div key={item.id} className="flex gap-4">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                      item.variant === "error"
-                        ? "bg-[#ffdad6] text-[#ba1a1a]"
-                        : "bg-[#f6f3ee] text-[#01261f]"
-                    }`}
-                  >
-                    {item.icon}
+              {loading ? (
+                <p className="text-sm text-[#414846]">Carregando...</p>
+              ) : stats?.atividadesRecentes.length ? (
+                stats.atividadesRecentes.map((item) => (
+                  <div key={item.id} className="flex gap-4">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-[#f6f3ee] text-[#01261f]">
+                      <UserPlus size={18} />
+                    </div>
+                    <div>
+                      <p className="text-sm text-[#1c1c19]">
+                        <span className="font-semibold">Novo associado</span>
+                        {" cadastrado: "}{item.descricao}
+                      </p>
+                      <p className="text-xs text-[#414846] mt-1">{timeAgo(item.data)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-[#1c1c19]">
-                      <span className="font-semibold">{item.bold}</span>
-                      {item.rest}
-                    </p>
-                    <p className="text-xs text-[#414846] mt-1">{item.time}</p>
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-sm text-[#414846]">Nenhuma atividade recente.</p>
+              )}
             </div>
           </div>
         </div>
