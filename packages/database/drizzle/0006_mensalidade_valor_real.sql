@@ -1,1 +1,0 @@
-ALTER TABLE "mensalidade" ALTER COLUMN "valor" TYPE real USING "valor"::real;
