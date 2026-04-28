@@ -352,7 +352,7 @@ export async function criarAssociacao(req: AuthenticatedRequest, res: Response) 
 
 export async function solicitarVinculo(req: AuthenticatedRequest, res: Response) {
   const { id: associacaoId } = req.params as { id: string };
-  const { role } = req.body as { role?: string };
+  const { role } = (req.body ?? {}) as { role?: string };
   const papel = role === "adm" ? "adm" : "associado";
 
   const [me] = await getUserById(req.userId!);
@@ -426,6 +426,95 @@ export async function gerenciarVinculo(req: AuthenticatedRequest, res: Response)
       ),
     )
     .returning();
+
+  res.json({ vinculo: atualizado });
+}
+
+// ─── Vínculos da Associação ───────────────────────────────────────────────────
+
+export async function listarVinculosAssociacao(req: AuthenticatedRequest, res: Response) {
+  const { id: assocId } = req.params as { id: string };
+
+  const [vinculoAdm] = await db
+    .select()
+    .from(usuarioAssociacao)
+    .where(
+      and(
+        eq(usuarioAssociacao.associacaoId, assocId),
+        eq(usuarioAssociacao.usuarioId, req.userId!),
+      ),
+    )
+    .limit(1);
+
+  if (vinculoAdm?.role !== "adm" || vinculoAdm?.status !== "ativo") {
+    res.status(403).json({ error: "Sem permissão para gerenciar esta associação" });
+    return;
+  }
+
+  const vinculos = await db
+    .select({
+      usuarioId: usuarioAssociacao.usuarioId,
+      role: usuarioAssociacao.role,
+      status: usuarioAssociacao.status,
+      requestedAt: usuarioAssociacao.requestedAt,
+      joinedAt: usuarioAssociacao.joinedAt,
+      nome: usuario.nome,
+      email: usuario.email,
+      avatarUrl: usuario.avatarUrl,
+    })
+    .from(usuarioAssociacao)
+    .innerJoin(usuario, eq(usuarioAssociacao.usuarioId, usuario.id))
+    .where(eq(usuarioAssociacao.associacaoId, assocId))
+    .orderBy(usuarioAssociacao.requestedAt);
+
+  res.json(vinculos);
+}
+
+export async function alterarRoleVinculo(req: AuthenticatedRequest, res: Response) {
+  const { assocId, userId } = req.params as { assocId: string; userId: string };
+  const { role } = (req.body ?? {}) as { role?: string };
+
+  if (role !== "adm" && role !== "associado") {
+    res.status(400).json({ error: "role deve ser 'adm' ou 'associado'" });
+    return;
+  }
+
+  if (userId === req.userId) {
+    res.status(400).json({ error: "Você não pode alterar sua própria role" });
+    return;
+  }
+
+  const [vinculoAdm] = await db
+    .select()
+    .from(usuarioAssociacao)
+    .where(
+      and(
+        eq(usuarioAssociacao.associacaoId, assocId),
+        eq(usuarioAssociacao.usuarioId, req.userId!),
+      ),
+    )
+    .limit(1);
+
+  if (vinculoAdm?.role !== "adm" || vinculoAdm?.status !== "ativo") {
+    res.status(403).json({ error: "Sem permissão para gerenciar esta associação" });
+    return;
+  }
+
+  const [atualizado] = await db
+    .update(usuarioAssociacao)
+    .set({ role })
+    .where(
+      and(
+        eq(usuarioAssociacao.usuarioId, userId),
+        eq(usuarioAssociacao.associacaoId, assocId),
+      ),
+    )
+    .returning();
+
+  if (!atualizado) {
+    res.status(404).json({ error: "Vínculo não encontrado" });
+    return;
+  }
 
   res.json({ vinculo: atualizado });
 }

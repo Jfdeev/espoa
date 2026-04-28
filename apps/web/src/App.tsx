@@ -5,7 +5,8 @@ import LoginPage from "./pages/LoginPage";
 import OnboardingPage from "./pages/onboarding/OnboardingPage";
 import OnboardingAssociadoPage from "./pages/onboarding/OnboardingAssociadoPage";
 import OnboardingADMPage from "./pages/onboarding/OnboardingADMPage";
-import AppPlaceholder from "./pages/AppPlaceholder";
+import AppPage from "./pages/app/AppPage";
+import AssociadosPage from "./pages/app/AssociadosPage";
 import SolicitacoesPage from "./pages/SolicitacoesPage";
 import AuthGuard from "./components/AuthGuard";
 
@@ -24,7 +25,8 @@ function App() {
             <Route path="/onboarding/associado" element={<OnboardingAssociadoPage />} />
             <Route path="/onboarding/adm" element={<OnboardingADMPage />} />
             <Route path="/solicitacoes" element={<SolicitacoesPage />} />
-            <Route path="/app" element={<AppPlaceholder />} />
+            <Route path="/app" element={<AppPage />} />
+            <Route path="/app/associados" element={<AssociadosPage />} />
           </Route>
 
           {/* Fallback */}

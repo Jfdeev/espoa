@@ -69,7 +69,7 @@ export default function OnboardingAssociadoPage() {
     if (!selecionada) return;
     setEnviando(true);
     try {
-      await api.post(`/associacoes/${selecionada.id}/solicitar-vinculo`);
+      await api.post(`/associacoes/${selecionada.id}/solicitar-vinculo`, {});
       const me = await api.get("/auth/me");
       setPerfil(me.data.usuario, me.data.vinculos);
       setSucesso(true);
@@ -123,8 +123,8 @@ export default function OnboardingAssociadoPage() {
         </div>
 
         {/* Search */}
-        <div className="space-y-4">
-          <div className="flex flex-col gap-2" ref={dropdownRef}>
+        <div className="space-y-4" ref={dropdownRef}>
+          <div className="flex flex-col gap-2">
             <label htmlFor="busca" className="text-xs font-semibold uppercase tracking-wider text-[#414846]">Buscar associação</label>
             <div className="relative">
               <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#414846]/60 text-[20px]">search</span>
