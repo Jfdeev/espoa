@@ -117,7 +117,7 @@ describe("POST /mensalidades", () => {
   it("returns 400 when valor is NaN", async () => {
     const res = await request(app)
       .post("/mensalidades")
-      .send({ associado_id: "assoc-222", valor: NaN });
+      .send({ associado_id: "assoc-222", valor: Number.NaN });
     expect(res.status).toBe(400);
   });
 
@@ -179,7 +179,7 @@ describe("PUT /mensalidades/:id", () => {
     mockUpdate.mockResolvedValue({ error: "not_found" });
     const res = await request(app)
       .put("/mensalidades/mens-111")
-      .send({ valor: 140.0 });
+      .send({ valor: 140 });
     expect(res.status).toBe(404);
   });
 
@@ -194,13 +194,13 @@ describe("PUT /mensalidades/:id", () => {
 
   it("returns updated mensalidade", async () => {
     mockUpdate.mockResolvedValue({
-      data: { ...sampleMensalidade, valor: 150.0 },
+      data: { ...sampleMensalidade, valor: 150 },
     } as any);
     const res = await request(app)
       .put("/mensalidades/mens-111")
-      .send({ valor: 150.0 });
+      .send({ valor: 150 });
     expect(res.status).toBe(200);
-    expect(res.body.valor).toBe(150.0);
+    expect(res.body.valor).toBe(150);
   });
 });
 

@@ -24,7 +24,7 @@ export async function postMensalidade(req: Request, res: Response) {
       !body.associadoId ||
       body.valor == null ||
       typeof body.valor !== "number" ||
-      !isFinite(body.valor)
+      !Number.isFinite(body.valor)
     ) {
       return res
         .status(400)
