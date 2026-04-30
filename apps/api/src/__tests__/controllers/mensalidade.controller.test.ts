@@ -107,6 +107,20 @@ describe("POST /mensalidades", () => {
     expect(res.status).toBe(400);
   });
 
+  it("returns 400 when valor is Infinity", async () => {
+    const res = await request(app)
+      .post("/mensalidades")
+      .send({ associado_id: "assoc-222", valor: Infinity });
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when valor is NaN", async () => {
+    const res = await request(app)
+      .post("/mensalidades")
+      .send({ associado_id: "assoc-222", valor: NaN });
+    expect(res.status).toBe(400);
+  });
+
   it("returns 400 when associado is invalid", async () => {
     mockCreate.mockResolvedValue({ error: "associado_inexistente" });
     const res = await request(app)
