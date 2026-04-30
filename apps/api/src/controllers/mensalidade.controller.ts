@@ -20,7 +20,12 @@ export async function postMensalidade(req: Request, res: Response) {
   try {
     const body = toCamelObject(req.body);
 
-    if (!body.associadoId || body.valor === undefined) {
+    if (
+      !body.associadoId ||
+      body.valor == null ||
+      typeof body.valor !== "number" ||
+      !isFinite(body.valor)
+    ) {
       return res
         .status(400)
         .json({ error: "associado_id and valor are required" });

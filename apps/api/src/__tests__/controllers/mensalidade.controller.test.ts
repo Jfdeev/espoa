@@ -93,6 +93,20 @@ describe("POST /mensalidades", () => {
     expect(res.status).toBe(400);
   });
 
+  it("returns 400 when valor is null", async () => {
+    const res = await request(app)
+      .post("/mensalidades")
+      .send({ associado_id: "assoc-222", valor: null });
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when valor is not a finite number", async () => {
+    const res = await request(app)
+      .post("/mensalidades")
+      .send({ associado_id: "assoc-222", valor: "not-a-number" });
+    expect(res.status).toBe(400);
+  });
+
   it("returns 400 when associado is invalid", async () => {
     mockCreate.mockResolvedValue({ error: "associado_inexistente" });
     const res = await request(app)
