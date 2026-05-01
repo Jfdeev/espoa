@@ -9,6 +9,8 @@ import AppPage from "./pages/app/AppPage";
 import AssociadosPage from "./pages/app/AssociadosPage";
 import SolicitacoesPage from "./pages/SolicitacoesPage";
 import AuthGuard from "./components/AuthGuard";
+import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
+import { Toaster } from "./components/ui/sonner";
 
 function App() {
   return (
@@ -33,9 +35,12 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
+      <Toaster />
+      <PWAUpdatePrompt />
     </GoogleOAuthProvider>
   );
 }
 
 export default App;
+
 
