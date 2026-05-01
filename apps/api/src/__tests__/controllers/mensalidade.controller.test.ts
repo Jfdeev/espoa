@@ -9,19 +9,13 @@ vi.mock("../../middleware/auth.middleware", () => ({
   }),
 }));
 
-vi.mock("../../controllers/auth.controller", () => ({
-  register: vi.fn(),
-  login: vi.fn(),
-  googleAuth: vi.fn(),
-  forgotPassword: vi.fn(),
-  resetPassword: vi.fn(),
-  verifyEmail: vi.fn(),
-  getMe: vi.fn(),
-  listarAssociacoes: vi.fn(),
-  criarAssociacao: vi.fn(),
-  solicitarVinculo: vi.fn(),
-  gerenciarVinculo: vi.fn(),
-}));
+vi.mock(import("../../controllers/auth.controller"), async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+  }
+})
+
 
 vi.mock("../../services/associacao.service", () => ({
   createAssociacao: vi.fn(),
