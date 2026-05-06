@@ -416,8 +416,8 @@ export default function AssociadosPage() {
       toast.success(`Convite enviado para ${emailConvite}`);
       setEmailConvite("");
       carregar();
-    } catch (err: any) {
-      const msg = err?.response?.data?.error;
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
       if (msg === "Nenhum usuário encontrado com este e-mail") {
         toast.error("Nenhum usuário cadastrado com este e-mail.");
       } else if (msg?.includes("já é membro")) {

@@ -24,7 +24,7 @@ export const producaoRepository = {
     };
     await db.transaction("rw", [db.producao, db.sync_queue], async () => {
       await db.producao.add(record);
-      await enqueueSyncOperation("producao", record.id!, "create", record as Record<string, unknown>);
+      await enqueueSyncOperation("producao", record.id!, "create", record as unknown as Record<string, unknown>);
     });
     return record;
   },
@@ -43,7 +43,7 @@ export const producaoRepository = {
     };
     await db.transaction("rw", [db.producao, db.sync_queue], async () => {
       await db.producao.put(updated);
-      await enqueueSyncOperation("producao", id, "update", updated as Record<string, unknown>);
+      await enqueueSyncOperation("producao", id, "update", updated as unknown as Record<string, unknown>);
     });
     return updated;
   },
@@ -62,7 +62,7 @@ export const producaoRepository = {
 
     await db.transaction("rw", [db.producao, db.sync_queue], async () => {
       await db.producao.update(id, softDeleted);
-      await enqueueSyncOperation("producao", id, "delete", fullRecord as Record<string, unknown>);
+      await enqueueSyncOperation("producao", id, "delete", fullRecord as unknown as Record<string, unknown>);
     });
   },
 

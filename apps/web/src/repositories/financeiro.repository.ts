@@ -104,7 +104,7 @@ export const mensalidadeRepository = {
     };
     await db.transaction("rw", [db.mensalidade, db.sync_queue], async () => {
       await db.mensalidade.add(record);
-      await enqueueSyncOperation("mensalidade", record.id!, "create", record as Record<string, unknown>);
+      await enqueueSyncOperation("mensalidade", record.id!, "create", record as unknown as Record<string, unknown>);
     });
     return record;
   },
@@ -123,7 +123,7 @@ export const mensalidadeRepository = {
     };
     await db.transaction("rw", [db.mensalidade, db.sync_queue], async () => {
       await db.mensalidade.put(updated);
-      await enqueueSyncOperation("mensalidade", id, "update", updated as Record<string, unknown>);
+      await enqueueSyncOperation("mensalidade", id, "update", updated as unknown as Record<string, unknown>);
     });
     return updated;
   },
@@ -142,7 +142,7 @@ export const mensalidadeRepository = {
 
     await db.transaction("rw", [db.mensalidade, db.sync_queue], async () => {
       await db.mensalidade.update(id, softDeleted);
-      await enqueueSyncOperation("mensalidade", id, "delete", fullRecord as Record<string, unknown>);
+      await enqueueSyncOperation("mensalidade", id, "delete", fullRecord as unknown as Record<string, unknown>);
     });
   },
 
