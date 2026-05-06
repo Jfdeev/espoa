@@ -14,6 +14,8 @@ import {
   gerenciarVinculo,
   listarVinculosAssociacao,
   alterarRoleVinculo,
+  convidarMembro,
+  responderConvite,
 } from "../controllers/auth.controller";
 
 export const authRouter = Router();
@@ -34,3 +36,5 @@ authRouter.post("/associacoes/:id/solicitar-vinculo", requireAuth, solicitarVinc
 authRouter.get("/associacoes/:id/vinculos", requireAuth, listarVinculosAssociacao);
 authRouter.patch("/associacoes/:assocId/vinculos/:userId", requireAuth, gerenciarVinculo);
 authRouter.patch("/associacoes/:assocId/vinculos/:userId/role", requireAuth, alterarRoleVinculo);
+authRouter.post("/associacoes/:assocId/convidar", requireAuth, convidarMembro);
+authRouter.post("/associacoes/:assocId/responder-convite", requireAuth, responderConvite);

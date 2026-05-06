@@ -1,13 +1,15 @@
 import { db } from "../database/db";
 import type { Producao } from "../database/types";
+import { getDeviceId } from "@/lib/device-id";
+import { enqueueSyncOperation } from "@/sync/enqueue";
 
 export type CreateProducaoInput = Omit<
   Producao,
-  "id" | "version" | "updated_at" | "deleted_at"
+  "id" | "version" | "updated_at" | "deleted_at" | "device_id"
 >;
 
 export type UpdateProducaoInput = Partial<
-  Omit<Producao, "id" | "version" | "updated_at" | "deleted_at">
+  Omit<Producao, "id" | "version" | "updated_at" | "deleted_at" | "device_id">
 >;
 
 export const producaoRepository = {
@@ -18,8 +20,12 @@ export const producaoRepository = {
       id: crypto.randomUUID(),
       version: 1,
       updated_at: now,
+      device_id: getDeviceId(),
     };
-    await db.producao.add(record);
+    await db.transaction("rw", [db.producao, db.sync_queue], async () => {
+      await db.producao.add(record);
+      await enqueueSyncOperation("producao", record.id!, "create", record as Record<string, unknown>);
+    });
     return record;
   },
 
@@ -33,8 +39,12 @@ export const producaoRepository = {
       id,
       version: existing.version + 1,
       updated_at: new Date().toISOString(),
+      device_id: getDeviceId(),
     };
-    await db.producao.put(updated);
+    await db.transaction("rw", [db.producao, db.sync_queue], async () => {
+      await db.producao.put(updated);
+      await enqueueSyncOperation("producao", id, "update", updated as Record<string, unknown>);
+    });
     return updated;
   },
 
@@ -42,10 +52,17 @@ export const producaoRepository = {
     const existing = await db.producao.get(id);
     if (!existing) throw new Error(`Producao ${id} não encontrada`);
 
-    await db.producao.update(id, {
+    const softDeleted: Partial<Producao> = {
       deleted_at: new Date().toISOString(),
       version: existing.version + 1,
       updated_at: new Date().toISOString(),
+      device_id: getDeviceId(),
+    };
+    const fullRecord: Producao = { ...existing, ...softDeleted };
+
+    await db.transaction("rw", [db.producao, db.sync_queue], async () => {
+      await db.producao.update(id, softDeleted);
+      await enqueueSyncOperation("producao", id, "delete", fullRecord as Record<string, unknown>);
     });
   },
 

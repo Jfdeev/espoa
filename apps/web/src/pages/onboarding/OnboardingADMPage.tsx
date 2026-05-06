@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v3";
 import api from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { useOnlineStatus, isNetworkError } from "@/lib/network";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 
@@ -59,6 +60,36 @@ interface AssociacaoBusca {
   nome: string;
   municipio: string;
   estado: string;
+}
+
+// ─── Cache de associações (compartilhado com OnboardingAssociadoPage) ─────────
+
+const ASSOC_CACHE_KEY = "espoa.cache.associacoes";
+
+function mergeAssocCache(items: AssociacaoBusca[]) {
+  try {
+    const raw = localStorage.getItem(ASSOC_CACHE_KEY);
+    const existing: AssociacaoBusca[] = raw ? (JSON.parse(raw) as AssociacaoBusca[]) : [];
+    const map = new Map<string, AssociacaoBusca>(existing.map((a) => [a.id, a]));
+    for (const item of items) map.set(item.id, item);
+    localStorage.setItem(ASSOC_CACHE_KEY, JSON.stringify([...map.values()]));
+  } catch { /* ignore */ }
+}
+
+function searchAssocCache(q: string): AssociacaoBusca[] {
+  try {
+    const raw = localStorage.getItem(ASSOC_CACHE_KEY);
+    if (!raw) return [];
+    const all = JSON.parse(raw) as AssociacaoBusca[];
+    const lower = q.toLowerCase();
+    return all.filter(
+      (a) =>
+        a.nome.toLowerCase().includes(lower) ||
+        a.municipio.toLowerCase().includes(lower),
+    );
+  } catch {
+    return [];
+  }
 }
 
 // ─── Layout compartilhado ─────────────────────────────────────────────────────
@@ -143,6 +174,7 @@ function EntrarView({ onVoltar }: Readonly<{ onVoltar: () => void }>) {
   const navigate = useNavigate();
   const setPerfil = useAuthStore((s) => s.setPerfil);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const online = useOnlineStatus();
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -156,17 +188,33 @@ function EntrarView({ onVoltar }: Readonly<{ onVoltar: () => void }>) {
 
   useEffect(() => {
     if (busca.length < 2) { setOpcoes([]); return; }
+
+    // Offline: filtrar cache local imediatamente
+    if (!online) {
+      setOpcoes(searchAssocCache(busca));
+      return;
+    }
+
     const timeout = setTimeout(async () => {
       try {
         const { data } = await api.get<AssociacaoBusca[]>(`/associacoes?q=${busca}`);
         setOpcoes(data);
-      } catch { /* silencioso */ }
+        mergeAssocCache(data);
+      } catch (err) {
+        if (isNetworkError(err)) {
+          setOpcoes(searchAssocCache(busca));
+        }
+      }
     }, 300);
     return () => clearTimeout(timeout);
-  }, [busca]);
+  }, [busca, online]);
 
   async function solicitar() {
     if (!selecionada) return;
+    if (!online) {
+      toast.error("Sem conexão. Por favor, tente quando estiver online.");
+      return;
+    }
     setEnviando(true);
     try {
       await api.post(`/associacoes/${selecionada.id}/solicitar-vinculo`, { role: "adm" });
@@ -212,6 +260,14 @@ function EntrarView({ onVoltar }: Readonly<{ onVoltar: () => void }>) {
         <p className="text-[#414846]">Busque a associação e solicite acesso de administrador.</p>
       </div>
 
+      {/* Offline hint */}
+      {!online && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[#fff3e0] border border-[#E67E22]/30 text-sm text-[#9a4f00]">
+          <span className="material-symbols-outlined text-[18px]">wifi_off</span>
+          <span>Você está offline. Resultados vêm do cache local.</span>
+        </div>
+      )}
+
       <div className="space-y-4">
         <div className="flex flex-col gap-2" ref={dropdownRef}>
           <label htmlFor="busca-adm" className="text-xs font-semibold uppercase tracking-wider text-[#414846]">Buscar associação</label>
@@ -246,7 +302,9 @@ function EntrarView({ onVoltar }: Readonly<{ onVoltar: () => void }>) {
             </div>
           )}
           {aberto && busca.length >= 2 && opcoes.length === 0 && (
-            <p className="text-sm text-center text-[#414846]/60 py-4">Nenhuma associação encontrada.</p>
+            <p className="text-sm text-center text-[#414846]/60 py-4">
+              {online ? "Nenhuma associação encontrada." : "Nenhuma associação no cache local para esta busca."}
+            </p>
           )}
         </div>
 
@@ -266,12 +324,18 @@ function EntrarView({ onVoltar }: Readonly<{ onVoltar: () => void }>) {
         <button
           type="button"
           onClick={solicitar}
-          disabled={!selecionada || enviando}
+          disabled={!selecionada || enviando || !online}
           className="w-full py-4 bg-[#ee8428] text-white font-bold rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-40"
         >
           <span>{enviando ? "Enviando..." : "Solicitar acesso de administrador"}</span>
           {!enviando && <span className="material-symbols-outlined text-xl">arrow_forward</span>}
         </button>
+
+        {!online && selecionada && (
+          <p className="text-xs text-center text-[#9a4f00]">
+            Conecte-se à internet para enviar a solicitação.
+          </p>
+        )}
       </div>
     </PageLayout>
   );
@@ -286,8 +350,13 @@ function CriarView({ onVoltar }: Readonly<{ onVoltar: () => void }>) {
   const [enviando, setEnviando] = useState(false);
   const navigate = useNavigate();
   const setPerfil = useAuthStore((s) => s.setPerfil);
+  const online = useOnlineStatus();
 
   async function onSubmit(data: FormData) {
+    if (!online) {
+      toast.error("Sem conexão. A criação de associação requer internet para validar o CNPJ.");
+      return;
+    }
     setEnviando(true);
     try {
       await api.post("/associacoes", data);
@@ -313,6 +382,14 @@ function CriarView({ onVoltar }: Readonly<{ onVoltar: () => void }>) {
         <h2 style={{ fontFamily: "Noto Serif, serif" }} className="text-3xl text-[#01261f] font-bold">Criar minha associação</h2>
         <p className="text-[#414846]">Preencha os dados da sua associação. Você será o administrador responsável.</p>
       </div>
+
+      {/* Offline banner */}
+      {!online && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[#fff3e0] border border-[#E67E22]/30 text-sm text-[#9a4f00]">
+          <span className="material-symbols-outlined text-[18px]">wifi_off</span>
+          <span>Sem conexão. A criação requer internet para validar o CNPJ.</span>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <FormField label="Nome da associação *" error={errors.nome?.message}>
@@ -359,7 +436,7 @@ function CriarView({ onVoltar }: Readonly<{ onVoltar: () => void }>) {
         <div className="pt-2">
           <button
             type="submit"
-            disabled={enviando}
+            disabled={enviando || !online}
             className="w-full py-4 bg-[#ee8428] text-white font-bold rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-40"
           >
             <span>{enviando ? "Criando..." : "Criar associação"}</span>
@@ -380,4 +457,3 @@ export default function OnboardingADMPage() {
   if (opcao === "entrar") return <EntrarView onVoltar={() => setOpcao("escolha")} />;
   return <EscolhaView onEscolher={setOpcao} />;
 }
-

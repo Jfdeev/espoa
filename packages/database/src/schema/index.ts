@@ -9,3 +9,4 @@ export { producao } from "./producao";
 export { editalPnae } from "./edital-pnae";
 export { relatorioPnae } from "./relatorio-pnae";
 export { syncQueue } from "./sync-queue";
+export { conflictLog } from "./conflict-log";
