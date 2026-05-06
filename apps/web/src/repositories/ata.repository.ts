@@ -24,7 +24,7 @@ export const ataRepository = {
     };
     await db.transaction("rw", [db.ata, db.sync_queue], async () => {
       await db.ata.add(record);
-      await enqueueSyncOperation("ata", record.id!, "create", record as Record<string, unknown>);
+      await enqueueSyncOperation("ata", record.id!, "create", record as unknown as Record<string, unknown>);
     });
     return record;
   },
@@ -43,7 +43,7 @@ export const ataRepository = {
     };
     await db.transaction("rw", [db.ata, db.sync_queue], async () => {
       await db.ata.put(updated);
-      await enqueueSyncOperation("ata", id, "update", updated as Record<string, unknown>);
+      await enqueueSyncOperation("ata", id, "update", updated as unknown as Record<string, unknown>);
     });
     return updated;
   },
@@ -62,7 +62,7 @@ export const ataRepository = {
 
     await db.transaction("rw", [db.ata, db.sync_queue], async () => {
       await db.ata.update(id, softDeleted);
-      await enqueueSyncOperation("ata", id, "delete", fullRecord as Record<string, unknown>);
+      await enqueueSyncOperation("ata", id, "delete", fullRecord as unknown as Record<string, unknown>);
     });
   },
 

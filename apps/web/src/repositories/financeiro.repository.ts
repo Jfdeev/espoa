@@ -26,7 +26,7 @@ export const transacaoRepository = {
     };
     await db.transaction("rw", [db.transacao_financeira, db.sync_queue], async () => {
       await db.transacao_financeira.add(record);
-      await enqueueSyncOperation("transacao_financeira", record.id!, "create", record as Record<string, unknown>);
+      await enqueueSyncOperation("transacao_financeira", record.id!, "create", record as unknown as Record<string, unknown>);
     });
     return record;
   },
@@ -45,7 +45,7 @@ export const transacaoRepository = {
     };
     await db.transaction("rw", [db.transacao_financeira, db.sync_queue], async () => {
       await db.transacao_financeira.put(updated);
-      await enqueueSyncOperation("transacao_financeira", id, "update", updated as Record<string, unknown>);
+      await enqueueSyncOperation("transacao_financeira", id, "update", updated as unknown as Record<string, unknown>);
     });
     return updated;
   },
@@ -64,7 +64,7 @@ export const transacaoRepository = {
 
     await db.transaction("rw", [db.transacao_financeira, db.sync_queue], async () => {
       await db.transacao_financeira.update(id, softDeleted);
-      await enqueueSyncOperation("transacao_financeira", id, "delete", fullRecord as Record<string, unknown>);
+      await enqueueSyncOperation("transacao_financeira", id, "delete", fullRecord as unknown as Record<string, unknown>);
     });
   },
 

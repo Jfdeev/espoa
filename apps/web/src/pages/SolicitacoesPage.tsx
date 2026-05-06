@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { vinculoRepository } from "@/repositories/vinculo.repository";
 import { syncManager } from "@/sync";
+import { getDeviceId } from "@/lib/device-id";
 import api from "@/lib/api";
 import type { UsuarioVinculo } from "@/types/auth";
 
@@ -38,7 +39,7 @@ function VinculoCard({ v, onResponded }: Readonly<{ v: UsuarioVinculo; onRespond
       await vinculoRepository.responderConvite(userId, v.associacaoId, acao);
       toast.success(acao === "aceitar" ? "Convite aceito! Sincronizando..." : "Convite recusado.");
       // Trigger sync to push the intent immediately
-      await syncManager.sync();
+      await syncManager.run(getDeviceId());
       onResponded?.();
     } catch {
       toast.error("Erro ao responder convite.");

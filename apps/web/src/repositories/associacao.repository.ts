@@ -28,7 +28,7 @@ export const associacaoRepository = {
     };
     await db.transaction("rw", [db.associacao, db.sync_queue], async () => {
       await db.associacao.add(record);
-      await enqueueSyncOperation("associacao", record.id!, "create", record as Record<string, unknown>);
+      await enqueueSyncOperation("associacao", record.id!, "create", record as unknown as Record<string, unknown>);
     });
     return record;
   },
@@ -47,7 +47,7 @@ export const associacaoRepository = {
     };
     await db.transaction("rw", [db.associacao, db.sync_queue], async () => {
       await db.associacao.put(updated);
-      await enqueueSyncOperation("associacao", id, "update", updated as Record<string, unknown>);
+      await enqueueSyncOperation("associacao", id, "update", updated as unknown as Record<string, unknown>);
     });
     return updated;
   },
@@ -66,7 +66,7 @@ export const associacaoRepository = {
 
     await db.transaction("rw", [db.associacao, db.sync_queue], async () => {
       await db.associacao.update(id, softDeleted);
-      await enqueueSyncOperation("associacao", id, "delete", fullRecord as Record<string, unknown>);
+      await enqueueSyncOperation("associacao", id, "delete", fullRecord as unknown as Record<string, unknown>);
     });
   },
 

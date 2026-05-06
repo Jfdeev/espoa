@@ -35,6 +35,7 @@ export default function DebugSyncPage() {
   const syncedOps = useLiveQuery(
     () => db.sync_queue.where("synced").equals(1).count(),
     [],
+    0,
   );
 
   const conflicts = useLiveQuery(
