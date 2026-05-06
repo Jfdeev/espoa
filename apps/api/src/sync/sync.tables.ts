@@ -5,6 +5,7 @@ import {
   mensalidade,
   producao,
   transacaoFinanceira,
+  usuarioAssociacao,
 } from "@espoa/database";
 import type { PulledRows, SyncTableName } from "./sync.types";
 
@@ -15,6 +16,7 @@ export const syncTables = {
   transacao_financeira: transacaoFinanceira,
   ata,
   producao,
+  usuario_associacao: usuarioAssociacao,
 } as const;
 
 export const syncTableNames = Object.keys(syncTables) as SyncTableName[];
@@ -27,5 +29,6 @@ export function createEmptyPulledRows(): PulledRows {
     transacao_financeira: [],
     ata: [],
     producao: [],
+    usuario_associacao: [],
   };
 }

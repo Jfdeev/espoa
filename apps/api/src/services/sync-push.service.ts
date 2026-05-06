@@ -1,6 +1,6 @@
-import { db, syncQueue } from "@espoa/database";
-import { eq } from "drizzle-orm";
-import { normalizePayload, toCamelObject } from "../utils/case-mapper";
+import { db, syncQueue, usuarioAssociacao, conflictLog } from "@espoa/database";
+import { and, eq } from "drizzle-orm";
+import { normalizePayload, toCamelObject, toSnakeObject } from "../utils/case-mapper";
 import { syncTables } from "../sync/sync.tables";
 import type { PushOperation } from "../sync/sync.types";
 
@@ -29,37 +29,38 @@ export async function applyPushOperations(
       continue;
     }
 
-    const processed = await db.transaction(async (tx) => {
-      const inserted = await tx
-        .insert(syncQueue)
-        .values({
-          operationId: op.operationId,
-          deviceId,
-          tableName: op.tableName,
-          recordId: op.recordId,
-          operation: op.operation,
-          payload: op.payload,
-        })
-        .onConflictDoNothing()
-        .returning({ id: syncQueue.id });
+    const inserted = await db
+      .insert(syncQueue)
+      .values({
+        operationId: op.operationId,
+        deviceId,
+        tableName: op.tableName,
+        recordId: op.recordId,
+        operation: op.operation,
+        payload: op.payload,
+      })
+      .onConflictDoNothing()
+      .returning({ id: syncQueue.id });
 
-      if (inserted.length === 0) {
-        return false;
-      }
-
-      await applyOperation(tx, op);
-      return true;
-    });
-
-    if (processed) {
-      ackedOperationIds.push(op.operationId);
+    if (inserted.length === 0) {
+      // Already processed (idempotent dedup)
+      continue;
     }
+
+    await applyOperation(db, op, deviceId);
+    ackedOperationIds.push(op.operationId);
   }
 
   return ackedOperationIds;
 }
 
-async function applyOperation(tx: any, op: PushOperation) {
+async function applyOperation(tx: any, op: PushOperation, deviceId: string) {
+  // usuario_associacao uses intent-based semantics — server is authoritative
+  if (op.tableName === "usuario_associacao") {
+    await applyVinculoIntent(tx, op, deviceId);
+    return;
+  }
+
   const table = syncTables[op.tableName] as any;
   const payload = normalizePayload(toCamelObject(op.payload));
   const now = new Date();
@@ -82,4 +83,186 @@ async function applyOperation(tx: any, op: PushOperation) {
         updatedAt: now,
       },
     });
+}
+
+// ─── Intent handler for usuario_associacao ───────────────────────────────────
+
+type VinculoIntent = "approve_member" | "reject_member" | "change_role" | "remove_member" | "respond_invite";
+
+async function applyVinculoIntent(tx: any, op: PushOperation, deviceId: string) {
+  const payload = toCamelObject(op.payload) as Record<string, unknown>;
+  const intent = payload["intent"] as VinculoIntent | undefined;
+  // record_id = usuarioId; associacaoId is in the payload
+  const associacaoId = payload["associacaoId"] as string | undefined;
+
+  if (!intent || !associacaoId) {
+    // Malformed operation — ignore silently
+    return;
+  }
+
+  // Look up via composite key (usuarioId, associacaoId) — same as REST endpoint
+  const [current] = await tx
+    .select()
+    .from(usuarioAssociacao)
+    .where(
+      and(
+        eq(usuarioAssociacao.usuarioId, op.recordId),
+        eq(usuarioAssociacao.associacaoId, associacaoId),
+      ),
+    );
+
+  if (!current) {
+    // Record doesn't exist yet — write conflict so client knows
+    await writeConflictLog(tx, deviceId, op, null, "Record not found");
+    return;
+  }
+
+  const now = new Date();
+
+  if (intent === "approve_member") {
+    if (current.status !== "pendente") {
+      await writeConflictLog(
+        tx,
+        deviceId,
+        op,
+        current,
+        `Membro já está com status "${current.status}" — aprovação ignorada`,
+      );
+      return;
+    }
+    await tx
+      .update(usuarioAssociacao)
+      .set({
+        status: "ativo",
+        joinedAt: now,
+        version: current.version + 1,
+        updatedAt: now,
+        deviceId,
+      })
+      .where(eq(usuarioAssociacao.id, current.id));
+    return;
+  }
+
+  if (intent === "reject_member") {
+    if (current.status !== "pendente") {
+      await writeConflictLog(
+        tx,
+        deviceId,
+        op,
+        current,
+        `Membro já está com status "${current.status}" — rejeição ignorada`,
+      );
+      return;
+    }
+    await tx
+      .update(usuarioAssociacao)
+      .set({
+        status: "rejeitado",
+        version: current.version + 1,
+        updatedAt: now,
+        deviceId,
+      })
+      .where(eq(usuarioAssociacao.id, current.id));
+    return;
+  }
+
+  if (intent === "change_role") {
+    const newRole = payload["role"] as string | undefined;
+    if (!newRole) {
+      await writeConflictLog(tx, deviceId, op, current, "Campo role ausente");
+      return;
+    }
+    await tx
+      .update(usuarioAssociacao)
+      .set({
+        role: newRole,
+        version: current.version + 1,
+        updatedAt: now,
+        deviceId,
+      })
+      .where(eq(usuarioAssociacao.id, current.id));
+    return;
+  }
+
+  if (intent === "remove_member") {
+    if (current.status === "inativo") {
+      await writeConflictLog(
+        tx,
+        deviceId,
+        op,
+        current,
+        `Membro já está inativo — remoção ignorada`,
+      );
+      return;
+    }
+    await tx
+      .update(usuarioAssociacao)
+      .set({
+        status: "inativo",
+        version: current.version + 1,
+        updatedAt: now,
+        deviceId,
+      })
+      .where(eq(usuarioAssociacao.id, current.id));
+    return;
+  }
+
+  if (intent === "respond_invite") {
+    if (current.status !== "convidado") {
+      await writeConflictLog(
+        tx,
+        deviceId,
+        op,
+        current,
+        `Membro não está com status "convidado" (atual: "${current.status}") — resposta ignorada`,
+      );
+      return;
+    }
+    const acao = payload["acao"] as string | undefined;
+    if (acao === "aceitar") {
+      await tx
+        .update(usuarioAssociacao)
+        .set({
+          status: "ativo",
+          joinedAt: now,
+          version: current.version + 1,
+          updatedAt: now,
+          deviceId,
+        })
+        .where(eq(usuarioAssociacao.id, current.id));
+    } else {
+      await tx
+        .update(usuarioAssociacao)
+        .set({
+          status: "rejeitado",
+          version: current.version + 1,
+          updatedAt: now,
+          deviceId,
+        })
+        .where(eq(usuarioAssociacao.id, current.id));
+    }
+    return;
+  }
+
+  // Unknown intent — write conflict so client is notified
+  await writeConflictLog(tx, deviceId, op, current, `Intent desconhecida: ${String(intent)}`);
+}
+
+async function writeConflictLog(
+  tx: any,
+  deviceId: string,
+  op: PushOperation,
+  remoteData: Record<string, unknown> | null,
+  reason: string,
+) {
+  await tx.insert(conflictLog).values({
+    deviceId,
+    operationId: op.operationId,
+    tableName: op.tableName,
+    recordId: op.recordId,
+    localData: op.payload,
+    remoteData: remoteData ? toSnakeObject(remoteData) : null,
+    reason,
+    resolved: false,
+  });
 }

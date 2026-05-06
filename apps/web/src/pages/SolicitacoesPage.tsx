@@ -1,25 +1,52 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth.store";
 import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
+import { vinculoRepository } from "@/repositories/vinculo.repository";
+import { syncManager } from "@/sync";
+import { getDeviceId } from "@/lib/device-id";
+import api from "@/lib/api";
 import type { UsuarioVinculo } from "@/types/auth";
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<
+const STATUS_CONFIG: Partial<Record<
   UsuarioVinculo["status"],
   { label: string; bg: string; text: string; icon: string }
-> = {
+>> = {
   ativo: { label: "Ativo", bg: "bg-[#d4f0e6]", text: "text-[#01261f]", icon: "check_circle" },
   pendente: { label: "Pendente", bg: "bg-[#fff4e0]", text: "text-[#a05800]", icon: "schedule" },
+  convidado: { label: "Convite", bg: "bg-[#e8f0fd]", text: "text-[#1a4b8f]", icon: "mail" },
   rejeitado: { label: "Rejeitado", bg: "bg-[#fde8e8]", text: "text-[#c00000]", icon: "cancel" },
   inativo: { label: "Inativo", bg: "bg-[#f0ede8]", text: "text-[#414846]", icon: "pause_circle" },
 };
 
 // ─── Card de vínculo ──────────────────────────────────────────────────────────
 
-function VinculoCard({ v }: Readonly<{ v: UsuarioVinculo }>) {
+const DEFAULT_STATUS_CFG = { label: "Desconhecido", bg: "bg-[#f0ede8]", text: "text-[#414846]", icon: "help" };
+
+function VinculoCard({ v, onResponded }: Readonly<{ v: UsuarioVinculo; onResponded?: () => void }>) {
   const navigate = useNavigate();
-  const cfg = STATUS_CONFIG[v.status];
+  const cfg = STATUS_CONFIG[v.status] ?? DEFAULT_STATUS_CFG;
+  const [respondendo, setRespondendo] = useState(false);
+
+  async function responderConvite(acao: "aceitar" | "recusar") {
+    setRespondendo(true);
+    try {
+      const userId = useAuthStore.getState().perfil?.id;
+      if (!userId) throw new Error("Usuário não autenticado");
+      await vinculoRepository.responderConvite(userId, v.associacaoId, acao);
+      toast.success(acao === "aceitar" ? "Convite aceito! Sincronizando..." : "Convite recusado.");
+      // Trigger sync to push the intent immediately
+      await syncManager.run(getDeviceId());
+      onResponded?.();
+    } catch {
+      toast.error("Erro ao responder convite.");
+    } finally {
+      setRespondendo(false);
+    }
+  }
 
   return (
     <div
@@ -74,6 +101,34 @@ function VinculoCard({ v }: Readonly<{ v: UsuarioVinculo }>) {
           <span>Aguardando aprovação do administrador. Você receberá acesso assim que a solicitação for aprovada.</span>
         </div>
       )}
+      {v.status === "convidado" && (
+        <div className="space-y-3">
+          <div className="flex items-start gap-3 bg-[#e8f4fd] rounded-xl px-4 py-3 text-sm text-[#1a4b8f]">
+            <span className="material-symbols-outlined text-[18px] flex-shrink-0 mt-0.5">mail</span>
+            <span>Você foi convidado para esta associação. Aceite para ter acesso.</span>
+          </div>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => responderConvite("recusar")}
+              disabled={respondendo}
+              className="flex-1 py-3 border-2 border-[#e5e2dd] text-[#414846] font-semibold rounded-xl hover:bg-[#f0ede8] transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-40"
+            >
+              <span className="material-symbols-outlined text-[18px]">close</span>
+              Recusar
+            </button>
+            <button
+              type="button"
+              onClick={() => responderConvite("aceitar")}
+              disabled={respondendo}
+              className="flex-1 py-3 bg-[#01261f] text-white font-bold rounded-xl hover:bg-[#1a3c34] transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-40"
+            >
+              <span className="material-symbols-outlined text-[18px]">check</span>
+              Aceitar Convite
+            </button>
+          </div>
+        </div>
+      )}
       {v.status === "rejeitado" && (
         <button
           type="button"
@@ -91,15 +146,24 @@ function VinculoCard({ v }: Readonly<{ v: UsuarioVinculo }>) {
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function SolicitacoesPage() {
-  const { perfil, vinculos, limpar } = useAuthStore();
+  const { perfil, vinculos, limpar, setPerfil } = useAuthStore();
   const navigate = useNavigate();
 
   const primeiroNome = perfil?.nome?.split(" ")[0] ?? "usuário";
 
+  async function refreshProfile() {
+    try {
+      const { data } = await api.get("/auth/me");
+      setPerfil(data.usuario, data.vinculos);
+    } catch { /* ignore */ }
+  }
+
   const statusMessage = (() => {
     const temAtivo = vinculos.some((v) => v.status === "ativo");
     const pendentes = vinculos.filter((v) => v.status === "pendente");
+    const convites = vinculos.filter((v) => v.status === "convidado");
     if (temAtivo) return "Você já tem acesso ativo a uma associação.";
+    if (convites.length > 0) return "Você tem convites pendentes. Aceite para ter acesso.";
     if (pendentes.length > 0) {
       return pendentes.length === 1
         ? "Sua solicitação está sendo analisada. Você receberá acesso assim que um administrador aprovar."
@@ -155,7 +219,7 @@ export default function SolicitacoesPage() {
           {vinculos.length > 0 && (
             <div className="space-y-4">
               {vinculos.map((v) => (
-                <VinculoCard key={v.associacaoId} v={v} />
+                <VinculoCard key={v.associacaoId} v={v} onResponded={refreshProfile} />
               ))}
             </div>
           )}

@@ -1,12 +1,28 @@
-import axios from "axios";
 import type { SyncRequestBody, SyncResponseBody } from "./types";
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080",
-  timeout: 10000,
-});
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
 
-export async function syncRequest(body: SyncRequestBody) {
-  const response = await api.post<SyncResponseBody>("/sync", body);
-  return response.data;
+/**
+ * Envia push e recebe pull do servidor de sincronização.
+ * Usa fetch direto (não o axios compartilhado) para evitar o interceptor 401
+ * que poderia deslogar o usuário em falhas de rede durante sync em background.
+ */
+export async function syncRequest(body: SyncRequestBody): Promise<SyncResponseBody> {
+  const token = localStorage.getItem("espoa-token");
+
+  const response = await fetch(`${API_BASE}/sync`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Sync falhou: ${response.status} ${text}`);
+  }
+
+  return response.json() as Promise<SyncResponseBody>;
 }

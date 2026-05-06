@@ -1,9 +1,11 @@
 export const SYNC_TABLE_NAMES = [
+  "associacao",
   "associado",
   "mensalidade",
   "transacao_financeira",
   "ata",
   "producao",
+  "usuario_associacao",
 ] as const;
 
 export type SyncTableName = (typeof SYNC_TABLE_NAMES)[number];
@@ -27,11 +29,28 @@ export type SyncRequestBody = {
   push: PushOperation[];
 };
 
-export type PulledRows = Record<SyncTableName, Record<string, unknown>[]>;
+export type ConflictLogClientRow = {
+  id: number;
+  device_id: string;
+  operation_id: string;
+  table_name: string;
+  record_id: string;
+  local_data: Record<string, unknown> | null;
+  remote_data: Record<string, unknown> | null;
+  reason: string | null;
+  resolved: boolean;
+  created_at: string;
+};
+
+export type PulledRows = Record<SyncTableName, Record<string, unknown>[]> & {
+  // associacao is pulled from server but not in SYNC_TABLE_NAMES (read-only pull)
+  associacao?: Record<string, unknown>[];
+};
 
 export type SyncResponseBody = {
   ackedOperationIds: string[];
   pulled: PulledRows;
+  conflictLogs: ConflictLogClientRow[];
   serverTime: string;
   nextPullCursor: string;
 };

@@ -11,22 +11,8 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth.store";
-import { useEffect, useState } from "react";
-import api from "@/lib/api";
-
-interface AtividadeRecente {
-  id: string;
-  tipo: string;
-  descricao: string;
-  data: string;
-}
-
-interface DashboardStats {
-  totalAssociados: number;
-  totalCaixa: number;
-  mensalidadesPendentes: number;
-  atividadesRecentes: AtividadeRecente[];
-}
+import { db } from "@/database/db";
+import { useLiveQuery } from "@/hooks/useLiveQuery";
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
@@ -55,25 +41,47 @@ const quickActions: QuickAction[] = [
   { id: "reuniao", icon: <Calendar size={22} />, label: "Agendar Reunião" },
 ];
 
-
-
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const associacaoAtiva = useAuthStore((s) => s.associacaoAtiva);
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!associacaoAtiva?.associacaoId) return;
-    api
-      .get("/dashboard", { params: { associacao_id: associacaoAtiva.associacaoId } })
-      .then(({ data }) => setStats(data))
-      .catch(() => setStats(null))
-      .finally(() => setLoading(false));
-  }, [associacaoAtiva?.associacaoId]);
+  // Agregações reativas sobre o Dexie — funcionam offline
+  const totalAssociados = useLiveQuery(
+    () => db.associado.filter((a) => !a.deleted_at).count(),
+    0,
+  );
+
+  const totalCaixa = useLiveQuery(async () => {
+    const transacoes = await db.transacao_financeira
+      .filter((t) => !t.deleted_at)
+      .toArray();
+    return transacoes.reduce((acc, t) => {
+      const v = t.tipo === "despesa" ? -t.valor : t.valor;
+      return acc + v;
+    }, 0);
+  }, 0);
+
+  const mensalidadesPendentes = useLiveQuery(
+    () => db.mensalidade.filter((m) => !m.deleted_at && !m.data_pagamento).count(),
+    0,
+  );
+
+  const atividadesRecentes = useLiveQuery(async () => {
+    const associados = await db.associado
+      .filter((a) => !a.deleted_at)
+      .toArray();
+    return associados
+      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+      .slice(0, 5)
+      .map((a) => ({
+        id: a.id ?? a.nome,
+        descricao: a.nome,
+        data: a.updated_at,
+      }));
+  }, []);
 
   const formatCurrency = (value: number) => {
-    if (value >= 1000) return `R$ ${(value / 1000).toFixed(0)}k`;
+    if (Math.abs(value) >= 1000) return `R$ ${(value / 1000).toFixed(0)}k`;
     return `R$ ${value.toLocaleString("pt-BR")}`;
   };
 
@@ -103,7 +111,7 @@ export default function AdminDashboard() {
                 Total Associados
               </p>
               <h3 className="font-headline text-4xl font-bold text-[#01261f]">
-                {loading ? "..." : (stats?.totalAssociados.toLocaleString("pt-BR") ?? "0")}
+                {totalAssociados.toLocaleString("pt-BR")}
               </h3>
             </div>
             <div className="w-12 h-12 rounded-full bg-[#f6f3ee] flex items-center justify-center text-[#01261f]">
@@ -131,7 +139,7 @@ export default function AdminDashboard() {
                 Total em Caixa
               </p>
               <h3 className="font-headline text-4xl font-bold text-white">
-                {loading ? "..." : formatCurrency(stats?.totalCaixa ?? 0)}
+                {formatCurrency(totalCaixa)}
               </h3>
             </div>
             <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white">
@@ -140,7 +148,7 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center gap-2 text-sm text-white/80 relative z-10">
             <TrendingUp size={16} className="text-[#aacec3]" />
-            <span>total recebido</span>
+            <span>total em caixa</span>
           </div>
         </div>
 
@@ -152,7 +160,7 @@ export default function AdminDashboard() {
                 Mensalidades Pendentes
               </p>
               <h3 className="font-headline text-4xl font-bold text-[#1c1c19]">
-                {loading ? "..." : (stats?.mensalidadesPendentes ?? 0)}
+                {mensalidadesPendentes}
               </h3>
             </div>
             <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#381800] shadow-sm">
@@ -161,7 +169,9 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center gap-2 text-sm text-[#414846]">
             <TriangleAlert size={16} className="text-[#E67E22]" />
-            <span className="font-medium text-[#E67E22]">Atenção Necessária</span>
+            <span className="font-medium text-[#E67E22]">
+              {mensalidadesPendentes > 0 ? "Atenção Necessária" : "Em dia"}
+            </span>
           </div>
         </div>
       </div>
@@ -196,31 +206,24 @@ export default function AdminDashboard() {
               <h2 className="font-headline text-xl font-bold text-[#01261f]">
                 Atividades Recentes
               </h2>
-              <button className="text-sm font-label text-[#01261f] hover:underline">
-                Ver todas
-              </button>
             </div>
-
             <div className="space-y-6">
-              {loading ? (
-                <p className="text-sm text-[#414846]">Carregando...</p>
-              ) : stats?.atividadesRecentes.length ? (
-                stats.atividadesRecentes.map((item) => (
+              {atividadesRecentes.length === 0 ? (
+                <p className="text-sm text-[#414846]">Nenhuma atividade recente.</p>
+              ) : (
+                atividadesRecentes.map((item) => (
                   <div key={item.id} className="flex gap-4">
                     <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-[#f6f3ee] text-[#01261f]">
                       <UserPlus size={18} />
                     </div>
                     <div>
                       <p className="text-sm text-[#1c1c19]">
-                        <span className="font-semibold">Novo associado</span>
-                        {" cadastrado: "}{item.descricao}
+                        <span className="font-semibold">Associado:</span>{" "}{item.descricao}
                       </p>
                       <p className="text-xs text-[#414846] mt-1">{timeAgo(item.data)}</p>
                     </div>
                   </div>
                 ))
-              ) : (
-                <p className="text-sm text-[#414846]">Nenhuma atividade recente.</p>
               )}
             </div>
           </div>
