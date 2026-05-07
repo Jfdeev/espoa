@@ -1,6 +1,22 @@
 import { db } from "../database/db";
 import type { TransacaoFinanceira, Mensalidade } from "../database/types";
 
+async function enqueueSyncRecord(
+  table_name: string,
+  record_id: string,
+  operation: "create" | "update" | "delete",
+  payload: Record<string, unknown>,
+): Promise<void> {
+  await db.sync_queue.add({
+    table_name,
+    record_id,
+    operation,
+    payload: JSON.stringify(payload),
+    created_at: new Date().toISOString(),
+    synced: 0,
+  });
+}
+
 // ─── TransacaoFinanceira ─────────────────────────────────────────────────────
 
 export type CreateTransacaoInput = Omit<
@@ -87,7 +103,10 @@ export const mensalidadeRepository = {
       version: 1,
       updated_at: now,
     };
-    await db.mensalidade.add(record);
+    await db.transaction("rw", [db.mensalidade, db.sync_queue], async () => {
+      await db.mensalidade.add(record);
+      await enqueueSyncRecord("mensalidade", record.id!, "create", record as Record<string, unknown>);
+    });
     return record;
   },
 

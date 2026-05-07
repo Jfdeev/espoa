@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wheat, Leaf, Users } from "lucide-react";
+import { LayoutDashboard, Wheat, Leaf, Users, BanknoteArrowUp } from "lucide-react";
 
 export interface NavItem {
   label: string;
@@ -11,6 +11,7 @@ export const adminNavItems: NavItem[] = [
   { label: "Propriedades", icon: <Wheat size={20} />, href: "/app/propriedades" },
   { label: "Colheitas", icon: <Leaf size={20} />, href: "/app/colheitas" },
   { label: "Associados", icon: <Users size={20} />, href: "/app/associados" },
+  { label: "Mensalidades", icon: <BanknoteArrowUp size={20} />, href: "/app/mensalidades" },
 ];
 
 export const memberNavItems: NavItem[] = [
