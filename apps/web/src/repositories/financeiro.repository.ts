@@ -1,31 +1,17 @@
 import { db } from "../database/db";
 import type { TransacaoFinanceira, Mensalidade } from "../database/types";
-
-async function enqueueSyncRecord(
-  table_name: string,
-  record_id: string,
-  operation: "create" | "update" | "delete",
-  payload: Record<string, unknown>,
-): Promise<void> {
-  await db.sync_queue.add({
-    table_name,
-    record_id,
-    operation,
-    payload: JSON.stringify(payload),
-    created_at: new Date().toISOString(),
-    synced: 0,
-  });
-}
+import { getDeviceId } from "@/lib/device-id";
+import { enqueueSyncOperation } from "@/sync/enqueue";
 
 // ─── TransacaoFinanceira ─────────────────────────────────────────────────────
 
 export type CreateTransacaoInput = Omit<
   TransacaoFinanceira,
-  "id" | "version" | "updated_at" | "deleted_at"
+  "id" | "version" | "updated_at" | "deleted_at" | "device_id"
 >;
 
 export type UpdateTransacaoInput = Partial<
-  Omit<TransacaoFinanceira, "id" | "version" | "updated_at" | "deleted_at">
+  Omit<TransacaoFinanceira, "id" | "version" | "updated_at" | "deleted_at" | "device_id">
 >;
 
 export const transacaoRepository = {
@@ -36,15 +22,16 @@ export const transacaoRepository = {
       id: crypto.randomUUID(),
       version: 1,
       updated_at: now,
+      device_id: getDeviceId(),
     };
-    await db.transacao_financeira.add(record);
+    await db.transaction("rw", [db.transacao_financeira, db.sync_queue], async () => {
+      await db.transacao_financeira.add(record);
+      await enqueueSyncOperation("transacao_financeira", record.id!, "create", record as unknown as Record<string, unknown>);
+    });
     return record;
   },
 
-  async update(
-    id: string,
-    data: UpdateTransacaoInput
-  ): Promise<TransacaoFinanceira> {
+  async update(id: string, data: UpdateTransacaoInput): Promise<TransacaoFinanceira> {
     const existing = await db.transacao_financeira.get(id);
     if (!existing) throw new Error(`TransacaoFinanceira ${id} não encontrada`);
 
@@ -54,8 +41,12 @@ export const transacaoRepository = {
       id,
       version: existing.version + 1,
       updated_at: new Date().toISOString(),
+      device_id: getDeviceId(),
     };
-    await db.transacao_financeira.put(updated);
+    await db.transaction("rw", [db.transacao_financeira, db.sync_queue], async () => {
+      await db.transacao_financeira.put(updated);
+      await enqueueSyncOperation("transacao_financeira", id, "update", updated as unknown as Record<string, unknown>);
+    });
     return updated;
   },
 
@@ -63,10 +54,17 @@ export const transacaoRepository = {
     const existing = await db.transacao_financeira.get(id);
     if (!existing) throw new Error(`TransacaoFinanceira ${id} não encontrada`);
 
-    await db.transacao_financeira.update(id, {
+    const softDeleted: Partial<TransacaoFinanceira> = {
       deleted_at: new Date().toISOString(),
       version: existing.version + 1,
       updated_at: new Date().toISOString(),
+      device_id: getDeviceId(),
+    };
+    const fullRecord: TransacaoFinanceira = { ...existing, ...softDeleted };
+
+    await db.transaction("rw", [db.transacao_financeira, db.sync_queue], async () => {
+      await db.transacao_financeira.update(id, softDeleted);
+      await enqueueSyncOperation("transacao_financeira", id, "delete", fullRecord as unknown as Record<string, unknown>);
     });
   },
 
@@ -87,11 +85,11 @@ export const transacaoRepository = {
 
 export type CreateMensalidadeInput = Omit<
   Mensalidade,
-  "id" | "version" | "updated_at" | "deleted_at"
+  "id" | "version" | "updated_at" | "deleted_at" | "device_id"
 >;
 
 export type UpdateMensalidadeInput = Partial<
-  Omit<Mensalidade, "id" | "version" | "updated_at" | "deleted_at">
+  Omit<Mensalidade, "id" | "version" | "updated_at" | "deleted_at" | "device_id">
 >;
 
 export const mensalidadeRepository = {
@@ -102,18 +100,16 @@ export const mensalidadeRepository = {
       id: crypto.randomUUID(),
       version: 1,
       updated_at: now,
+      device_id: getDeviceId(),
     };
     await db.transaction("rw", [db.mensalidade, db.sync_queue], async () => {
       await db.mensalidade.add(record);
-      await enqueueSyncRecord("mensalidade", record.id!, "create", record as Record<string, unknown>);
+      await enqueueSyncOperation("mensalidade", record.id!, "create", record as unknown as Record<string, unknown>);
     });
     return record;
   },
 
-  async update(
-    id: string,
-    data: UpdateMensalidadeInput
-  ): Promise<Mensalidade> {
+  async update(id: string, data: UpdateMensalidadeInput): Promise<Mensalidade> {
     const existing = await db.mensalidade.get(id);
     if (!existing) throw new Error(`Mensalidade ${id} não encontrada`);
 
@@ -123,8 +119,12 @@ export const mensalidadeRepository = {
       id,
       version: existing.version + 1,
       updated_at: new Date().toISOString(),
+      device_id: getDeviceId(),
     };
-    await db.mensalidade.put(updated);
+    await db.transaction("rw", [db.mensalidade, db.sync_queue], async () => {
+      await db.mensalidade.put(updated);
+      await enqueueSyncOperation("mensalidade", id, "update", updated as unknown as Record<string, unknown>);
+    });
     return updated;
   },
 
@@ -132,10 +132,17 @@ export const mensalidadeRepository = {
     const existing = await db.mensalidade.get(id);
     if (!existing) throw new Error(`Mensalidade ${id} não encontrada`);
 
-    await db.mensalidade.update(id, {
+    const softDeleted: Partial<Mensalidade> = {
       deleted_at: new Date().toISOString(),
       version: existing.version + 1,
       updated_at: new Date().toISOString(),
+      device_id: getDeviceId(),
+    };
+    const fullRecord: Mensalidade = { ...existing, ...softDeleted };
+
+    await db.transaction("rw", [db.mensalidade, db.sync_queue], async () => {
+      await db.mensalidade.update(id, softDeleted);
+      await enqueueSyncOperation("mensalidade", id, "delete", fullRecord as unknown as Record<string, unknown>);
     });
   },
 

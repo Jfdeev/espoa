@@ -8,6 +8,7 @@ import OnboardingADMPage from "./pages/onboarding/OnboardingADMPage";
 import AppPage from "./pages/app/AppPage";
 import AssociadosPage from "./pages/app/AssociadosPage";
 import MensalidadesPage from "./pages/app/MensalidadesPage";
+import DebugSyncPage from "./pages/app/DebugSyncPage";
 import SolicitacoesPage from "./pages/SolicitacoesPage";
 import AuthGuard from "./components/AuthGuard";
 import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
@@ -31,6 +32,7 @@ function App() {
             <Route path="/app" element={<AppPage />} />
             <Route path="/app/associados" element={<AssociadosPage />} />
             <Route path="/app/mensalidades" element={<MensalidadesPage />} />
+            <Route path="/debug/sync" element={<DebugSyncPage />} />
           </Route>
 
           {/* Fallback */}

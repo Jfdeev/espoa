@@ -519,6 +519,132 @@ export async function alterarRoleVinculo(req: AuthenticatedRequest, res: Respons
   res.json({ vinculo: atualizado });
 }
 
+// ─── Convidar membro por e-mail ───────────────────────────────────────────────
+
+export async function convidarMembro(req: AuthenticatedRequest, res: Response) {
+  const { assocId } = req.params as { assocId: string };
+  const { email: targetEmail } = req.body as { email?: string };
+
+  if (!targetEmail || !targetEmail.includes("@")) {
+    res.status(400).json({ error: "E-mail válido é obrigatório" });
+    return;
+  }
+
+  // Verify caller is admin of this association
+  const [vinculoAdm] = await db
+    .select()
+    .from(usuarioAssociacao)
+    .where(
+      and(
+        eq(usuarioAssociacao.associacaoId, assocId),
+        eq(usuarioAssociacao.usuarioId, req.userId!),
+      ),
+    )
+    .limit(1);
+
+  if (vinculoAdm?.role !== "adm" || vinculoAdm?.status !== "ativo") {
+    res.status(403).json({ error: "Sem permissão para convidar membros" });
+    return;
+  }
+
+  // Find user by email
+  const [targetUser] = await db
+    .select()
+    .from(usuario)
+    .where(eq(usuario.email, targetEmail.toLowerCase().trim()))
+    .limit(1);
+
+  if (!targetUser) {
+    res.status(404).json({ error: "Nenhum usuário encontrado com este e-mail" });
+    return;
+  }
+
+  // Check if already has a relationship
+  const [existing] = await db
+    .select()
+    .from(usuarioAssociacao)
+    .where(
+      and(
+        eq(usuarioAssociacao.usuarioId, targetUser.id),
+        eq(usuarioAssociacao.associacaoId, assocId),
+      ),
+    )
+    .limit(1);
+
+  if (existing) {
+    if (existing.status === "ativo") {
+      res.status(409).json({ error: "Este usuário já é membro ativo da associação" });
+      return;
+    }
+    if (existing.status === "convidado") {
+      res.status(409).json({ error: "Este usuário já foi convidado e ainda não respondeu" });
+      return;
+    }
+    // If inativo/rejeitado, reactivate as convidado
+    const [reactivated] = await db
+      .update(usuarioAssociacao)
+      .set({ status: "convidado", requestedAt: new Date(), joinedAt: null })
+      .where(eq(usuarioAssociacao.id, existing.id))
+      .returning();
+    res.status(200).json({ vinculo: reactivated, reconvidado: true });
+    return;
+  }
+
+  // Create new invitation
+  const [vinculo] = await db
+    .insert(usuarioAssociacao)
+    .values({
+      usuarioId: targetUser.id,
+      associacaoId: assocId,
+      role: "associado",
+      status: "convidado",
+    })
+    .returning();
+
+  res.status(201).json({ vinculo });
+}
+
+// ─── Responder convite ────────────────────────────────────────────────────────
+
+export async function responderConvite(req: AuthenticatedRequest, res: Response) {
+  const { assocId } = req.params as { assocId: string };
+  const { acao } = req.body as { acao?: "aceitar" | "recusar" };
+
+  if (acao !== "aceitar" && acao !== "recusar") {
+    res.status(400).json({ error: "acao deve ser 'aceitar' ou 'recusar'" });
+    return;
+  }
+
+  const [vinculo] = await db
+    .select()
+    .from(usuarioAssociacao)
+    .where(
+      and(
+        eq(usuarioAssociacao.usuarioId, req.userId!),
+        eq(usuarioAssociacao.associacaoId, assocId),
+        eq(usuarioAssociacao.status, "convidado"),
+      ),
+    )
+    .limit(1);
+
+  if (!vinculo) {
+    res.status(404).json({ error: "Convite não encontrado" });
+    return;
+  }
+
+  const novoStatus = acao === "aceitar" ? "ativo" : "rejeitado";
+  const [atualizado] = await db
+    .update(usuarioAssociacao)
+    .set({
+      status: novoStatus,
+      joinedAt: acao === "aceitar" ? new Date() : null,
+    })
+    .where(eq(usuarioAssociacao.id, vinculo.id))
+    .returning();
+
+  res.json({ vinculo: atualizado });
+}
+
 // ─── Sanitize (remove campos sensíveis) ──────────────────────────────────────
 
 function sanitize(user: typeof usuario.$inferSelect) {

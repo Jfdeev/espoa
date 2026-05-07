@@ -1,13 +1,15 @@
 import { db } from "../database/db";
 import type { Associado } from "../database/types";
+import { getDeviceId } from "@/lib/device-id";
+import { enqueueSyncOperation } from "@/sync/enqueue";
 
 export type CreateAssociadoInput = Omit<
   Associado,
-  "id" | "version" | "updated_at" | "deleted_at"
+  "id" | "version" | "updated_at" | "deleted_at" | "device_id"
 >;
 
 export type UpdateAssociadoInput = Partial<
-  Omit<Associado, "id" | "version" | "updated_at" | "deleted_at">
+  Omit<Associado, "id" | "version" | "updated_at" | "deleted_at" | "device_id">
 >;
 
 export const associadoRepository = {
@@ -18,8 +20,12 @@ export const associadoRepository = {
       id: crypto.randomUUID(),
       version: 1,
       updated_at: now,
+      device_id: getDeviceId(),
     };
-    await db.associado.add(record);
+    await db.transaction("rw", [db.associado, db.sync_queue], async () => {
+      await db.associado.add(record);
+      await enqueueSyncOperation("associado", record.id!, "create", record as unknown as Record<string, unknown>);
+    });
     return record;
   },
 
@@ -33,8 +39,12 @@ export const associadoRepository = {
       id,
       version: existing.version + 1,
       updated_at: new Date().toISOString(),
+      device_id: getDeviceId(),
     };
-    await db.associado.put(updated);
+    await db.transaction("rw", [db.associado, db.sync_queue], async () => {
+      await db.associado.put(updated);
+      await enqueueSyncOperation("associado", id, "update", updated as unknown as Record<string, unknown>);
+    });
     return updated;
   },
 
@@ -42,10 +52,17 @@ export const associadoRepository = {
     const existing = await db.associado.get(id);
     if (!existing) throw new Error(`Associado ${id} não encontrado`);
 
-    await db.associado.update(id, {
+    const softDeleted: Partial<Associado> = {
       deleted_at: new Date().toISOString(),
       version: existing.version + 1,
       updated_at: new Date().toISOString(),
+      device_id: getDeviceId(),
+    };
+    const fullRecord: Associado = { ...existing, ...softDeleted };
+
+    await db.transaction("rw", [db.associado, db.sync_queue], async () => {
+      await db.associado.update(id, softDeleted);
+      await enqueueSyncOperation("associado", id, "delete", fullRecord as unknown as Record<string, unknown>);
     });
   },
 

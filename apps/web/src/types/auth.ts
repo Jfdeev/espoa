@@ -4,7 +4,7 @@ export interface UsuarioVinculo {
   associacaoMunicipio: string;
   associacaoEstado: string;
   role: "adm" | "associado";
-  status: "pendente" | "ativo" | "inativo" | "rejeitado";
+  status: "pendente" | "ativo" | "inativo" | "rejeitado" | "convidado";
   joinedAt: string | null;
 }
 

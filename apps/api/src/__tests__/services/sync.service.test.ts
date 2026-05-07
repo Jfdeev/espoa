@@ -7,10 +7,11 @@ vi.mock("../../services/sync-push.service", () => ({
 
 vi.mock("../../services/sync-pull.service", () => ({
   pullRowsByTable: vi.fn(),
+  pullConflictLogs: vi.fn(),
 }));
 
 import { applyPushOperations } from "../../services/sync-push.service";
-import { pullRowsByTable } from "../../services/sync-pull.service";
+import { pullRowsByTable, pullConflictLogs } from "../../services/sync-pull.service";
 
 const mockPulled = {
   associado: [{ id: "1", nome: "João" }],
@@ -24,6 +25,7 @@ describe("runSync", () => {
   beforeEach(() => {
     vi.mocked(applyPushOperations).mockResolvedValue(["op-1", "op-2"]);
     vi.mocked(pullRowsByTable).mockResolvedValue(mockPulled as any);
+    vi.mocked(pullConflictLogs).mockResolvedValue([]);
   });
 
   it("returns ackedOperationIds from applyPushOperations", async () => {
