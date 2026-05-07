@@ -8,6 +8,7 @@ import OnboardingADMPage from "./pages/onboarding/OnboardingADMPage";
 import AppPage from "./pages/app/AppPage";
 import AssociadosPage from "./pages/app/AssociadosPage";
 import DebugSyncPage from "./pages/app/DebugSyncPage";
+import FinanceiroEntradaPage from "./pages/app/FinanceiroEntradaPage";
 import SolicitacoesPage from "./pages/SolicitacoesPage";
 import AuthGuard from "./components/AuthGuard";
 import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
@@ -25,11 +26,18 @@ function App() {
           {/* Requer auth */}
           <Route element={<AuthGuard />}>
             <Route path="/onboarding" element={<OnboardingPage />} />
-            <Route path="/onboarding/associado" element={<OnboardingAssociadoPage />} />
+            <Route
+              path="/onboarding/associado"
+              element={<OnboardingAssociadoPage />}
+            />
             <Route path="/onboarding/adm" element={<OnboardingADMPage />} />
             <Route path="/solicitacoes" element={<SolicitacoesPage />} />
             <Route path="/app" element={<AppPage />} />
             <Route path="/app/associados" element={<AssociadosPage />} />
+            <Route
+              path="/app/financeiro/entrada"
+              element={<FinanceiroEntradaPage />}
+            />
             <Route path="/debug/sync" element={<DebugSyncPage />} />
           </Route>
 
@@ -44,5 +52,3 @@ function App() {
 }
 
 export default App;
-
-

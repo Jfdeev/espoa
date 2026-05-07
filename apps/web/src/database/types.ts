@@ -27,6 +27,7 @@ export interface TransacaoFinanceira {
   tipo: string;
   valor: number;
   descricao?: string;
+  documento?: string;
   data: string;
   version: number;
   updated_at: string;
