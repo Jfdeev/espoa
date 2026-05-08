@@ -37,6 +37,9 @@ export default function FinanceiroResumoPage() {
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
+  const [transacaoExpandida, setTransacaoExpandida] = useState<string | null>(
+    null,
+  );
   const pageSize = 10;
 
   const resumo = useLiveQuery(
@@ -252,8 +255,7 @@ export default function FinanceiroResumoPage() {
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 px-6 py-4 text-xs uppercase tracking-wider text-[#414846] border-b border-[#c1c8c4]/30">
               <span>Data</span>
               <span>Tipo</span>
-              <span>Descricao</span>
-              <span>Documento</span>
+              <span className="md:col-span-2">Detalhes</span>
               <span className="text-right">Valor</span>
             </div>
 
@@ -263,28 +265,57 @@ export default function FinanceiroResumoPage() {
               </div>
             ) : (
               <div className="divide-y divide-[#c1c8c4]/30">
-                {transacoesPaginadas.map((t) => (
-                  <div
-                    key={t.id}
-                    className="grid grid-cols-1 md:grid-cols-5 gap-4 px-6 py-4 text-sm text-[#1c1c19]"
-                  >
-                    <span>{formatDate(t.data)}</span>
-                    <span
-                      className={
-                        t.tipo === "despesa"
-                          ? "text-red-700"
-                          : "text-md-primary"
-                      }
-                    >
-                      {t.tipo === "despesa" ? "Saida" : "Entrada"}
-                    </span>
-                    <span>{t.descricao ?? "-"}</span>
-                    <span>{t.documento ?? "-"}</span>
-                    <span className="text-right font-semibold">
-                      {formatCurrency(t.valor)}
-                    </span>
-                  </div>
-                ))}
+                {transacoesPaginadas.map((t) => {
+                  const isOpen = transacaoExpandida === t.id;
+                  return (
+                    <div key={t.id}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setTransacaoExpandida((current) =>
+                            current === t.id ? null : (t.id ?? null),
+                          )
+                        }
+                        className="w-full grid grid-cols-1 md:grid-cols-5 gap-4 px-6 py-4 text-sm text-[#1c1c19] text-left hover:bg-[#f6f3ee] transition-colors"
+                      >
+                        <span>{formatDate(t.data)}</span>
+                        <span
+                          className={
+                            t.tipo === "despesa"
+                              ? "text-red-700"
+                              : "text-md-primary"
+                          }
+                        >
+                          {t.tipo === "despesa" ? "Saida" : "Entrada"}
+                        </span>
+                        <span className="md:col-span-2 text-[#414846]">
+                          Clique para ver detalhes
+                        </span>
+                        <span className="text-right font-semibold">
+                          {formatCurrency(t.valor)}
+                        </span>
+                      </button>
+                      {isOpen && (
+                        <div className="px-6 pb-5 text-sm text-[#1c1c19]">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#fcf9f4] border border-[#e5e2dd] rounded-xl p-4">
+                            <div>
+                              <p className="text-xs uppercase tracking-wider text-[#414846]">
+                                Descricao
+                              </p>
+                              <p className="mt-1">{t.descricao ?? "-"}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-wider text-[#414846]">
+                                Documento
+                              </p>
+                              <p className="mt-1">{t.documento ?? "-"}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
