@@ -263,28 +263,33 @@ export async function verifyEmail(req: Request, res: Response) {
 // ─── Me ───────────────────────────────────────────────────────────────────────
 
 export async function getMe(req: AuthenticatedRequest, res: Response) {
-  const [me] = await getUserById(req.userId!);
+  try {
+    const [me] = await getUserById(req.userId!);
 
-  if (!me) {
-    res.status(404).json({ error: "Usuário não encontrado" });
-    return;
+    if (!me) {
+      res.status(404).json({ error: "Usuário não encontrado" });
+      return;
+    }
+
+    const vinculos = await db
+      .select({
+        associacaoId: usuarioAssociacao.associacaoId,
+        role: usuarioAssociacao.role,
+        status: usuarioAssociacao.status,
+        joinedAt: usuarioAssociacao.joinedAt,
+        associacaoNome: associacao.nome,
+        associacaoMunicipio: associacao.municipio,
+        associacaoEstado: associacao.estado,
+      })
+      .from(usuarioAssociacao)
+      .innerJoin(associacao, eq(usuarioAssociacao.associacaoId, associacao.id))
+      .where(eq(usuarioAssociacao.usuarioId, me.id));
+
+    res.json({ usuario: sanitize(me), vinculos });
+  } catch (err) {
+    console.error("[getMe] DB error:", err);
+    res.status(500).json({ error: "Erro interno ao buscar perfil" });
   }
-
-  const vinculos = await db
-    .select({
-      associacaoId: usuarioAssociacao.associacaoId,
-      role: usuarioAssociacao.role,
-      status: usuarioAssociacao.status,
-      joinedAt: usuarioAssociacao.joinedAt,
-      associacaoNome: associacao.nome,
-      associacaoMunicipio: associacao.municipio,
-      associacaoEstado: associacao.estado,
-    })
-    .from(usuarioAssociacao)
-    .innerJoin(associacao, eq(usuarioAssociacao.associacaoId, associacao.id))
-    .where(eq(usuarioAssociacao.usuarioId, me.id));
-
-  res.json({ usuario: sanitize(me), vinculos });
 }
 
 // ─── Associações ─────────────────────────────────────────────────────────────
