@@ -1,4 +1,4 @@
-import type { Response } from "express";
+import type { Request, Response } from "express";
 import type { AuthenticatedRequest } from "../middleware/auth.middleware";
 import {
   listMensalidadesDoUsuario,
@@ -7,7 +7,6 @@ import {
 } from "../services/mensalidade.service";
 import { createPixBilling, checkBillingStatus, type WebhookPayload } from "../services/abacatepay.service";
 import { toSnakeObject } from "../utils/case-mapper";
-import type { Request } from "express";
 import { db, usuario } from "@espoa/database";
 import { eq } from "drizzle-orm";
 
@@ -74,7 +73,7 @@ export async function gerarPix(req: AuthenticatedRequest, res: Response) {
     });
 
     if (result.error || !result.data) {
-      console.error("AbacatePay billing failed:", result.error);
+      console.error("AbacatePay billing failed");
       return res.status(502).json({ error: result.error ?? "abacatepay_error" });
     }
 
@@ -146,7 +145,7 @@ export async function pixWebhook(req: Request, res: Response) {
     const usuarioId = parts[1];
 
     if (!usuarioId) {
-      console.warn("pixWebhook: externalId sem usuarioId", externalId);
+      console.warn("pixWebhook: externalId sem usuarioId");
       return res.json({ ok: true });
     }
 

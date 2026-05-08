@@ -49,7 +49,7 @@ function formatDate(iso: string) {
   });
 }
 
-function FormaPagamentoBadge({ forma }: { forma: string | undefined }) {
+function FormaPagamentoBadge({ forma }: Readonly<{ forma: string | undefined }>) {
   if (!forma) return null;
   const label = FORMAS_PAGAMENTO.find((f) => f.value === forma)?.label ?? forma;
   return (
@@ -469,8 +469,8 @@ function AdminView() {
       toast.error("Selecione um membro.");
       return;
     }
-    const valor = parseFloat(form.valor);
-    if (isNaN(valor) || valor <= 0) {
+    const valor = Number.parseFloat(form.valor);
+    if (Number.isNaN(valor) || valor <= 0) {
       toast.error("Informe um valor válido.");
       return;
     }
@@ -546,7 +546,10 @@ function AdminView() {
               "bg-white rounded-2xl shadow-sm p-5 space-y-1 cursor-pointer transition-all",
               filtro === "em_dia" ? "ring-2 ring-emerald-400" : "hover:ring-2 hover:ring-emerald-300",
             )}
+            role="button"
+            tabIndex={0}
             onClick={() => setFiltro(filtro === "em_dia" ? "todos" : "em_dia")}
+            onKeyDown={(e) => e.key === "Enter" && setFiltro(filtro === "em_dia" ? "todos" : "em_dia")}
           >
             <div className="flex items-center gap-2 text-emerald-600">
               <CheckCircle size={18} />
@@ -559,7 +562,10 @@ function AdminView() {
               "bg-white rounded-2xl shadow-sm p-5 space-y-1 cursor-pointer transition-all",
               filtro === "vencidos" ? "ring-2 ring-red-400" : "hover:ring-2 hover:ring-red-300",
             )}
+            role="button"
+            tabIndex={0}
             onClick={() => setFiltro(filtro === "vencidos" ? "todos" : "vencidos")}
+            onKeyDown={(e) => e.key === "Enter" && setFiltro(filtro === "vencidos" ? "todos" : "vencidos")}
           >
             <div className="flex items-center gap-2 text-red-600">
               <AlertCircle size={18} />
@@ -613,11 +619,11 @@ function AdminView() {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-[#01261f] text-sm truncate">{m.nome}</p>
                     <p className="text-xs text-[#414846]">
-                      {vencido
-                        ? "Sem pagamento no mês"
-                        : ultimo?.data_pagamento
-                          ? `Pago em ${formatDate(ultimo.data_pagamento)}`
-                          : "Em dia"}
+                      {(() => {
+                        if (vencido) return "Sem pagamento no mês";
+                        if (ultimo?.data_pagamento) return `Pago em ${formatDate(ultimo.data_pagamento)}`;
+                        return "Em dia";
+                      })()}
                     </p>
                   </div>
                   <span

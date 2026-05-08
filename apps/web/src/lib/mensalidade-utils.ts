@@ -34,8 +34,7 @@ export function isVencido(mensalidades: Mensalidade[]): boolean {
   const pagouMes = mensalidades.some(
     (m) =>
       !m.deleted_at &&
-      m.data_pagamento != null &&
-      m.data_pagamento.slice(0, 7) === anoMes,
+      m.data_pagamento?.slice(0, 7) === anoMes,
   );
 
   return !pagouMes;

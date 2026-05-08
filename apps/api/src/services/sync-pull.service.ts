@@ -1,5 +1,5 @@
 import { db, conflictLog, mensalidade as mensalidadeTable } from "@espoa/database";
-import { and, eq, gt, or, isNull } from "drizzle-orm";
+import { and, eq, gt } from "drizzle-orm";
 import {
   syncTableNames,
   syncTables,
@@ -28,11 +28,6 @@ async function getPulledRows(
 ) {
   // Mensalidades: só pull das do próprio usuário
   if (tableName === "mensalidade" && userId) {
-    const userFilter = or(
-      eq(mensalidadeTable.usuarioId, userId),
-      // inclui também mensalidades sem usuario_id cujo associado pertence ao usuário
-      isNull(mensalidadeTable.usuarioId),
-    );
     const rows = lastPulledAt
       ? await db
           .select()
