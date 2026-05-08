@@ -6,16 +6,17 @@ import { useAuthStore } from "@/store/auth.store";
 import { db } from "@/database/db";
 import { useLiveQuery } from "@/hooks/useLiveQuery";
 import { Input } from "@/components/ui/input";
+import {
+  filterTransacoes,
+  paginateTransacoes,
+  parseDateOnly,
+  sortTransacoes,
+  summarizeTransacoes,
+  type TipoFiltro,
+} from "@/lib/financeiro";
 
 function formatCurrency(value: number) {
   return `R$ ${value.toLocaleString("pt-BR")}`;
-}
-
-function parseDateOnly(value: string) {
-  const match = /^\d{4}-\d{2}-\d{2}$/.exec(value);
-  if (!match) return null;
-  const [year, month, day] = value.split("-").map(Number);
-  return new Date(year, month - 1, day);
 }
 
 function formatDate(value: string) {
@@ -30,9 +31,7 @@ function formatDate(value: string) {
 
 export default function FinanceiroResumoPage() {
   const associacaoAtiva = useAuthStore((s) => s.associacaoAtiva);
-  const [tipoFiltro, setTipoFiltro] = useState<"todas" | "entradas" | "saidas">(
-    "todas",
-  );
+  const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>("todas");
   const [busca, setBusca] = useState("");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
@@ -42,91 +41,34 @@ export default function FinanceiroResumoPage() {
   );
   const pageSize = 10;
 
-  const resumo = useLiveQuery(
-    async () => {
-      const transacoes = await db.transacao_financeira
-        .filter((t) => !t.deleted_at)
-        .toArray();
-
-      let entradas = 0;
-      let saidas = 0;
-
-      for (const transacao of transacoes) {
-        if (transacao.tipo === "despesa") {
-          saidas += transacao.valor;
-        } else {
-          entradas += transacao.valor;
-        }
-      }
-
-      return {
-        entradas,
-        saidas,
-        saldo: entradas - saidas,
-      };
-    },
-    { entradas: 0, saidas: 0, saldo: 0 },
-  );
-
   const transacoes = useLiveQuery(async () => {
     return db.transacao_financeira.filter((t) => !t.deleted_at).toArray();
   }, []);
 
+  const resumo = useMemo(
+    () => summarizeTransacoes(transacoes ?? []),
+    [transacoes],
+  );
+
   const transacoesFiltradas = useMemo(() => {
-    const search = busca.trim().toLowerCase();
-    const start = dataInicio ? new Date(dataInicio) : null;
-    const end = dataFim ? new Date(dataFim) : null;
-
-    return (transacoes ?? [])
-      .filter((t) => {
-        if (tipoFiltro === "entradas" && t.tipo === "despesa") return false;
-        if (tipoFiltro === "saidas" && t.tipo !== "despesa") return false;
-
-        if (search) {
-          const descricao = t.descricao?.toLowerCase() ?? "";
-          const documento = t.documento?.toLowerCase() ?? "";
-          if (!descricao.includes(search) && !documento.includes(search)) {
-            return false;
-          }
-        }
-
-        if (start || end) {
-          const data = parseDateOnly(t.data) ?? new Date(t.data);
-          if (start && data < start) return false;
-          if (end) {
-            const endOfDay = new Date(end);
-            endOfDay.setHours(23, 59, 59, 999);
-            if (data > endOfDay) return false;
-          }
-        }
-
-        return true;
-      })
-      .sort((a, b) => {
-        const dataB = (parseDateOnly(b.data) ?? new Date(b.data)).getTime();
-        const dataA = (parseDateOnly(a.data) ?? new Date(a.data)).getTime();
-        if (dataB !== dataA) return dataB - dataA;
-        const updatedB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
-        const updatedA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
-        return updatedB - updatedA;
-      });
+    const filtered = filterTransacoes(transacoes ?? [], {
+      tipo: tipoFiltro,
+      busca,
+      dataInicio,
+      dataFim,
+    });
+    return sortTransacoes(filtered);
   }, [busca, dataInicio, dataFim, tipoFiltro, transacoes]);
 
   useEffect(() => {
     setPaginaAtual(1);
-  }, [busca, dataInicio, dataFim, tipoFiltro]);
+  }, [busca, dataInicio, dataFim, tipoFiltro, transacoes?.length]);
 
-  const totalPaginas = Math.max(
-    1,
-    Math.ceil(transacoesFiltradas.length / pageSize),
-  );
-
-  const paginaSegura = Math.min(paginaAtual, totalPaginas);
-
-  const transacoesPaginadas = useMemo(() => {
-    const start = (paginaSegura - 1) * pageSize;
-    return transacoesFiltradas.slice(start, start + pageSize);
-  }, [paginaSegura, transacoesFiltradas]);
+  const { totalPages: totalPaginas, safePage: paginaSegura, items: transacoesPaginadas } =
+    useMemo(
+      () => paginateTransacoes(transacoesFiltradas, paginaAtual, pageSize),
+      [paginaAtual, pageSize, transacoesFiltradas],
+    );
 
   if (!associacaoAtiva) {
     return <Navigate to="/solicitacoes" replace />;
