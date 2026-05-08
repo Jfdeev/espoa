@@ -75,6 +75,29 @@ export interface Associacao {
   deleted_at?: string;
 }
 
+export interface EditalPnae {
+  id?: string;
+  associacao_id: string;
+  titulo: string;
+  numero_edital?: string;
+  orgao_responsavel?: string;
+  descricao?: string;
+  municipio?: string;
+  estado?: string;
+  data_abertura?: string;
+  data_limite: string;
+  valor_total_estimado?: number;
+  link_original?: string;
+  observacoes_internas?: string;
+  status: "aberto" | "em_analise" | "encerrado";
+  created_by?: string;
+  created_at?: string;
+  version: number;
+  updated_at: string;
+  device_id?: string;
+  deleted_at?: string;
+}
+
 export interface UsuarioAssociacao {
   id: string;
   usuario_id: string;

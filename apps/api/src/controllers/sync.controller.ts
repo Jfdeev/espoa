@@ -29,7 +29,8 @@ export async function postSync(req: Request, res: Response) {
 
     return res.json(result);
   } catch (error) {
-    console.error("/sync error", error);
+    console.error("/sync error", error instanceof Error ? error.message : error);
+    console.error("/sync stack", error instanceof Error ? error.stack : "no stack");
     return res.status(500).json({ error: "sync_failed" });
   }
 }

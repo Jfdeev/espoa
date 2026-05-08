@@ -43,7 +43,14 @@ export async function applyPushOperations(
       .returning({ id: syncQueue.id });
 
     if (inserted.length === 0) {
-      // Already processed (idempotent dedup)
+      // Already in sync_queue — but applyOperation may have failed previously.
+      // Ack it so the client stops retrying, and attempt apply again (idempotent upsert).
+      try {
+        await applyOperation(db, op, deviceId);
+      } catch {
+        // Best-effort retry — if it still fails, at least ack so client unblocks
+      }
+      ackedOperationIds.push(op.operationId);
       continue;
     }
 
