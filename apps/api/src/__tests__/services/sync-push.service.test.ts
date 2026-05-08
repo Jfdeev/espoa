@@ -75,6 +75,7 @@ vi.mock("@espoa/database", () => {
     mensalidade: { id: "id" },
     producao: { id: "id" },
     transacaoFinanceira: { id: "id" },
+    editalPnae: { id: "id" },
     conflictLog: { id: "id" },
   };
 });

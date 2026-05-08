@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wheat, Leaf, Users } from "lucide-react";
+import { LayoutDashboard, Wheat, Leaf, Users, FileText } from "lucide-react";
 
 export interface NavItem {
   label: string;
@@ -11,6 +11,7 @@ export const adminNavItems: NavItem[] = [
   { label: "Propriedades", icon: <Wheat size={20} />, href: "/app/propriedades" },
   { label: "Colheitas", icon: <Leaf size={20} />, href: "/app/colheitas" },
   { label: "Associados", icon: <Users size={20} />, href: "/app/associados" },
+  { label: "Editais PNAE", icon: <FileText size={20} />, href: "/app/editais" },
 ];
 
 export const memberNavItems: NavItem[] = [

@@ -62,6 +62,8 @@ const mockSyncResult = {
     transacao_financeira: [],
     ata: [],
     producao: [],
+    usuario_associacao: [],
+    edital_pnae: [],
   },
   serverTime: "2024-01-01T00:00:00.000Z",
   nextPullCursor: "2024-01-01T00:00:00.000Z",
