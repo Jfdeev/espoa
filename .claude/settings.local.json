@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(corepack pnpm install --filter ai... 2>&1)"
+    ]
+  }
+}

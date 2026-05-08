@@ -1,0 +1,25 @@
+{
+  "associacaoId": "demo-associacao",
+  "generatedAt": "2026-05-08T03:00:00.000Z",
+  "saldoAtual": 1850,
+  "totalEntradas": 9200,
+  "totalSaidas": 7350,
+  "porMes": [
+    { "month": "2026-02", "entradas": 3200, "saidas": 1800, "saldo": 1400 },
+    { "month": "2026-03", "entradas": 3000, "saidas": 2200, "saldo": 800 },
+    { "month": "2026-04", "entradas": 3000, "saidas": 3350, "saldo": -350 }
+  ],
+  "porTipoSaida": {
+    "manutencao": 4200,
+    "eventos": 1900,
+    "transporte": 1250
+  },
+  "mensalidades": {
+    "totalAssociadosAtivos": 42,
+    "pagas": 28,
+    "pendentes": 14,
+    "valorRecebido": 1400,
+    "valorEsperado": 2100,
+    "taxaInadimplencia": 0.3333333333333333
+  }
+}
