@@ -24,7 +24,7 @@ function formatCurrency(value: number) {
   return `R$ ${value.toLocaleString("pt-BR")}`;
 }
 
-export default function FinanceiroEntradaPage() {
+export default function FinanceiroSaidaPage() {
   const associacaoAtiva = useAuthStore((s) => s.associacaoAtiva);
   const [valor, setValor] = useState("");
   const [data, setData] = useState(today);
@@ -45,7 +45,7 @@ export default function FinanceiroEntradaPage() {
 
   const valorNumero = useMemo(() => parseMoney(valor), [valor]);
   const saldoProjetado = useMemo(
-    () => saldoAtual + valorNumero,
+    () => saldoAtual - valorNumero,
     [saldoAtual, valorNumero],
   );
   const showNegativeWarning = valorNumero > 0 && saldoProjetado < 0;
@@ -62,7 +62,7 @@ export default function FinanceiroEntradaPage() {
     e.preventDefault();
 
     const nextErrors: { valor?: string; data?: string } = {};
-    if (!data) nextErrors.data = "Informe a data da entrada";
+    if (!data) nextErrors.data = "Informe a data da saida";
     if (!valorNumero || valorNumero <= 0)
       nextErrors.valor = "Informe um valor maior que zero";
 
@@ -72,19 +72,19 @@ export default function FinanceiroEntradaPage() {
     setLoading(true);
     try {
       await transacaoRepository.create({
-        tipo: "entrada",
+        tipo: "despesa",
         valor: valorNumero,
         data,
         descricao: descricao.trim() || undefined,
         documento: documento.trim() || undefined,
       });
-      toast.success("Entrada registrada com sucesso");
+      toast.success("Saida registrada com sucesso");
       setValor("");
       setData(today);
       setDescricao("");
       setDocumento("");
     } catch {
-      toast.error("Nao foi possivel salvar a entrada");
+      toast.error("Nao foi possivel salvar a saida");
     } finally {
       setLoading(false);
     }
@@ -95,21 +95,21 @@ export default function FinanceiroEntradaPage() {
       <div className="p-6 lg:p-12 max-w-3xl mx-auto space-y-8">
         <header className="space-y-2">
           <h1 className="font-headline text-3xl font-bold text-md-primary">
-            Registrar entrada
+            Registrar saida
           </h1>
           <p className="text-[#414846]">
-            Registre as entradas financeiras da associacao. Transacoes futuras
-            sao permitidas.
+            Registre as saidas financeiras da associacao. Transacoes futuras sao
+            permitidas.
           </p>
           <div className="flex items-center gap-3 text-sm">
-            <span className="font-semibold text-md-primary">Entradas</span>
-            <span className="text-[#c1c8c4]">|</span>
             <Link
-              to="/app/financeiro/saida"
+              to="/app/financeiro/entrada"
               className="text-[#414846] hover:text-md-primary"
             >
-              Saidas
+              Entradas
             </Link>
+            <span className="text-[#c1c8c4]">|</span>
+            <span className="font-semibold text-md-primary">Saidas</span>
           </div>
         </header>
 
@@ -135,7 +135,7 @@ export default function FinanceiroEntradaPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="data">Data da entrada</Label>
+              <Label htmlFor="data">Data da saida</Label>
               <Input
                 id="data"
                 name="data"
@@ -168,7 +168,7 @@ export default function FinanceiroEntradaPage() {
             <Textarea
               id="descricao"
               name="descricao"
-              placeholder="Detalhes sobre a entrada"
+              placeholder="Detalhes sobre a saida"
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
             />
@@ -176,14 +176,14 @@ export default function FinanceiroEntradaPage() {
 
           {showNegativeWarning && (
             <div className="rounded-lg border border-[#E67E22]/30 bg-[#fff4e6] px-4 py-3 text-sm text-[#8a4b14]">
-              Essa entrada ainda deixa o saldo estimado negativo (
+              Essa saida deixa o saldo estimado negativo (
               {formatCurrency(saldoProjetado)}). Nenhuma acao sera bloqueada.
             </div>
           )}
 
           <div className="flex items-center justify-end gap-3">
             <Button type="submit" disabled={loading}>
-              {loading ? "Salvando..." : "Salvar entrada"}
+              {loading ? "Salvando..." : "Salvar saida"}
             </Button>
           </div>
         </form>
