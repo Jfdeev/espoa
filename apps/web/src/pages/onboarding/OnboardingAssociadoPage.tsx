@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { useOnlineStatus, isNetworkError } from "@/lib/network";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -11,6 +12,38 @@ interface AssocacaoBusca {
   municipio: string;
   estado: string;
 }
+
+// ─── Cache de associações (compartilhado com OnboardingADMPage) ───────────────
+
+const ASSOC_CACHE_KEY = "espoa.cache.associacoes";
+
+function mergeAssocCache(items: AssocacaoBusca[]) {
+  try {
+    const raw = localStorage.getItem(ASSOC_CACHE_KEY);
+    const existing: AssocacaoBusca[] = raw ? (JSON.parse(raw) as AssocacaoBusca[]) : [];
+    const map = new Map<string, AssocacaoBusca>(existing.map((a) => [a.id, a]));
+    for (const item of items) map.set(item.id, item);
+    localStorage.setItem(ASSOC_CACHE_KEY, JSON.stringify([...map.values()]));
+  } catch { /* ignore */ }
+}
+
+function searchAssocCache(q: string): AssocacaoBusca[] {
+  try {
+    const raw = localStorage.getItem(ASSOC_CACHE_KEY);
+    if (!raw) return [];
+    const all = JSON.parse(raw) as AssocacaoBusca[];
+    const lower = q.toLowerCase();
+    return all.filter(
+      (a) =>
+        a.nome.toLowerCase().includes(lower) ||
+        a.municipio.toLowerCase().includes(lower),
+    );
+  } catch {
+    return [];
+  }
+}
+
+// ─── Layout ───────────────────────────────────────────────────────────────────
 
 function OnboardingLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
@@ -27,6 +60,8 @@ function OnboardingLayout({ children }: Readonly<{ children: React.ReactNode }>)
   );
 }
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function OnboardingAssociadoPage() {
   const [busca, setBusca] = useState("");
   const [opcoes, setOpcoes] = useState<AssocacaoBusca[]>([]);
@@ -38,6 +73,7 @@ export default function OnboardingAssociadoPage() {
   const vinculos = useAuthStore((s) => s.vinculos);
   const setPerfil = useAuthStore((s) => s.setPerfil);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const online = useOnlineStatus();
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -54,19 +90,35 @@ export default function OnboardingAssociadoPage() {
       setOpcoes([]);
       return;
     }
+
+    // Offline: filtrar cache local imediatamente, sem debounce
+    if (!online) {
+      setOpcoes(searchAssocCache(busca));
+      return;
+    }
+
     const timeout = setTimeout(async () => {
       try {
         const { data } = await api.get<AssocacaoBusca[]>(`/associacoes?q=${busca}`);
         setOpcoes(data);
-      } catch {
-        // silencioso
+        mergeAssocCache(data);
+      } catch (err) {
+        if (isNetworkError(err)) {
+          // Fallback para cache quando a rede falha no meio da digitação
+          setOpcoes(searchAssocCache(busca));
+        }
+        // outros erros: silencioso (não interromper a UX)
       }
     }, 300);
     return () => clearTimeout(timeout);
-  }, [busca]);
+  }, [busca, online]);
 
   async function solicitar() {
     if (!selecionada) return;
+    if (!online) {
+      toast.error("Sem conexão. Por favor, tente quando estiver online.");
+      return;
+    }
     setEnviando(true);
     try {
       await api.post(`/associacoes/${selecionada.id}/solicitar-vinculo`, {});
@@ -122,6 +174,14 @@ export default function OnboardingAssociadoPage() {
           <p className="text-[#414846]">Busque pelo nome da sua associação ou município e solicite o vínculo.</p>
         </div>
 
+        {/* Offline hint */}
+        {!online && (
+          <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[#fff3e0] border border-[#E67E22]/30 text-sm text-[#9a4f00]">
+            <span className="material-symbols-outlined text-[18px]">wifi_off</span>
+            <span>Você está offline. Resultados vêm do cache local.</span>
+          </div>
+        )}
+
         {/* Search */}
         <div className="space-y-4" ref={dropdownRef}>
           <div className="flex flex-col gap-2">
@@ -160,7 +220,9 @@ export default function OnboardingAssociadoPage() {
             </div>
           )}
           {aberto && busca.length >= 2 && opcoes.length === 0 && (
-            <p className="text-sm text-center text-[#414846]/60 py-4">Nenhuma associação encontrada.</p>
+            <p className="text-sm text-center text-[#414846]/60 py-4">
+              {online ? "Nenhuma associação encontrada." : "Nenhuma associação no cache local para esta busca."}
+            </p>
           )}
 
           {/* Selected */}
@@ -180,12 +242,18 @@ export default function OnboardingAssociadoPage() {
           <button
             type="button"
             onClick={solicitar}
-            disabled={!selecionada || enviando}
+            disabled={!selecionada || enviando || !online}
             className="w-full py-4 bg-[#ee8428] text-white font-bold rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-40"
           >
             <span>{enviando ? "Enviando..." : "Solicitar vínculo"}</span>
             {!enviando && <span className="material-symbols-outlined text-xl">arrow_forward</span>}
           </button>
+
+          {!online && selecionada && (
+            <p className="text-xs text-center text-[#9a4f00]">
+              Conecte-se à internet para enviar a solicitação.
+            </p>
+          )}
 
           {vinculosAtivos.length > 0 && (
             <button type="button" onClick={() => navigate("/app")} className="w-full py-4 border border-[#c1c8c4] rounded-xl text-[#01261f] font-semibold hover:bg-[#f0ede8] transition-all">

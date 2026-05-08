@@ -1,5 +1,5 @@
 import { applyPushOperations } from "./sync-push.service";
-import { pullRowsByTable } from "./sync-pull.service";
+import { pullRowsByTable, pullConflictLogs } from "./sync-pull.service";
 import type { PushOperation, SyncResult } from "../sync/sync.types";
 
 export async function runSync(params: {
@@ -11,12 +11,18 @@ export async function runSync(params: {
     params.deviceId,
     params.push,
   );
-  const pulled = await pullRowsByTable(params.lastPulledAt);
+
+  const [pulled, conflictLogs] = await Promise.all([
+    pullRowsByTable(params.lastPulledAt),
+    pullConflictLogs(params.deviceId, params.lastPulledAt),
+  ]);
+
   const now = new Date().toISOString();
 
   return {
     ackedOperationIds,
     pulled,
+    conflictLogs,
     serverTime: now,
     nextPullCursor: now,
   };

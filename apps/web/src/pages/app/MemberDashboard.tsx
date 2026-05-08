@@ -1,9 +1,10 @@
-import { Plus, BarChart3, Package, CloudSun, TriangleAlert } from "lucide-react";
+import { Plus, BarChart3, Package, CloudSun, Leaf } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
+import { db } from "@/database/db";
+import { useLiveQuery } from "@/hooks/useLiveQuery";
 import { cn } from "@/lib/utils";
 
 type CardVariant = "primary" | "default";
-type ActivityVariant = "default" | "warning";
 
 interface ActionCardData {
   id: string;
@@ -12,15 +13,6 @@ interface ActionCardData {
   description: string;
   href: string;
   variant?: CardVariant;
-}
-
-interface ActivityItemData {
-  id: string;
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-  time: string;
-  variant: ActivityVariant;
 }
 
 const actionCards: ActionCardData[] = [
@@ -55,30 +47,24 @@ const actionCards: ActionCardData[] = [
   },
 ];
 
-const activityItems: ActivityItemData[] = [
-  {
-    id: "act-1",
-    icon: <Package size={18} />,
-    title: "Entrega de Fertilizante Recebida",
-    subtitle: "Armazenamento Setor B",
-    time: "2 h atrás",
-    variant: "default",
-  },
-  {
-    id: "act-2",
-    icon: <TriangleAlert size={18} />,
-    title: "Alerta de Irrigação",
-    subtitle: "Pressão baixa na Bomba 3",
-    time: "5 h atrás",
-    variant: "warning",
-  },
-];
-
 function getGreeting() {
   const hour = new Date().getHours();
   if (hour < 12) return "Bom dia";
   if (hour < 18) return "Boa tarde";
   return "Boa noite";
+}
+
+function timeAgo(dateStr: string): string {
+  const now = Date.now();
+  const diff = now - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "Agora";
+  if (minutes < 60) return `Há ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Há ${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "Ontem";
+  return `Há ${days} dias`;
 }
 
 function ActionCard({ card }: { card: ActionCardData }) {
@@ -113,6 +99,14 @@ export default function MemberDashboard() {
   const perfil = useAuthStore((s) => s.perfil);
   const firstName = perfil?.nome?.split(" ")[0] ?? "usuário";
 
+  // Produções recentes — funciona offline a partir do Dexie local
+  const producaoRecente = useLiveQuery(async () => {
+    const items = await db.producao.filter((p) => !p.deleted_at).toArray();
+    return items
+      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+      .slice(0, 5);
+  }, []);
+
   return (
     <div className="flex justify-center items-start pt-8 pb-4 px-6">
       <div className="max-w-4xl w-full flex flex-col gap-12">
@@ -131,34 +125,36 @@ export default function MemberDashboard() {
           ))}
         </section>
 
-        {/* Recent Activity */}
+        {/* Produções recentes do Dexie — sem rede necessária */}
         <section className="rounded-xl bg-[#f6f3ee] p-8 border border-[#c1c8c4]/30">
           <h2 className="font-headline text-xl font-bold text-[#01261f] mb-6 pb-4 border-b border-[#c1c8c4]/30">
-            Atividades Recentes da Instituição
+            Produções Recentes
           </h2>
-          <div className="space-y-3">
-            {activityItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between p-4 bg-white rounded-lg hover:bg-[#fcf9f4] transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <span
-                    className={item.variant === "warning" ? "text-[#E67E22]" : "text-[#656461]"}
-                  >
-                    {item.icon}
-                  </span>
-                  <div>
-                    <p className="text-sm font-medium text-[#1c1c19]">{item.title}</p>
-                    <p className="text-xs text-[#414846]">{item.subtitle}</p>
+          {producaoRecente.length === 0 ? (
+            <p className="text-sm text-[#414846]">Nenhuma produção registrada ainda.</p>
+          ) : (
+            <div className="space-y-3">
+              {producaoRecente.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between p-4 bg-white rounded-lg hover:bg-[#fcf9f4] transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="text-[#656461]">
+                      <Leaf size={18} />
+                    </span>
+                    <div>
+                      <p className="text-sm font-medium text-[#1c1c19]">{item.cultura}</p>
+                      <p className="text-xs text-[#414846]">{item.quantidade} un.</p>
+                    </div>
                   </div>
+                  <span className="font-label text-xs text-[#414846] uppercase tracking-wider shrink-0 ml-4">
+                    {timeAgo(item.updated_at)}
+                  </span>
                 </div>
-                <span className="font-label text-xs text-[#414846] uppercase tracking-wider shrink-0 ml-4">
-                  {item.time}
-                </span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </div>

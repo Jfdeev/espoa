@@ -7,6 +7,8 @@ import { associadoRouter } from "./routes/associado.routes";
 import { associacaoRouter } from "./routes/associacao.routes";
 import { producaoRouter } from "./routes/producao.routes";
 import { dashboardRouter } from "./routes/dashboard.routes";
+import { mensalidadeRouter } from "./routes/mensalidade.routes";
+import { insightsRouter } from "./routes/insights.routes";
 
 const app = express();
 
@@ -20,5 +22,7 @@ app.use(associadoRouter);
 app.use(associacaoRouter);
 app.use(producaoRouter);
 app.use(dashboardRouter);
+app.use(mensalidadeRouter);
+app.use(insightsRouter);
 
 export { app };

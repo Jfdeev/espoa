@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth.store";
+import { SyncStatusBadge } from "@/components/SyncStatusBadge";
 import {
   Dialog,
   DialogContent,
@@ -168,6 +169,7 @@ export default function AppLayout({ children, navItems, title }: AppLayoutProps)
         </div>
 
         <NavList items={navItems} currentPath={location.pathname} />
+        <SyncStatusBadge className="px-2 py-2 mb-1" />
         <SettingsLink />
         <LogoutButton />
       </nav>
@@ -186,7 +188,10 @@ export default function AppLayout({ children, navItems, title }: AppLayoutProps)
           {appTitle}
         </span>
 
-        <ProfileAvatar url={perfil?.avatarUrl} size="sm" />
+        <div className="flex items-center gap-2">
+          <SyncStatusBadge />
+          <ProfileAvatar url={perfil?.avatarUrl} size="sm" />
+        </div>
       </header>
 
       {/* ── Mobile Drawer Overlay ────────────────────────────── */}
