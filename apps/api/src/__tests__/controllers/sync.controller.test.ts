@@ -27,6 +27,7 @@ vi.mock("../../controllers/auth.controller", () => ({
   alterarRoleVinculo: vi.fn(),
   convidarMembro: vi.fn(),
   responderConvite: vi.fn(),
+  updateProfile: vi.fn(),
 }));
 
 vi.mock("../../services/sync.service", () => ({
@@ -63,6 +64,8 @@ const mockSyncResult = {
     transacao_financeira: [],
     ata: [],
     producao: [],
+    usuario_associacao: [],
+    edital_pnae: [],
   },
   serverTime: "2024-01-01T00:00:00.000Z",
   nextPullCursor: "2024-01-01T00:00:00.000Z",

@@ -19,6 +19,7 @@ const tableMap = {
   ata: db.ata,
   producao: db.producao,
   usuario_associacao: db.usuario_associacao,
+  edital_pnae: db.edital_pnae,
 } as const;
 
 const tableNames = Object.keys(tableMap) as SyncTableName[];
@@ -86,11 +87,15 @@ export class SyncManager {
         clientUpdatedAt: item.created_at,
       }));
 
+      console.log("[sync] pushing ops:", push.length, push.map(p => `${p.tableName}/${p.operation}/${p.recordId}`));
+
       const response = await syncRequest({
         deviceId,
         lastPulledAt: getLastPullCursor(),
         push,
       });
+
+      console.log("[sync] server acked:", response.ackedOperationIds, "pulled tables:", Object.entries(response.pulled).filter(([,v]) => (v as unknown[]).length > 0).map(([k,v]) => `${k}:${(v as unknown[]).length}`));
 
       if (response.ackedOperationIds.length > 0) {
         await markQueueAsSynced(response.ackedOperationIds);

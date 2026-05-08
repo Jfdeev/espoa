@@ -5,6 +5,7 @@ export type {
   TransacaoFinanceira,
   Ata,
   Producao,
+  EditalPnae,
   SyncQueue,
   ConflictLog,
 } from "./types";

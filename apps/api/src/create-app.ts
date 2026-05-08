@@ -10,6 +10,7 @@ import { dashboardRouter } from "./routes/dashboard.routes";
 import { mensalidadeRouter } from "./routes/mensalidade.routes";
 import { pixRouter } from "./routes/pix.routes";
 import { insightsRouter } from "./routes/insights.routes";
+import { editalPnaeRouter } from "./routes/edital-pnae.routes";
 
 const app = express();
 
@@ -26,5 +27,6 @@ app.use(dashboardRouter);
 app.use(pixRouter);
 app.use(mensalidadeRouter);
 app.use(insightsRouter);
+app.use(editalPnaeRouter);
 
 export { app };

@@ -27,6 +27,7 @@ vi.mock("../../controllers/auth.controller", () => ({
   alterarRoleVinculo: vi.fn(),
   convidarMembro: vi.fn(),
   responderConvite: vi.fn(),
+  updateProfile: vi.fn(),
 }));
 
 vi.mock("../../services/associacao.service", () => ({

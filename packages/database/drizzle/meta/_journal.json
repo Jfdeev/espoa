@@ -57,6 +57,13 @@
       "when": 1777686487495,
       "tag": "0007_graceful_bullseye",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1778243069712,
+      "tag": "0008_chief_scorpion",
+      "breakpoints": true
     }
   ]
 }
