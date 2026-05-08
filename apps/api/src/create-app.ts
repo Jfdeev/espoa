@@ -8,6 +8,7 @@ import { associacaoRouter } from "./routes/associacao.routes";
 import { producaoRouter } from "./routes/producao.routes";
 import { dashboardRouter } from "./routes/dashboard.routes";
 import { mensalidadeRouter } from "./routes/mensalidade.routes";
+import { pixRouter } from "./routes/pix.routes";
 import { insightsRouter } from "./routes/insights.routes";
 import { editalPnaeRouter } from "./routes/edital-pnae.routes";
 
@@ -23,6 +24,7 @@ app.use(associadoRouter);
 app.use(associacaoRouter);
 app.use(producaoRouter);
 app.use(dashboardRouter);
+app.use(pixRouter);
 app.use(mensalidadeRouter);
 app.use(insightsRouter);
 app.use(editalPnaeRouter);

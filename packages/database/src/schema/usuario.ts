@@ -11,6 +11,7 @@ export const usuario = pgTable("usuario", {
   email: varchar("email", { length: 255 }).notNull().unique(),
   nome: varchar("nome", { length: 255 }).notNull(),
   telefone: varchar("telefone", { length: 20 }),
+  cpf: varchar("cpf", { length: 14 }),
   avatarUrl: varchar("avatar_url", { length: 512 }),
   authProvider: varchar("auth_provider", { length: 20 }).notNull().default("email"), // 'email' | 'google'
   googleId: varchar("google_id", { length: 128 }).unique(), // sub do Google OAuth
