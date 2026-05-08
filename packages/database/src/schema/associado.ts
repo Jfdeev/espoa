@@ -7,10 +7,12 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { associacao } from "./associacao";
+import { usuario } from "./usuario";
 
 export const associado = pgTable("associado", {
   id: uuid("id").defaultRandom().primaryKey(),
   associacaoId: uuid("associacao_id").references(() => associacao.id),
+  usuarioId: uuid("usuario_id").references(() => usuario.id),
   nome: varchar("nome", { length: 255 }).notNull(),
   cpf: varchar("cpf", { length: 14 }).unique(),
   caf: varchar("caf", { length: 50 }),

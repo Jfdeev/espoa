@@ -7,6 +7,8 @@ import OnboardingAssociadoPage from "./pages/onboarding/OnboardingAssociadoPage"
 import OnboardingADMPage from "./pages/onboarding/OnboardingADMPage";
 import AppPage from "./pages/app/AppPage";
 import AssociadosPage from "./pages/app/AssociadosPage";
+import MensalidadesPage from "./pages/app/MensalidadesPage";
+import ConfiguracoesPage from "./pages/app/ConfiguracoesPage";
 import DebugSyncPage from "./pages/app/DebugSyncPage";
 import SolicitacoesPage from "./pages/SolicitacoesPage";
 import AuthGuard from "./components/AuthGuard";
@@ -30,6 +32,8 @@ function App() {
             <Route path="/solicitacoes" element={<SolicitacoesPage />} />
             <Route path="/app" element={<AppPage />} />
             <Route path="/app/associados" element={<AssociadosPage />} />
+            <Route path="/app/mensalidades" element={<MensalidadesPage />} />
+            <Route path="/app/configuracoes" element={<ConfiguracoesPage />} />
             <Route path="/debug/sync" element={<DebugSyncPage />} />
           </Route>
 
