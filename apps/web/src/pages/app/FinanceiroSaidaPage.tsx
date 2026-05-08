@@ -110,6 +110,13 @@ export default function FinanceiroSaidaPage() {
             </Link>
             <span className="text-[#c1c8c4]">|</span>
             <span className="font-semibold text-md-primary">Saidas</span>
+            <span className="text-[#c1c8c4]">|</span>
+            <Link
+              to="/app/financeiro/resumo"
+              className="text-[#414846] hover:text-md-primary"
+            >
+              Resumo
+            </Link>
           </div>
         </header>
 

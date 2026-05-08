@@ -10,6 +10,7 @@ import AssociadosPage from "./pages/app/AssociadosPage";
 import DebugSyncPage from "./pages/app/DebugSyncPage";
 import FinanceiroEntradaPage from "./pages/app/FinanceiroEntradaPage";
 import FinanceiroSaidaPage from "./pages/app/FinanceiroSaidaPage";
+import FinanceiroResumoPage from "./pages/app/FinanceiroResumoPage";
 import SolicitacoesPage from "./pages/SolicitacoesPage";
 import AuthGuard from "./components/AuthGuard";
 import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
@@ -42,6 +43,10 @@ function App() {
             <Route
               path="/app/financeiro/saida"
               element={<FinanceiroSaidaPage />}
+            />
+            <Route
+              path="/app/financeiro/resumo"
+              element={<FinanceiroResumoPage />}
             />
             <Route path="/debug/sync" element={<DebugSyncPage />} />
           </Route>
