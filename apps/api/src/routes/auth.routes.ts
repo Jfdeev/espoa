@@ -8,6 +8,7 @@ import {
   resetPassword,
   verifyEmail,
   getMe,
+  updateProfile,
   listarAssociacoes,
   criarAssociacao,
   solicitarVinculo,
@@ -30,6 +31,7 @@ authRouter.get("/auth/verify-email", verifyEmail);
 
 // Rotas protegidas
 authRouter.get("/auth/me", requireAuth, getMe);
+authRouter.patch("/auth/profile", requireAuth, updateProfile);
 authRouter.get("/associacoes", requireAuth, listarAssociacoes);
 authRouter.post("/associacoes", requireAuth, criarAssociacao);
 authRouter.post("/associacoes/:id/solicitar-vinculo", requireAuth, solicitarVinculo);

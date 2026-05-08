@@ -160,6 +160,14 @@ export const mensalidadeRepository = {
       .toArray();
   },
 
+  async listByUsuario(usuarioId: string): Promise<Mensalidade[]> {
+    return db.mensalidade
+      .where("usuario_id")
+      .equals(usuarioId)
+      .filter((record) => !record.deleted_at)
+      .toArray();
+  },
+
   async findById(id: string): Promise<Mensalidade | undefined> {
     const record = await db.mensalidade.get(id);
     if (!record || record.deleted_at) return undefined;

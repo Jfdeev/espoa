@@ -1,4 +1,4 @@
-import { db, conflictLog } from "@espoa/database";
+import { db, conflictLog, mensalidade as mensalidadeTable } from "@espoa/database";
 import { and, eq, gt } from "drizzle-orm";
 import {
   syncTableNames,
@@ -10,11 +10,12 @@ import { toSnakeObject } from "../utils/case-mapper";
 
 export async function pullRowsByTable(
   lastPulledAt: Date | null,
+  userId?: string,
 ): Promise<PulledRows> {
   const pulled = createEmptyPulledRows();
 
   for (const tableName of syncTableNames) {
-    pulled[tableName] = await getPulledRows(tableName, lastPulledAt);
+    pulled[tableName] = await getPulledRows(tableName, lastPulledAt, userId);
   }
 
   return pulled;
@@ -23,7 +24,22 @@ export async function pullRowsByTable(
 async function getPulledRows(
   tableName: SyncTableName,
   lastPulledAt: Date | null,
+  userId?: string,
 ) {
+  // Mensalidades: só pull das do próprio usuário
+  if (tableName === "mensalidade" && userId) {
+    const rows = lastPulledAt
+      ? await db
+          .select()
+          .from(mensalidadeTable)
+          .where(and(eq(mensalidadeTable.usuarioId, userId), gt(mensalidadeTable.updatedAt, lastPulledAt)))
+      : await db
+          .select()
+          .from(mensalidadeTable)
+          .where(eq(mensalidadeTable.usuarioId, userId));
+    return rows.map((row: Record<string, unknown>) => toSnakeObject(row));
+  }
+
   const table = syncTables[tableName] as any;
   const rows = lastPulledAt
     ? await db.select().from(table).where(gt(table.updatedAt, lastPulledAt))
