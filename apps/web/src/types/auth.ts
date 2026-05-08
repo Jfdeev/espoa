@@ -12,7 +12,8 @@ export interface UsuarioPerfil {
   id: string;
   email: string;
   nome: string;
-  telefone?: string;
+  telefone?: string | null;
+  cpf?: string | null;
   avatarUrl?: string;
   authProvider: "google" | "email";
   emailVerified: boolean;

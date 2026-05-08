@@ -19,4 +19,5 @@ export const memberNavItems: NavItem[] = [
   { label: "Propriedades", icon: <Wheat size={20} />, href: "/app/propriedades" },
   { label: "Colheita", icon: <Leaf size={20} />, href: "/app/colheitas" },
   { label: "Associações", icon: <Users size={20} />, href: "/app/associacoes" },
+  { label: "Mensalidades", icon: <BanknoteArrowUp size={20} />, href: "/app/mensalidades" },
 ];

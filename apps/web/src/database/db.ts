@@ -67,4 +67,32 @@ db.version(3)
     // usuario_associacao is a new table — no data migration needed
   });
 
+// v4 — adiciona usuario_id como índice na tabela mensalidade
+db.version(4)
+  .stores({
+    associacao: "id, nome, municipio, status, deleted_at",
+    associado: "id, nome, status, deleted_at",
+    mensalidade: "id, associado_id, usuario_id, data_pagamento, deleted_at",
+    transacao_financeira: "id, tipo, data, deleted_at",
+    ata: "id, data, deleted_at",
+    producao: "id, associado_id, cultura, data, deleted_at",
+    usuario_associacao: "id, usuario_id, associacao_id, status, updated_at",
+    sync_queue: "++id, table_name, record_id, synced, created_at",
+    conflict_log: "++id, table_name, record_id, resolved",
+  });
+
+// v5 — adiciona usuario_id como índice na tabela associado
+db.version(5)
+  .stores({
+    associacao: "id, nome, municipio, status, deleted_at",
+    associado: "id, nome, usuario_id, status, deleted_at",
+    mensalidade: "id, associado_id, usuario_id, data_pagamento, deleted_at",
+    transacao_financeira: "id, tipo, data, deleted_at",
+    ata: "id, data, deleted_at",
+    producao: "id, associado_id, cultura, data, deleted_at",
+    usuario_associacao: "id, usuario_id, associacao_id, status, updated_at",
+    sync_queue: "++id, table_name, record_id, synced, created_at",
+    conflict_log: "++id, table_name, record_id, resolved",
+  });
+
 export { db };

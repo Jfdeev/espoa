@@ -7,6 +7,7 @@ import { associadoRouter } from "./routes/associado.routes";
 import { associacaoRouter } from "./routes/associacao.routes";
 import { dashboardRouter } from "./routes/dashboard.routes";
 import { mensalidadeRouter } from "./routes/mensalidade.routes";
+import { pixRouter } from "./routes/pix.routes";
 
 const app = express();
 
@@ -19,6 +20,8 @@ app.use(authRouter);
 app.use(associadoRouter);
 app.use(associacaoRouter);
 app.use(dashboardRouter);
+// pixRouter must be before mensalidadeRouter so /mensalidades/minha is matched first
+app.use(pixRouter);
 app.use(mensalidadeRouter);
 
 export { app };
