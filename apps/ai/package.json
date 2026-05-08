@@ -1,0 +1,30 @@
+{
+  "name": "ai",
+  "version": "1.0.0",
+  "description": "Servico de insights financeiros do Espoa",
+  "main": "dist/app.js",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node dist/app.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
+    "insights:cli": "ts-node-dev --transpile-only src/cli/run-insights.ts",
+    "test": "vitest run"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^16.5.0",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.12.2",
+    "esbuild": "^0.25.0",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "~6.0.2",
+    "vitest": "^3.0.0"
+  }
+}

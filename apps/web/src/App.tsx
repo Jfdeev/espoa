@@ -7,6 +7,10 @@ import OnboardingAssociadoPage from "./pages/onboarding/OnboardingAssociadoPage"
 import OnboardingADMPage from "./pages/onboarding/OnboardingADMPage";
 import AppPage from "./pages/app/AppPage";
 import AssociadosPage from "./pages/app/AssociadosPage";
+import EditaisPage from "./pages/app/EditaisPage";
+import EditalDetailPage from "./pages/app/EditalDetailPage";
+import MensalidadesPage from "./pages/app/MensalidadesPage";
+import ConfiguracoesPage from "./pages/app/ConfiguracoesPage";
 import DebugSyncPage from "./pages/app/DebugSyncPage";
 import FinanceiroEntradaPage from "./pages/app/FinanceiroEntradaPage";
 import FinanceiroSaidaPage from "./pages/app/FinanceiroSaidaPage";
@@ -48,6 +52,13 @@ function App() {
               path="/app/financeiro/resumo"
               element={<FinanceiroResumoPage />}
             />
+            <Route path="/app/editais" element={<EditaisPage />} />
+            <Route
+              path="/app/editais/:editalId"
+              element={<EditalDetailPage />}
+            />
+            <Route path="/app/mensalidades" element={<MensalidadesPage />} />
+            <Route path="/app/configuracoes" element={<ConfiguracoesPage />} />
             <Route path="/debug/sync" element={<DebugSyncPage />} />
           </Route>
 

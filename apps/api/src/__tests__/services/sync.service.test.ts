@@ -75,7 +75,7 @@ describe("runSync", () => {
   it("passes lastPulledAt to pullRowsByTable", async () => {
     const date = new Date("2024-06-01T00:00:00.000Z");
     await runSync({ deviceId: "d1", push: [], lastPulledAt: date });
-    expect(pullRowsByTable).toHaveBeenCalledWith(date);
+    expect(pullRowsByTable).toHaveBeenCalledWith(date, undefined);
   });
 
   it("propagates errors thrown by applyPushOperations", async () => {

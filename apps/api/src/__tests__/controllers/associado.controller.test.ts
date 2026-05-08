@@ -19,6 +19,7 @@ vi.mock("../../controllers/auth.controller", () => ({
   resetPassword: vi.fn(),
   verifyEmail: vi.fn(),
   getMe: vi.fn(),
+  updateProfile: vi.fn(),
   listarAssociacoes: vi.fn(),
   criarAssociacao: vi.fn(),
   solicitarVinculo: vi.fn(),
@@ -27,6 +28,7 @@ vi.mock("../../controllers/auth.controller", () => ({
   alterarRoleVinculo: vi.fn(),
   convidarMembro: vi.fn(),
   responderConvite: vi.fn(),
+  updateProfile: vi.fn(),
 }));
 
 vi.mock("../../services/associado.service", () => ({

@@ -75,6 +75,7 @@ vi.mock("@espoa/database", () => {
     mensalidade: { id: "id" },
     producao: { id: "id" },
     transacaoFinanceira: { id: "id" },
+    editalPnae: { id: "id" },
     conflictLog: { id: "id" },
   };
 });
@@ -186,10 +187,10 @@ describe("applyPushOperations", () => {
     expect(result).toEqual([]);
   });
 
-  it("deduplicates already-processed operations", async () => {
-    syncQueueDedupResult = []; // empty = already processed
+  it("deduplicates already-processed operations (still acks)", async () => {
+    syncQueueDedupResult = []; // empty = already in sync_queue
     const result = await applyPushOperations("device-1", [makeOp()]);
-    expect(result).toEqual([]);
+    expect(result).toEqual(["op-1"]);
   });
 
   it("acks a valid approve_member operation", async () => {

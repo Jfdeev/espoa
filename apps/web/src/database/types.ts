@@ -4,6 +4,7 @@ export interface Associado {
   contato?: string;
   data_entrada: string;
   status: string;
+  usuario_id?: string | null;
   version: number;
   updated_at: string;
   device_id?: string;
@@ -12,14 +13,15 @@ export interface Associado {
 
 export interface Mensalidade {
   id?: string;
-  associado_id: string;
+  associado_id?: string | null;
+  usuario_id?: string | null;
   valor: number;
-  data_pagamento?: string;
-  forma_pagamento?: string;
+  data_pagamento?: string | null;
+  forma_pagamento?: string | null;
   version: number;
   updated_at: string;
   device_id?: string;
-  deleted_at?: string;
+  deleted_at?: string | null;
 }
 
 export interface TransacaoFinanceira {
@@ -68,6 +70,29 @@ export interface Associacao {
   telefone?: string;
   email?: string;
   status: string;
+  version: number;
+  updated_at: string;
+  device_id?: string;
+  deleted_at?: string;
+}
+
+export interface EditalPnae {
+  id?: string;
+  associacao_id: string;
+  titulo: string;
+  numero_edital?: string;
+  orgao_responsavel?: string;
+  descricao?: string;
+  municipio?: string;
+  estado?: string;
+  data_abertura?: string;
+  data_limite: string;
+  valor_total_estimado?: number;
+  link_original?: string;
+  observacoes_internas?: string;
+  status: "aberto" | "em_analise" | "encerrado";
+  created_by?: string;
+  created_at?: string;
   version: number;
   updated_at: string;
   device_id?: string;

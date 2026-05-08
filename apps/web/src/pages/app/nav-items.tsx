@@ -1,4 +1,12 @@
-import { LayoutDashboard, Wheat, Leaf, Users, Wallet } from "lucide-react";
+import {
+  LayoutDashboard,
+  Wheat,
+  Leaf,
+  Users,
+  Wallet,
+  BanknoteArrowUp,
+  FileText,
+} from "lucide-react";
 
 export interface NavItem {
   label: string;
@@ -24,6 +32,12 @@ export const adminNavItems: NavItem[] = [
     icon: <Wallet size={20} />,
     href: "/app/financeiro/entrada",
   },
+  { label: "Editais PNAE", icon: <FileText size={20} />, href: "/app/editais" },
+  {
+    label: "Mensalidades",
+    icon: <BanknoteArrowUp size={20} />,
+    href: "/app/mensalidades",
+  },
 ];
 
 export const memberNavItems: NavItem[] = [
@@ -35,4 +49,9 @@ export const memberNavItems: NavItem[] = [
   },
   { label: "Colheita", icon: <Leaf size={20} />, href: "/app/colheitas" },
   { label: "Associações", icon: <Users size={20} />, href: "/app/associacoes" },
+  {
+    label: "Mensalidades",
+    icon: <BanknoteArrowUp size={20} />,
+    href: "/app/mensalidades",
+  },
 ];

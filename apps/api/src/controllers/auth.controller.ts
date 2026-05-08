@@ -20,10 +20,12 @@ function getUserById(id: string) {
 // ─── Register ────────────────────────────────────────────────────────────────
 
 export async function register(req: Request, res: Response) {
-  const { nome, email, password } = req.body as {
+  const { nome, email, password, telefone, cpf } = req.body as {
     nome: string;
     email: string;
     password: string;
+    telefone?: string;
+    cpf?: string;
   };
 
   if (!nome || !email || !password) {
@@ -53,6 +55,8 @@ export async function register(req: Request, res: Response) {
       authProvider: "email",
       emailVerified: false,
       verificationToken,
+      ...(telefone?.trim() && { telefone: telefone.trim() }),
+      ...(cpf?.trim() && { cpf: cpf.trim() }),
     })
     .returning();
 
@@ -263,28 +267,33 @@ export async function verifyEmail(req: Request, res: Response) {
 // ─── Me ───────────────────────────────────────────────────────────────────────
 
 export async function getMe(req: AuthenticatedRequest, res: Response) {
-  const [me] = await getUserById(req.userId!);
+  try {
+    const [me] = await getUserById(req.userId!);
 
-  if (!me) {
-    res.status(404).json({ error: "Usuário não encontrado" });
-    return;
+    if (!me) {
+      res.status(404).json({ error: "Usuário não encontrado" });
+      return;
+    }
+
+    const vinculos = await db
+      .select({
+        associacaoId: usuarioAssociacao.associacaoId,
+        role: usuarioAssociacao.role,
+        status: usuarioAssociacao.status,
+        joinedAt: usuarioAssociacao.joinedAt,
+        associacaoNome: associacao.nome,
+        associacaoMunicipio: associacao.municipio,
+        associacaoEstado: associacao.estado,
+      })
+      .from(usuarioAssociacao)
+      .innerJoin(associacao, eq(usuarioAssociacao.associacaoId, associacao.id))
+      .where(eq(usuarioAssociacao.usuarioId, me.id));
+
+    res.json({ usuario: sanitize(me), vinculos });
+  } catch (err) {
+    console.error("[getMe] DB error:", err);
+    res.status(500).json({ error: "Erro interno ao buscar perfil" });
   }
-
-  const vinculos = await db
-    .select({
-      associacaoId: usuarioAssociacao.associacaoId,
-      role: usuarioAssociacao.role,
-      status: usuarioAssociacao.status,
-      joinedAt: usuarioAssociacao.joinedAt,
-      associacaoNome: associacao.nome,
-      associacaoMunicipio: associacao.municipio,
-      associacaoEstado: associacao.estado,
-    })
-    .from(usuarioAssociacao)
-    .innerJoin(associacao, eq(usuarioAssociacao.associacaoId, associacao.id))
-    .where(eq(usuarioAssociacao.usuarioId, me.id));
-
-  res.json({ usuario: sanitize(me), vinculos });
 }
 
 // ─── Associações ─────────────────────────────────────────────────────────────
@@ -650,5 +659,33 @@ export async function responderConvite(req: AuthenticatedRequest, res: Response)
 function sanitize(user: typeof usuario.$inferSelect) {
   const { passwordHash: _ph, verificationToken: _vt, resetToken: _rt, resetTokenExpiresAt: _re, ...safe } = user;
   return safe;
+}
+
+// ─── Update Profile ──────────────────────────────────────────────────────────
+
+export async function updateProfile(req: AuthenticatedRequest, res: Response) {
+  const { nome, telefone, cpf } = req.body as {
+    nome?: string;
+    telefone?: string;
+    cpf?: string;
+  };
+
+  const patch: Record<string, unknown> = {};
+  if (nome?.trim()) patch.nome = nome.trim();
+  if (telefone !== undefined) patch.telefone = telefone.trim() || null;
+  if (cpf !== undefined) patch.cpf = cpf.replace(/\D/g, "") || null;
+
+  if (Object.keys(patch).length === 0) {
+    res.status(400).json({ error: "Nenhum campo para atualizar" });
+    return;
+  }
+
+  const [updated] = await db
+    .update(usuario)
+    .set(patch)
+    .where(eq(usuario.id, req.userId!))
+    .returning();
+
+  res.json({ usuario: sanitize(updated) });
 }
 
