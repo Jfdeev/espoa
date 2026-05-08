@@ -141,14 +141,25 @@ export default function AdminDashboard() {
 
         {/* Total em Caixa */}
         <div
-          className="rounded-xl p-6 relative overflow-hidden group shadow-[0_12px_40px_rgba(26,60,52,0.15)]"
+          className={
+            totalCaixa >= 0
+              ? "rounded-xl p-6 relative overflow-hidden group shadow-[0_12px_40px_rgba(26,60,52,0.15)]"
+              : "rounded-xl p-6 relative overflow-hidden group shadow-[0_12px_40px_rgba(186,26,26,0.2)]"
+          }
           style={{
-            background: "linear-gradient(135deg, #01261f 0%, #1a3c34 100%)",
+            background:
+              totalCaixa >= 0
+                ? "linear-gradient(135deg, #01261f 0%, #1a3c34 100%)"
+                : "linear-gradient(135deg, #ba1a1a 0%, #7a1414 100%)",
           }}
         >
           <div
             aria-hidden="true"
-            className="absolute bottom-0 right-0 w-40 h-40 bg-white/5 rounded-tl-full -mr-10 -mb-10 transition-transform group-hover:scale-110"
+            className={
+              totalCaixa >= 0
+                ? "absolute bottom-0 right-0 w-40 h-40 bg-white/5 rounded-tl-full -mr-10 -mb-10 transition-transform group-hover:scale-110"
+                : "absolute bottom-0 right-0 w-40 h-40 bg-white/10 rounded-tl-full -mr-10 -mb-10 transition-transform group-hover:scale-110"
+            }
           />
           <div className="flex items-start justify-between mb-8 relative z-10">
             <div>
