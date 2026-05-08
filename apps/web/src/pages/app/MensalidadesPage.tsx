@@ -86,6 +86,31 @@ function loadBilling(): PixBillingData | null {
   }
 }
 
+function useMensalidadesDoUsuario(usuarioId: string | undefined) {
+  return useLiveQuery(
+    async () => {
+      if (!usuarioId) return [] as Mensalidade[];
+
+      // Busca o associado vinculado ao usuário (para compatibilidade com pagamentos antigos do admin)
+      const assoc = await db.associado
+        .where("usuario_id")
+        .equals(usuarioId)
+        .filter((a) => !a.deleted_at)
+        .first();
+
+      return db.mensalidade
+        .filter(
+          (m) =>
+            !m.deleted_at &&
+            (m.usuario_id === usuarioId || (!!assoc?.id && m.associado_id === assoc.id)),
+        )
+        .toArray();
+    },
+    undefined as Mensalidade[] | undefined,
+    [usuarioId],
+  );
+}
+
 function AssociadoView() {
   const perfil = useAuthStore((s) => s.perfil);
   const [gerando, setGerando] = useState(false);
@@ -99,28 +124,7 @@ function AssociadoView() {
   }
 
   // Reactivo: atualiza automaticamente quando o sync popula o Dexie
-  const mensalidades = useLiveQuery(
-    async () => {
-      if (!perfil?.id) return [] as Mensalidade[];
-
-      // Busca o associado vinculado ao usuário (para compatibilidade com pagamentos antigos do admin)
-      const assoc = await db.associado
-        .where("usuario_id")
-        .equals(perfil.id)
-        .filter((a) => !a.deleted_at)
-        .first();
-
-      return db.mensalidade
-        .filter(
-          (m) =>
-            !m.deleted_at &&
-            (m.usuario_id === perfil.id || (!!assoc?.id && m.associado_id === assoc.id)),
-        )
-        .toArray();
-    },
-    undefined as Mensalidade[] | undefined,
-    [perfil?.id],
-  );
+  const mensalidades = useMensalidadesDoUsuario(perfil?.id);
 
   const loading = mensalidades === undefined;
 
@@ -541,38 +545,34 @@ function AdminView() {
             </div>
             <p className="text-3xl font-bold text-[#01261f]">{membros.length}</p>
           </div>
-          <div
+          <button
+            type="button"
             className={cn(
-              "bg-white rounded-2xl shadow-sm p-5 space-y-1 cursor-pointer transition-all",
+              "bg-white rounded-2xl shadow-sm p-5 space-y-1 cursor-pointer transition-all text-left w-full",
               filtro === "em_dia" ? "ring-2 ring-emerald-400" : "hover:ring-2 hover:ring-emerald-300",
             )}
-            role="button"
-            tabIndex={0}
             onClick={() => setFiltro(filtro === "em_dia" ? "todos" : "em_dia")}
-            onKeyDown={(e) => e.key === "Enter" && setFiltro(filtro === "em_dia" ? "todos" : "em_dia")}
           >
             <div className="flex items-center gap-2 text-emerald-600">
               <CheckCircle size={18} />
               <span className="text-sm font-medium">Em dia</span>
             </div>
             <p className="text-3xl font-bold text-emerald-700">{totalEmDia}</p>
-          </div>
-          <div
+          </button>
+          <button
+            type="button"
             className={cn(
-              "bg-white rounded-2xl shadow-sm p-5 space-y-1 cursor-pointer transition-all",
+              "bg-white rounded-2xl shadow-sm p-5 space-y-1 cursor-pointer transition-all text-left w-full",
               filtro === "vencidos" ? "ring-2 ring-red-400" : "hover:ring-2 hover:ring-red-300",
             )}
-            role="button"
-            tabIndex={0}
             onClick={() => setFiltro(filtro === "vencidos" ? "todos" : "vencidos")}
-            onKeyDown={(e) => e.key === "Enter" && setFiltro(filtro === "vencidos" ? "todos" : "vencidos")}
           >
             <div className="flex items-center gap-2 text-red-600">
               <AlertCircle size={18} />
               <span className="text-sm font-medium">Vencidos</span>
             </div>
             <p className="text-3xl font-bold text-red-700">{totalVencidos}</p>
-          </div>
+          </button>
         </div>
       )}
 

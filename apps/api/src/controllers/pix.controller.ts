@@ -18,9 +18,7 @@ export async function getMensalidadesMinha(
   try {
     const rows = await listMensalidadesDoUsuario(req.userId!);
     return res.json({
-      mensalidades: rows.map((r) =>
-        toSnakeObject(r as unknown as Record<string, unknown>),
-      ),
+      mensalidades: rows.map((r) => toSnakeObject(r as Record<string, unknown>)),
     });
   } catch (err) {
     console.error("GET /mensalidades/minha error", err);
