@@ -64,11 +64,14 @@ export default function FinanceiroResumoPage() {
     setPaginaAtual(1);
   }, [busca, dataInicio, dataFim, tipoFiltro, transacoes?.length]);
 
-  const { totalPages: totalPaginas, safePage: paginaSegura, items: transacoesPaginadas } =
-    useMemo(
-      () => paginateTransacoes(transacoesFiltradas, paginaAtual, pageSize),
-      [paginaAtual, pageSize, transacoesFiltradas],
-    );
+  const {
+    totalPages: totalPaginas,
+    safePage: paginaSegura,
+    items: transacoesPaginadas,
+  } = useMemo(
+    () => paginateTransacoes(transacoesFiltradas, paginaAtual, pageSize),
+    [paginaAtual, pageSize, transacoesFiltradas],
+  );
 
   if (!associacaoAtiva) {
     return <Navigate to="/solicitacoes" replace />;

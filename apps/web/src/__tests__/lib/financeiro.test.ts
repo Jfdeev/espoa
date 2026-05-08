@@ -7,7 +7,9 @@ import {
   sortTransacoes,
 } from "../../lib/financeiro";
 
-function makeTransacao(partial: Partial<TransacaoFinanceira>): TransacaoFinanceira {
+function makeTransacao(
+  partial: Partial<TransacaoFinanceira>,
+): TransacaoFinanceira {
   return {
     id: partial.id ?? crypto.randomUUID(),
     tipo: partial.tipo ?? "entrada",
