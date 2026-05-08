@@ -1,16 +1,43 @@
+import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import AppLayout from "./AppLayout";
 import { adminNavItems } from "./nav-items";
 import { useAuthStore } from "@/store/auth.store";
 import { db } from "@/database/db";
 import { useLiveQuery } from "@/hooks/useLiveQuery";
+import { Input } from "@/components/ui/input";
 
 function formatCurrency(value: number) {
   return `R$ ${value.toLocaleString("pt-BR")}`;
 }
 
+function parseDateOnly(value: string) {
+  const match = /^\d{4}-\d{2}-\d{2}$/.exec(value);
+  if (!match) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function formatDate(value: string) {
+  const parsed = parseDateOnly(value) ?? new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
 export default function FinanceiroResumoPage() {
   const associacaoAtiva = useAuthStore((s) => s.associacaoAtiva);
+  const [tipoFiltro, setTipoFiltro] = useState<"todas" | "entradas" | "saidas">(
+    "todas",
+  );
+  const [busca, setBusca] = useState("");
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const pageSize = 10;
 
   const resumo = useLiveQuery(
     async () => {
@@ -37,6 +64,66 @@ export default function FinanceiroResumoPage() {
     },
     { entradas: 0, saidas: 0, saldo: 0 },
   );
+
+  const transacoes = useLiveQuery(async () => {
+    return db.transacao_financeira.filter((t) => !t.deleted_at).toArray();
+  }, []);
+
+  const transacoesFiltradas = useMemo(() => {
+    const search = busca.trim().toLowerCase();
+    const start = dataInicio ? new Date(dataInicio) : null;
+    const end = dataFim ? new Date(dataFim) : null;
+
+    return (transacoes ?? [])
+      .filter((t) => {
+        if (tipoFiltro === "entradas" && t.tipo === "despesa") return false;
+        if (tipoFiltro === "saidas" && t.tipo !== "despesa") return false;
+
+        if (search) {
+          const descricao = t.descricao?.toLowerCase() ?? "";
+          const documento = t.documento?.toLowerCase() ?? "";
+          if (!descricao.includes(search) && !documento.includes(search)) {
+            return false;
+          }
+        }
+
+        if (start || end) {
+          const data = parseDateOnly(t.data) ?? new Date(t.data);
+          if (start && data < start) return false;
+          if (end) {
+            const endOfDay = new Date(end);
+            endOfDay.setHours(23, 59, 59, 999);
+            if (data > endOfDay) return false;
+          }
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        const dataB = (parseDateOnly(b.data) ?? new Date(b.data)).getTime();
+        const dataA = (parseDateOnly(a.data) ?? new Date(a.data)).getTime();
+        if (dataB !== dataA) return dataB - dataA;
+        const updatedB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+        const updatedA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+        return updatedB - updatedA;
+      });
+  }, [busca, dataInicio, dataFim, tipoFiltro, transacoes]);
+
+  useEffect(() => {
+    setPaginaAtual(1);
+  }, [busca, dataInicio, dataFim, tipoFiltro]);
+
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(transacoesFiltradas.length / pageSize),
+  );
+
+  const paginaSegura = Math.min(paginaAtual, totalPaginas);
+
+  const transacoesPaginadas = useMemo(() => {
+    const start = (paginaSegura - 1) * pageSize;
+    return transacoesFiltradas.slice(start, start + pageSize);
+  }, [paginaSegura, transacoesFiltradas]);
 
   if (!associacaoAtiva) {
     return <Navigate to="/solicitacoes" replace />;
@@ -102,6 +189,142 @@ export default function FinanceiroResumoPage() {
               {formatCurrency(resumo.saidas)}
             </p>
           </div>
+        </section>
+
+        <section className="space-y-4">
+          <div className="flex flex-col gap-4 rounded-2xl border border-[#c1c8c4]/30 bg-white p-6">
+            <div className="flex flex-col md:flex-row md:items-end gap-4">
+              <div className="flex-1 space-y-2">
+                <label className="text-xs uppercase tracking-wider text-[#414846]">
+                  Buscar
+                </label>
+                <Input
+                  placeholder="Descricao ou documento"
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-wider text-[#414846]">
+                  Tipo
+                </label>
+                <select
+                  className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+                  value={tipoFiltro}
+                  onChange={(e) =>
+                    setTipoFiltro(e.target.value as typeof tipoFiltro)
+                  }
+                >
+                  <option value="todas">Todas</option>
+                  <option value="entradas">Entradas</option>
+                  <option value="saidas">Saidas</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-wider text-[#414846]">
+                  Data inicial
+                </label>
+                <Input
+                  type="date"
+                  value={dataInicio}
+                  onChange={(e) => setDataInicio(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-wider text-[#414846]">
+                  Data final
+                </label>
+                <Input
+                  type="date"
+                  value={dataFim}
+                  onChange={(e) => setDataFim(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[#c1c8c4]/30 bg-white">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 px-6 py-4 text-xs uppercase tracking-wider text-[#414846] border-b border-[#c1c8c4]/30">
+              <span>Data</span>
+              <span>Tipo</span>
+              <span>Descricao</span>
+              <span>Documento</span>
+              <span className="text-right">Valor</span>
+            </div>
+
+            {transacoesFiltradas.length === 0 ? (
+              <div className="px-6 py-6 text-sm text-[#414846]">
+                Nenhuma transacao encontrada para os filtros atuais.
+              </div>
+            ) : (
+              <div className="divide-y divide-[#c1c8c4]/30">
+                {transacoesPaginadas.map((t) => (
+                  <div
+                    key={t.id}
+                    className="grid grid-cols-1 md:grid-cols-5 gap-4 px-6 py-4 text-sm text-[#1c1c19]"
+                  >
+                    <span>{formatDate(t.data)}</span>
+                    <span
+                      className={
+                        t.tipo === "despesa"
+                          ? "text-red-700"
+                          : "text-md-primary"
+                      }
+                    >
+                      {t.tipo === "despesa" ? "Saida" : "Entrada"}
+                    </span>
+                    <span>{t.descricao ?? "-"}</span>
+                    <span>{t.documento ?? "-"}</span>
+                    <span className="text-right font-semibold">
+                      {formatCurrency(t.valor)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {transacoesFiltradas.length > 0 && (
+            <div className="flex flex-col gap-3 items-center justify-between text-sm text-[#414846] md:flex-row">
+              <span>
+                Mostrando {(paginaSegura - 1) * pageSize + 1}
+                {"-"}
+                {Math.min(
+                  paginaSegura * pageSize,
+                  transacoesFiltradas.length,
+                )}{" "}
+                de {transacoesFiltradas.length}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="h-8 px-3 rounded-lg border border-[#c1c8c4]/50 disabled:opacity-50"
+                  onClick={() => setPaginaAtual((p) => Math.max(1, p - 1))}
+                  disabled={paginaSegura === 1}
+                >
+                  Anterior
+                </button>
+                <span className="text-[#1c1c19] font-semibold">
+                  Pagina {paginaSegura} de {totalPaginas}
+                </span>
+                <button
+                  type="button"
+                  className="h-8 px-3 rounded-lg border border-[#c1c8c4]/50 disabled:opacity-50"
+                  onClick={() =>
+                    setPaginaAtual((p) => Math.min(totalPaginas, p + 1))
+                  }
+                  disabled={paginaSegura === totalPaginas}
+                >
+                  Proxima
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       </div>
     </AppLayout>

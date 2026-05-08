@@ -12,7 +12,13 @@ import { transacaoRepository } from "@/repositories/financeiro.repository";
 import { db } from "@/database/db";
 import { useLiveQuery } from "@/hooks/useLiveQuery";
 
-const today = new Date().toISOString().slice(0, 10);
+function getTodayInputValue() {
+  const now = new Date();
+  const offsetMs = now.getTimezoneOffset() * 60000;
+  return new Date(now.getTime() - offsetMs).toISOString().slice(0, 10);
+}
+
+const today = getTodayInputValue();
 
 function parseMoney(value: string) {
   const normalized = value.replace(",", ".");
