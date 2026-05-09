@@ -61,7 +61,8 @@ export default function FinanceiroResumoPage() {
   }, [busca, dataInicio, dataFim, tipoFiltro, transacoes]);
 
   const pageKey = useMemo(
-    () => `${busca}|${dataInicio}|${dataFim}|${tipoFiltro}|${transacoes?.length ?? 0}`,
+    () =>
+      `${busca}|${dataInicio}|${dataFim}|${tipoFiltro}|${transacoes?.length ?? 0}`,
     [busca, dataInicio, dataFim, tipoFiltro, transacoes?.length],
   );
 
