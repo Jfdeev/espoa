@@ -40,8 +40,8 @@ export function filterTransacoes(
   filtro: FiltroTransacoes,
 ) {
   const search = filtro.busca.trim().toLowerCase();
-  const start = filtro.dataInicio ? new Date(filtro.dataInicio) : null;
-  const end = filtro.dataFim ? new Date(filtro.dataFim) : null;
+  const start = filtro.dataInicio ? parseDateOnly(filtro.dataInicio) : null;
+  const end = filtro.dataFim ? parseDateOnly(filtro.dataFim) : null;
 
   return transacoes.filter((t) => {
     if (filtro.tipo === "entradas" && t.tipo === "despesa") return false;
