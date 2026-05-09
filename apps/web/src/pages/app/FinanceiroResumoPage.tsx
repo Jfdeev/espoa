@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import AppLayout from "./AppLayout";
 import { adminNavItems } from "./nav-items";
@@ -35,7 +35,7 @@ export default function FinanceiroResumoPage() {
   const [busca, setBusca] = useState("");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
-  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [pageState, setPageState] = useState({ key: "", page: 1 });
   const [transacaoExpandida, setTransacaoExpandida] = useState<string | null>(
     null,
   );
@@ -60,17 +60,20 @@ export default function FinanceiroResumoPage() {
     return sortTransacoes(filtered);
   }, [busca, dataInicio, dataFim, tipoFiltro, transacoes]);
 
-  useEffect(() => {
-    setPaginaAtual(1);
-  }, [busca, dataInicio, dataFim, tipoFiltro, transacoes?.length]);
+  const pageKey = useMemo(
+    () => `${busca}|${dataInicio}|${dataFim}|${tipoFiltro}|${transacoes?.length ?? 0}`,
+    [busca, dataInicio, dataFim, tipoFiltro, transacoes?.length],
+  );
+
+  const currentPage = pageState.key === pageKey ? pageState.page : 1;
 
   const {
     totalPages: totalPaginas,
     safePage: paginaSegura,
     items: transacoesPaginadas,
   } = useMemo(
-    () => paginateTransacoes(transacoesFiltradas, paginaAtual, pageSize),
-    [paginaAtual, pageSize, transacoesFiltradas],
+    () => paginateTransacoes(transacoesFiltradas, currentPage, pageSize),
+    [currentPage, pageSize, transacoesFiltradas],
   );
 
   if (!associacaoAtiva) {
@@ -280,7 +283,12 @@ export default function FinanceiroResumoPage() {
                 <button
                   type="button"
                   className="h-8 px-3 rounded-lg border border-[#c1c8c4]/50 disabled:opacity-50"
-                  onClick={() => setPaginaAtual((p) => Math.max(1, p - 1))}
+                  onClick={() =>
+                    setPageState({
+                      key: pageKey,
+                      page: Math.max(1, paginaSegura - 1),
+                    })
+                  }
                   disabled={paginaSegura === 1}
                 >
                   Anterior
@@ -292,7 +300,10 @@ export default function FinanceiroResumoPage() {
                   type="button"
                   className="h-8 px-3 rounded-lg border border-[#c1c8c4]/50 disabled:opacity-50"
                   onClick={() =>
-                    setPaginaAtual((p) => Math.min(totalPaginas, p + 1))
+                    setPageState({
+                      key: pageKey,
+                      page: Math.min(totalPaginas, paginaSegura + 1),
+                    })
                   }
                   disabled={paginaSegura === totalPaginas}
                 >
