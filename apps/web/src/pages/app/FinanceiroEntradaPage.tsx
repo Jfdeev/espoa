@@ -20,14 +20,43 @@ function getTodayInputValue() {
 
 const today = getTodayInputValue();
 
+function sanitizeMoneyInput(value: string) {
+  const hasComma = value.includes(",");
+  let cleaned = value.replace(/,/g, ".").replace(/[^0-9.]/g, "");
+  const dotIndex = cleaned.indexOf(".");
+
+  if (dotIndex >= 0) {
+    const intPart = cleaned.slice(0, dotIndex).replace(/\./g, "");
+    const decPart = cleaned
+      .slice(dotIndex + 1)
+      .replace(/\./g, "")
+      .slice(0, 2);
+    cleaned = decPart.length > 0 ? `${intPart}.${decPart}` : `${intPart}.`;
+  } else {
+    cleaned = cleaned.replace(/\./g, "");
+  }
+
+  return { value: cleaned, hasComma };
+}
+
 function parseMoney(value: string) {
-  const normalized = value.replace(",", ".");
+  const cleaned = value.replace(/[^0-9.]/g, "");
+  if (!cleaned || cleaned === ".") return 0;
+  const [intRaw, decRaw] = cleaned.split(".");
+  const intPart = intRaw.replace(/\D/g, "");
+  const decPart = (decRaw ?? "").replace(/\D/g, "");
+  const normalized = decPart ? `${intPart}.${decPart}` : intPart;
   const parsed = Number.parseFloat(normalized);
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function formatCurrency(value: number) {
-  return `R$ ${value.toLocaleString("pt-BR")}`;
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
 }
 
 export default function FinanceiroEntradaPage() {
@@ -38,6 +67,7 @@ export default function FinanceiroEntradaPage() {
   const [documento, setDocumento] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ valor?: string; data?: string }>({});
+  const [valorFormatError, setValorFormatError] = useState<string | null>(null);
 
   const saldoAtual = useLiveQuery(async () => {
     const transacoes = await db.transacao_financeira
@@ -69,8 +99,11 @@ export default function FinanceiroEntradaPage() {
 
     const nextErrors: { valor?: string; data?: string } = {};
     if (!data) nextErrors.data = "Informe a data da entrada";
-    if (!valorNumero || valorNumero <= 0)
+    if (valorFormatError) {
+      nextErrors.valor = valorFormatError;
+    } else if (!valorNumero || valorNumero <= 0) {
       nextErrors.valor = "Informe um valor maior que zero";
+    }
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -137,13 +170,25 @@ export default function FinanceiroEntradaPage() {
                 id="valor"
                 name="valor"
                 inputMode="decimal"
-                placeholder="0,00"
+                placeholder="0.00"
                 value={valor}
-                onChange={(e) => setValor(e.target.value)}
+                onChange={(e) => {
+                  const nextValue = sanitizeMoneyInput(e.target.value);
+                  setValor(nextValue.value);
+                  setValorFormatError(
+                    nextValue.hasComma
+                      ? "Centavos devem ser indicados com um ponto."
+                      : null,
+                  );
+                }}
                 aria-invalid={Boolean(errors.valor)}
               />
-              {errors.valor && (
-                <p className="text-xs text-red-600">{errors.valor}</p>
+              {valorFormatError ? (
+                <p className="text-xs text-red-600">{valorFormatError}</p>
+              ) : (
+                errors.valor && (
+                  <p className="text-xs text-red-600">{errors.valor}</p>
+                )
               )}
             </div>
 

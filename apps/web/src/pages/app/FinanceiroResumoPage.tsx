@@ -15,8 +15,15 @@ import {
   type TipoFiltro,
 } from "@/lib/financeiro";
 
+const brlCurrencyFormatter = new Intl.NumberFormat("pt-BR", {
+   style: "currency",
+   currency: "BRL",
+   minimumFractionDigits: 2,
+   maximumFractionDigits: 2,
+ });
+
 function formatCurrency(value: number) {
-  return `R$ ${value.toLocaleString("pt-BR")}`;
+  return brlCurrencyFormatter.format(value);
 }
 
 function formatDate(value: string) {
