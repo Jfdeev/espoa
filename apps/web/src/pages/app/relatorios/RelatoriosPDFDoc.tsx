@@ -313,7 +313,7 @@ function PDFFooter({ assocNome }: { assocNome: string }) {
       </Text>
       <Text
         style={s.pageNumber}
-        render={({ pageNumber, totalPages }) => `Pág. ${pageNumber} / ${totalPages}`}
+        render={({ pageNumber, totalPages }: { pageNumber: number; totalPages: number }) => `Pág. ${pageNumber} / ${totalPages}`}
         fixed
       />
     </View>

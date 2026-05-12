@@ -598,13 +598,8 @@ export default function RelatoriosPage() {
     if (!data) return;
     setPdfLoading(true);
     try {
-      const [{ pdf }, { RelatoriosPDFDoc }] = await Promise.all([
-        import("@react-pdf/renderer"),
-        import("./relatorios/RelatoriosPDFDoc"),
-      ]);
-
-      const element = RelatoriosPDFDoc({ data, associacao: associacaoAtiva });
-      const blob = await pdf(element as any).toBlob();
+      const { generatePDFBlob } = await import("./relatorios/pdf-utils");
+      const blob = await generatePDFBlob(data, associacaoAtiva);
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
