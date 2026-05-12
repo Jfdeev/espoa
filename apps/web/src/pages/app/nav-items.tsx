@@ -6,6 +6,7 @@ import {
   Wallet,
   BanknoteArrowUp,
   FileText,
+  BarChart3,
 } from "lucide-react";
 
 export interface NavItem {
@@ -38,6 +39,7 @@ export const adminNavItems: NavItem[] = [
     icon: <BanknoteArrowUp size={20} />,
     href: "/app/mensalidades",
   },
+  { label: "Relatórios", icon: <BarChart3 size={20} />, href: "/app/relatorios" },
 ];
 
 export const memberNavItems: NavItem[] = [
