@@ -64,6 +64,20 @@
       "when": 1778243069712,
       "tag": "0008_chief_scorpion",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1747094400000,
+      "tag": "0008_add_documento_transacao_financeira",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1747094401000,
+      "tag": "0009_associado_usuario_id",
+      "breakpoints": true
     }
   ]
 }
