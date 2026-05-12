@@ -155,6 +155,36 @@ O middleware `requireAuth` valida o JWT e injeta `userId` e `email` na requisiç
 
 > As rotas `/manage/associacoes` são separadas do fluxo de auth (`GET /associacoes`) para evitar conflito de prefixos.
 
+### Relatórios (requer auth)
+
+Todos os endpoints aceitam os query params comuns:
+
+| Param | Tipo | Obrigatório | Padrão | Valores |
+|---|---|---|---|---|
+| `associacao_id` | uuid | sim | — | — |
+| `periodo` | string | não | `mensal` | `semanal \| mensal \| anual \| personalizado` |
+| `inicio` | YYYY-MM-DD | sim quando `periodo=personalizado` | — | — |
+| `fim` | YYYY-MM-DD | sim quando `periodo=personalizado` | — | — |
+
+Retornam 403 se o usuário autenticado não for membro ativo da associação.
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/relatorios/producao` | Produção agrícola por período — totais, por cultura, por associado, por mês |
+| `GET` | `/relatorios/financeiro` | Movimentação financeira — entradas/saídas/saldo, fluxo mensal, resumo de mensalidades |
+| `GET` | `/relatorios/mensalidades` | Status de mensalidades — pagas/pendentes, taxa de inadimplência, inadimplentes por nome/CPF |
+| `GET` | `/relatorios/associados` | Perfil dos associados — total, ativos, novos no período, por status e por comunidade |
+
+Estrutura de resposta padronizada:
+```jsonc
+{
+  "meta": { "tipo", "associacaoId", "periodo": { "tipo", "inicio", "fim" }, "geradoEm", "geradoPor" },
+  "resumo": { /* totais escalares */ },
+  "agregacoes": { /* arrays agrupados por dimensão */ },
+  "detalhes": [ /* registros individuais */ ]
+}
+```
+
 ### Health
 
 | Método | Rota | Descrição |

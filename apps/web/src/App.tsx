@@ -10,6 +10,7 @@ import AssociadosPage from "./pages/app/AssociadosPage";
 import EditaisPage from "./pages/app/EditaisPage";
 import EditalDetailPage from "./pages/app/EditalDetailPage";
 import MensalidadesPage from "./pages/app/MensalidadesPage";
+import RelatoriosPage from "./pages/app/RelatoriosPage";
 import ConfiguracoesPage from "./pages/app/ConfiguracoesPage";
 import DebugSyncPage from "./pages/app/DebugSyncPage";
 import FinanceiroEntradaPage from "./pages/app/FinanceiroEntradaPage";
@@ -58,6 +59,7 @@ function App() {
               element={<EditalDetailPage />}
             />
             <Route path="/app/mensalidades" element={<MensalidadesPage />} />
+            <Route path="/app/relatorios" element={<RelatoriosPage />} />
             <Route path="/app/configuracoes" element={<ConfiguracoesPage />} />
             <Route path="/debug/sync" element={<DebugSyncPage />} />
           </Route>
