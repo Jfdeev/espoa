@@ -12,6 +12,7 @@ import { transacaoFinanceiraRouter } from "./routes/transacao-financeira.routes"
 import { pixRouter } from "./routes/pix.routes";
 import { insightsRouter } from "./routes/insights.routes";
 import { editalPnaeRouter } from "./routes/edital-pnae.routes";
+import { relatoriosRouter } from "./routes/relatorios.routes";
 
 const app = express();
 
@@ -30,5 +31,6 @@ app.use(mensalidadeRouter);
 app.use(transacaoFinanceiraRouter);
 app.use(insightsRouter);
 app.use(editalPnaeRouter);
+app.use(relatoriosRouter);
 
 export { app };
