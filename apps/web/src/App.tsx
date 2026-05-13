@@ -12,6 +12,7 @@ import EditalDetailPage from "./pages/app/EditalDetailPage";
 import MensalidadesPage from "./pages/app/MensalidadesPage";
 import ConfiguracoesPage from "./pages/app/ConfiguracoesPage";
 import DebugSyncPage from "./pages/app/DebugSyncPage";
+import ColheitasPage from "./pages/app/ColheitasPage";
 import SolicitacoesPage from "./pages/SolicitacoesPage";
 import AuthGuard from "./components/AuthGuard";
 import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
@@ -39,6 +40,7 @@ function App() {
             <Route path="/app/mensalidades" element={<MensalidadesPage />} />
             <Route path="/app/configuracoes" element={<ConfiguracoesPage />} />
             <Route path="/debug/sync" element={<DebugSyncPage />} />
+            <Route path="/app/colheitas" element={<ColheitasPage />} />
           </Route>
 
           {/* Fallback */}

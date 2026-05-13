@@ -1,4 +1,4 @@
-import { db, usuario, associacao, usuarioAssociacao } from "@espoa/database";
+import { db, usuario, associacao, usuarioAssociacao, associado } from "@espoa/database";
 import { and, eq, ilike, or } from "drizzle-orm";
 import bcryptjs from "bcryptjs";
 import { randomBytes } from "node:crypto";
@@ -354,6 +354,14 @@ export async function criarAssociacao(req: AuthenticatedRequest, res: Response) 
     role: "adm",
     status: "ativo",
     joinedAt: new Date(),
+  });
+
+  await db.insert(associado).values({
+    nome: me.nome,
+    usuarioId: me.id,
+    associacaoId: novaAssociacao.id,
+    dataEntrada: new Date().toISOString().slice(0, 10),
+    status: "ativo",
   });
 
   res.status(201).json({ associacao: novaAssociacao });
