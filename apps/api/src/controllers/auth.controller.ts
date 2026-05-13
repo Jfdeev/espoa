@@ -6,7 +6,6 @@ import { signToken } from "../lib/jwt";
 import type { AuthenticatedRequest } from "../middleware/auth.middleware";
 import type { Request, Response } from "express";
 
-
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function getUserByEmail(email: string) {
@@ -28,43 +27,57 @@ export async function register(req: Request, res: Response) {
     cpf?: string;
   };
 
-  if (!nome || !email || !password) {
-    res.status(400).json({ error: "nome, email e password são obrigatórios" });
-    return;
+  try {
+    if (!nome || !email || !password) {
+      res
+        .status(400)
+        .json({ error: "nome, email e password são obrigatórios" });
+      return;
+    }
+    if (password.length < 8) {
+      res
+        .status(400)
+        .json({ error: "A senha deve ter pelo menos 8 caracteres" });
+      return;
+    }
+
+    const existing = await getUserByEmail(email.toLowerCase().trim());
+    if (existing.length > 0) {
+      res.status(409).json({ error: "E-mail já cadastrado" });
+      return;
+    }
+
+    const passwordHash = await bcryptjs.hash(password, 12);
+    const verificationToken = randomBytes(32).toString("hex");
+
+    const [created] = await db
+      .insert(usuario)
+      .values({
+        nome,
+        email: email.toLowerCase().trim(),
+        passwordHash,
+        authProvider: "email",
+        emailVerified: false,
+        verificationToken,
+        ...(telefone?.trim() && { telefone: telefone.trim() }),
+        ...(cpf?.trim() && { cpf: cpf.trim() }),
+      })
+      .returning();
+
+    // PENDING: enviar e-mail de verificação com verificationToken
+    // await sendVerificationEmail(created.email, verificationToken);
+
+    const token = signToken({ sub: created.id, email: created.email });
+    res.status(201).json({ token, usuario: sanitize(created) });
+  } catch (err) {
+    const error = err as Error & { cause?: unknown };
+    const cause = error.cause as { message?: string } | undefined;
+    console.error("[register] DB error:", error);
+    if (cause?.message) {
+      console.error("[register] DB cause:", cause.message);
+    }
+    res.status(500).json({ error: "Erro interno ao registrar" });
   }
-  if (password.length < 8) {
-    res.status(400).json({ error: "A senha deve ter pelo menos 8 caracteres" });
-    return;
-  }
-
-  const existing = await getUserByEmail(email.toLowerCase().trim());
-  if (existing.length > 0) {
-    res.status(409).json({ error: "E-mail já cadastrado" });
-    return;
-  }
-
-  const passwordHash = await bcryptjs.hash(password, 12);
-  const verificationToken = randomBytes(32).toString("hex");
-
-  const [created] = await db
-    .insert(usuario)
-    .values({
-      nome,
-      email: email.toLowerCase().trim(),
-      passwordHash,
-      authProvider: "email",
-      emailVerified: false,
-      verificationToken,
-      ...(telefone?.trim() && { telefone: telefone.trim() }),
-      ...(cpf?.trim() && { cpf: cpf.trim() }),
-    })
-    .returning();
-
-  // PENDING: enviar e-mail de verificação com verificationToken
-  // await sendVerificationEmail(created.email, verificationToken);
-
-  const token = signToken({ sub: created.id, email: created.email });
-  res.status(201).json({ token, usuario: sanitize(created) });
 }
 
 // ─── Login ───────────────────────────────────────────────────────────────────
@@ -118,7 +131,7 @@ export async function googleAuth(req: Request, res: Response) {
       return;
     }
 
-    const googlePayload = await response.json() as {
+    const googlePayload = (await response.json()) as {
       sub: string;
       email: string;
       name: string;
@@ -183,7 +196,9 @@ export async function forgotPassword(req: Request, res: Response) {
   const [user] = await getUserByEmail(email.toLowerCase().trim());
   // Responder sempre 200 para não revelar se o e-mail existe
   if (!user) {
-    res.json({ message: "Se o e-mail estiver cadastrado, você receberá as instruções" });
+    res.json({
+      message: "Se o e-mail estiver cadastrado, você receberá as instruções",
+    });
     return;
   }
 
@@ -197,7 +212,9 @@ export async function forgotPassword(req: Request, res: Response) {
 
   // PENDING: await sendPasswordResetEmail(user.email, resetToken);
 
-  res.json({ message: "Se o e-mail estiver cadastrado, você receberá as instruções" });
+  res.json({
+    message: "Se o e-mail estiver cadastrado, você receberá as instruções",
+  });
 }
 
 // ─── Reset Password ───────────────────────────────────────────────────────────
@@ -298,7 +315,10 @@ export async function getMe(req: AuthenticatedRequest, res: Response) {
 
 // ─── Associações ─────────────────────────────────────────────────────────────
 
-export async function listarAssociacoes(req: AuthenticatedRequest, res: Response) {
+export async function listarAssociacoes(
+  req: AuthenticatedRequest,
+  res: Response,
+) {
   const q = (req.query.q as string) ?? "";
 
   const rows = await db
@@ -322,7 +342,10 @@ export async function listarAssociacoes(req: AuthenticatedRequest, res: Response
   res.json(rows);
 }
 
-export async function criarAssociacao(req: AuthenticatedRequest, res: Response) {
+export async function criarAssociacao(
+  req: AuthenticatedRequest,
+  res: Response,
+) {
   const { nome, cnpj, municipio, estado, telefone, email } = req.body as {
     nome: string;
     cnpj: string;
@@ -333,7 +356,9 @@ export async function criarAssociacao(req: AuthenticatedRequest, res: Response) 
   };
 
   if (!nome || !cnpj || !municipio || !estado) {
-    res.status(400).json({ error: "nome, cnpj, municipio e estado são obrigatórios" });
+    res
+      .status(400)
+      .json({ error: "nome, cnpj, municipio e estado são obrigatórios" });
     return;
   }
 
@@ -345,7 +370,15 @@ export async function criarAssociacao(req: AuthenticatedRequest, res: Response) 
 
   const [novaAssociacao] = await db
     .insert(associacao)
-    .values({ nome, cnpj, municipio, estado, telefone, email, createdBy: me.id })
+    .values({
+      nome,
+      cnpj,
+      municipio,
+      estado,
+      telefone,
+      email,
+      createdBy: me.id,
+    })
     .returning();
 
   await db.insert(usuarioAssociacao).values({
@@ -367,7 +400,10 @@ export async function criarAssociacao(req: AuthenticatedRequest, res: Response) 
   res.status(201).json({ associacao: novaAssociacao });
 }
 
-export async function solicitarVinculo(req: AuthenticatedRequest, res: Response) {
+export async function solicitarVinculo(
+  req: AuthenticatedRequest,
+  res: Response,
+) {
   const { id: associacaoId } = req.params as { id: string };
   const { role } = (req.body ?? {}) as { role?: string };
   const papel = role === "adm" ? "adm" : "associado";
@@ -386,7 +422,9 @@ export async function solicitarVinculo(req: AuthenticatedRequest, res: Response)
 
   const jaVinculado = existente.find((v) => v.associacaoId === associacaoId);
   if (jaVinculado) {
-    res.status(409).json({ error: "Vínculo já existe", status: jaVinculado.status });
+    res
+      .status(409)
+      .json({ error: "Vínculo já existe", status: jaVinculado.status });
     return;
   }
 
@@ -403,7 +441,10 @@ export async function solicitarVinculo(req: AuthenticatedRequest, res: Response)
   res.status(201).json({ vinculo });
 }
 
-export async function gerenciarVinculo(req: AuthenticatedRequest, res: Response) {
+export async function gerenciarVinculo(
+  req: AuthenticatedRequest,
+  res: Response,
+) {
   const { assocId, userId } = req.params as { assocId: string; userId: string };
   const { acao } = req.body as { acao: "aprovar" | "rejeitar" };
 
@@ -425,7 +466,9 @@ export async function gerenciarVinculo(req: AuthenticatedRequest, res: Response)
     .limit(1);
 
   if (vinculoAdm?.role !== "adm" || vinculoAdm?.status !== "ativo") {
-    res.status(403).json({ error: "Sem permissão para gerenciar esta associação" });
+    res
+      .status(403)
+      .json({ error: "Sem permissão para gerenciar esta associação" });
     return;
   }
 
@@ -449,7 +492,10 @@ export async function gerenciarVinculo(req: AuthenticatedRequest, res: Response)
 
 // ─── Vínculos da Associação ───────────────────────────────────────────────────
 
-export async function listarVinculosAssociacao(req: AuthenticatedRequest, res: Response) {
+export async function listarVinculosAssociacao(
+  req: AuthenticatedRequest,
+  res: Response,
+) {
   const { id: assocId } = req.params as { id: string };
 
   const [vinculoAdm] = await db
@@ -464,7 +510,9 @@ export async function listarVinculosAssociacao(req: AuthenticatedRequest, res: R
     .limit(1);
 
   if (vinculoAdm?.role !== "adm" || vinculoAdm?.status !== "ativo") {
-    res.status(403).json({ error: "Sem permissão para gerenciar esta associação" });
+    res
+      .status(403)
+      .json({ error: "Sem permissão para gerenciar esta associação" });
     return;
   }
 
@@ -487,7 +535,10 @@ export async function listarVinculosAssociacao(req: AuthenticatedRequest, res: R
   res.json(vinculos);
 }
 
-export async function alterarRoleVinculo(req: AuthenticatedRequest, res: Response) {
+export async function alterarRoleVinculo(
+  req: AuthenticatedRequest,
+  res: Response,
+) {
   const { assocId, userId } = req.params as { assocId: string; userId: string };
   const { role } = (req.body ?? {}) as { role?: string };
 
@@ -513,7 +564,9 @@ export async function alterarRoleVinculo(req: AuthenticatedRequest, res: Respons
     .limit(1);
 
   if (vinculoAdm?.role !== "adm" || vinculoAdm?.status !== "ativo") {
-    res.status(403).json({ error: "Sem permissão para gerenciar esta associação" });
+    res
+      .status(403)
+      .json({ error: "Sem permissão para gerenciar esta associação" });
     return;
   }
 
@@ -572,7 +625,9 @@ export async function convidarMembro(req: AuthenticatedRequest, res: Response) {
     .limit(1);
 
   if (!targetUser) {
-    res.status(404).json({ error: "Nenhum usuário encontrado com este e-mail" });
+    res
+      .status(404)
+      .json({ error: "Nenhum usuário encontrado com este e-mail" });
     return;
   }
 
@@ -590,11 +645,15 @@ export async function convidarMembro(req: AuthenticatedRequest, res: Response) {
 
   if (existing) {
     if (existing.status === "ativo") {
-      res.status(409).json({ error: "Este usuário já é membro ativo da associação" });
+      res
+        .status(409)
+        .json({ error: "Este usuário já é membro ativo da associação" });
       return;
     }
     if (existing.status === "convidado") {
-      res.status(409).json({ error: "Este usuário já foi convidado e ainda não respondeu" });
+      res
+        .status(409)
+        .json({ error: "Este usuário já foi convidado e ainda não respondeu" });
       return;
     }
     // If inativo/rejeitado, reactivate as convidado
@@ -623,7 +682,10 @@ export async function convidarMembro(req: AuthenticatedRequest, res: Response) {
 
 // ─── Responder convite ────────────────────────────────────────────────────────
 
-export async function responderConvite(req: AuthenticatedRequest, res: Response) {
+export async function responderConvite(
+  req: AuthenticatedRequest,
+  res: Response,
+) {
   const { assocId } = req.params as { assocId: string };
   const { acao } = req.body as { acao?: "aceitar" | "recusar" };
 
@@ -665,7 +727,13 @@ export async function responderConvite(req: AuthenticatedRequest, res: Response)
 // ─── Sanitize (remove campos sensíveis) ──────────────────────────────────────
 
 function sanitize(user: typeof usuario.$inferSelect) {
-  const { passwordHash: _ph, verificationToken: _vt, resetToken: _rt, resetTokenExpiresAt: _re, ...safe } = user;
+  const {
+    passwordHash: _ph,
+    verificationToken: _vt,
+    resetToken: _rt,
+    resetTokenExpiresAt: _re,
+    ...safe
+  } = user;
   return safe;
 }
 
@@ -696,4 +764,3 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
 
   res.json({ usuario: sanitize(updated) });
 }
-

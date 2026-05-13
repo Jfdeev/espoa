@@ -8,9 +8,11 @@ import { associacaoRouter } from "./routes/associacao.routes";
 import { producaoRouter } from "./routes/producao.routes";
 import { dashboardRouter } from "./routes/dashboard.routes";
 import { mensalidadeRouter } from "./routes/mensalidade.routes";
+import { transacaoFinanceiraRouter } from "./routes/transacao-financeira.routes";
 import { pixRouter } from "./routes/pix.routes";
 import { insightsRouter } from "./routes/insights.routes";
 import { editalPnaeRouter } from "./routes/edital-pnae.routes";
+import { relatoriosRouter } from "./routes/relatorios.routes";
 
 const app = express();
 
@@ -26,7 +28,9 @@ app.use(producaoRouter);
 app.use(dashboardRouter);
 app.use(pixRouter);
 app.use(mensalidadeRouter);
+app.use(transacaoFinanceiraRouter);
 app.use(insightsRouter);
 app.use(editalPnaeRouter);
+app.use(relatoriosRouter);
 
 export { app };

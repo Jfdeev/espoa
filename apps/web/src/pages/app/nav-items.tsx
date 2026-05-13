@@ -1,4 +1,13 @@
-import { LayoutDashboard, Wheat, Leaf, Users, BanknoteArrowUp, FileText } from "lucide-react";
+import {
+  LayoutDashboard,
+  Wheat,
+  Leaf,
+  Users,
+  Wallet,
+  BanknoteArrowUp,
+  FileText,
+  BarChart3,
+} from "lucide-react";
 
 export interface NavItem {
   label: string;
@@ -7,18 +16,44 @@ export interface NavItem {
 }
 
 export const adminNavItems: NavItem[] = [
-  { label: "Menu Principal", icon: <LayoutDashboard size={20} />, href: "/app" },
-  { label: "Propriedades", icon: <Wheat size={20} />, href: "/app/propriedades" },
+  {
+    label: "Menu Principal",
+    icon: <LayoutDashboard size={20} />,
+    href: "/app",
+  },
+  {
+    label: "Propriedades",
+    icon: <Wheat size={20} />,
+    href: "/app/propriedades",
+  },
   { label: "Colheitas", icon: <Leaf size={20} />, href: "/app/colheitas" },
   { label: "Associados", icon: <Users size={20} />, href: "/app/associados" },
+  {
+    label: "Financeiro",
+    icon: <Wallet size={20} />,
+    href: "/app/financeiro/entrada",
+  },
   { label: "Editais PNAE", icon: <FileText size={20} />, href: "/app/editais" },
-  { label: "Mensalidades", icon: <BanknoteArrowUp size={20} />, href: "/app/mensalidades" },
+  {
+    label: "Mensalidades",
+    icon: <BanknoteArrowUp size={20} />,
+    href: "/app/mensalidades",
+  },
+  { label: "Relatórios", icon: <BarChart3 size={20} />, href: "/app/relatorios" },
 ];
 
 export const memberNavItems: NavItem[] = [
   { label: "Dashboard", icon: <LayoutDashboard size={20} />, href: "/app" },
-  { label: "Propriedades", icon: <Wheat size={20} />, href: "/app/propriedades" },
+  {
+    label: "Propriedades",
+    icon: <Wheat size={20} />,
+    href: "/app/propriedades",
+  },
   { label: "Colheita", icon: <Leaf size={20} />, href: "/app/colheitas" },
   { label: "Associações", icon: <Users size={20} />, href: "/app/associacoes" },
-  { label: "Mensalidades", icon: <BanknoteArrowUp size={20} />, href: "/app/mensalidades" },
+  {
+    label: "Mensalidades",
+    icon: <BanknoteArrowUp size={20} />,
+    href: "/app/mensalidades",
+  },
 ];
