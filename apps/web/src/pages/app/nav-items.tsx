@@ -7,6 +7,7 @@ import {
   BanknoteArrowUp,
   FileText,
   BarChart3,
+  BookOpen,
 } from "lucide-react";
 
 export interface NavItem {
@@ -34,6 +35,7 @@ export const adminNavItems: NavItem[] = [
     href: "/app/financeiro/entrada",
   },
   { label: "Editais PNAE", icon: <FileText size={20} />, href: "/app/editais" },
+  { label: "Atas", icon: <BookOpen size={20} />, href: "/app/atas" },
   {
     label: "Mensalidades",
     icon: <BanknoteArrowUp size={20} />,

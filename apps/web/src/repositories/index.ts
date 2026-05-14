@@ -20,3 +20,9 @@ export type {
   CreateProducaoInput,
   UpdateProducaoInput,
 } from "./producao.repository";
+
+export { ataRepository } from "./ata.repository";
+export type {
+  CreateAtaInput,
+  UpdateAtaInput,
+} from "./ata.repository";

@@ -44,7 +44,7 @@ const quickActions: QuickAction[] = [
     label: "Novo Associado",
     href: "/app/associados",
   },
-  { id: "atas", icon: <FileText size={22} />, label: "Lançar Atas" },
+  { id: "atas", icon: <FileText size={22} />, label: "Lançar Atas", href: "/app/atas" },
   {
     id: "financeiro",
     icon: <Wallet size={22} />,
