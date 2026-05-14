@@ -13,6 +13,7 @@ import { pixRouter } from "./routes/pix.routes";
 import { insightsRouter } from "./routes/insights.routes";
 import { editalPnaeRouter } from "./routes/edital-pnae.routes";
 import { relatoriosRouter } from "./routes/relatorios.routes";
+import { ataRouter } from "./routes/ata.routes";
 
 const app = express();
 
@@ -32,5 +33,6 @@ app.use(transacaoFinanceiraRouter);
 app.use(insightsRouter);
 app.use(editalPnaeRouter);
 app.use(relatoriosRouter);
+app.use(ataRouter);
 
 export { app };

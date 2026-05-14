@@ -9,6 +9,7 @@ import AppPage from "./pages/app/AppPage";
 import AssociadosPage from "./pages/app/AssociadosPage";
 import EditaisPage from "./pages/app/EditaisPage";
 import EditalDetailPage from "./pages/app/EditalDetailPage";
+import AtasPage from "./pages/app/AtasPage";
 import MensalidadesPage from "./pages/app/MensalidadesPage";
 import RelatoriosPage from "./pages/app/RelatoriosPage";
 import ConfiguracoesPage from "./pages/app/ConfiguracoesPage";
@@ -58,6 +59,7 @@ function App() {
               path="/app/editais/:editalId"
               element={<EditalDetailPage />}
             />
+            <Route path="/app/atas" element={<AtasPage />} />
             <Route path="/app/mensalidades" element={<MensalidadesPage />} />
             <Route path="/app/relatorios" element={<RelatoriosPage />} />
             <Route path="/app/configuracoes" element={<ConfiguracoesPage />} />
