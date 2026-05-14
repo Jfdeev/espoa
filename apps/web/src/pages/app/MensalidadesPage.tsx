@@ -9,6 +9,7 @@ import {
   Users,
   Copy,
   Check,
+  WifiOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
@@ -22,7 +23,11 @@ import AppLayout from "./AppLayout";
 import { adminNavItems, memberNavItems } from "./nav-items";
 import { cn } from "@/lib/utils";
 import { isVencido, labelVencimento } from "@/lib/mensalidade-utils";
+import { getDeviceId } from "@/lib/device-id";
 import api from "@/lib/api";
+import { useOnlineStatus } from "@/lib/network";
+import { mensalidadeRepository } from "@/repositories/financeiro.repository";
+import { syncManager } from "@/sync/manager";
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
@@ -392,21 +397,8 @@ function AssociadoView() {
 interface Membro {
   usuarioId: string;
   nome: string;
-  email: string;
-  avatarUrl?: string | null;
   role: string;
   status: string;
-}
-
-interface MensalidadeAPI {
-  id?: string;
-  usuario_id?: string | null;
-  associado_id?: string | null;
-  valor: number;
-  data_pagamento?: string | null;
-  forma_pagamento?: string | null;
-  updated_at: string;
-  deleted_at?: string | null;
 }
 
 interface PagamentoForm {
@@ -427,38 +419,85 @@ type FiltroStatus = "todos" | "vencidos" | "em_dia";
 
 function AdminView() {
   const associacaoAtiva = useAuthStore((s) => s.associacaoAtiva);
-  const [membros, setMembros] = useState<Membro[]>([]);
-  const [mensalidades, setMensalidades] = useState<MensalidadeAPI[]>([]);
+  const online = useOnlineStatus();
+  const assocId = associacaoAtiva?.associacaoId;
+
   const [form, setForm] = useState<PagamentoForm>(formVazio);
   const [submitting, setSubmitting] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<FiltroStatus>("todos");
 
-  const carregarDados = useCallback(async () => {
-    if (!associacaoAtiva?.associacaoId) return;
-    setLoading(true);
-    try {
-      const [vinculosRes, mensalidadesRes] = await Promise.all([
-        api.get<Membro[]>(`/associacoes/${associacaoAtiva.associacaoId}/vinculos`),
-        api.get<MensalidadeAPI[]>("/mensalidades"),
-      ]);
-      const ativos = vinculosRes.data.filter((v) => v.status === "ativo");
-      setMembros(ativos);
-      setMensalidades(
-        (mensalidadesRes.data ?? []).sort((a, b) =>
-          (b.updated_at ?? "").localeCompare(a.updated_at ?? ""),
-        ),
-      );
-    } catch {
-      toast.error("Erro ao carregar dados.");
-    } finally {
-      setLoading(false);
-    }
-  }, [associacaoAtiva?.associacaoId]);
+  // Vínculos vindos da API (fonte primária quando online — evita depender do sync incremental)
+  const [vinculosApi, setVinculosApi] = useState<Array<{ usuarioId: string; nome: string; role: string; status: string }>>([]);
 
+  // Busca vínculos da API sempre que ficar online
   useEffect(() => {
-    carregarDados();
-  }, [carregarDados]);
+    if (!online || !assocId) return;
+    api
+      .get<Array<{ usuarioId: string; nome: string; status: string; role: string }>>(`/associacoes/${assocId}/vinculos`)
+      .then((res) => setVinculosApi(res.data))
+      .catch(() => {}); // offline — usa fallback do Dexie
+  }, [online, assocId]);
+
+  // Lista de membros ativos do Dexie — usada como fallback quando offline
+  const membrosLocal = useLiveQuery<Membro[]>(
+    async () => {
+      if (!assocId) return [];
+      const vinculos = await db.usuario_associacao
+        .where("associacao_id")
+        .equals(assocId)
+        .filter((v) => v.status === "ativo" && v.role !== "adm")
+        .toArray();
+      const usuarioIds = vinculos.map((v) => v.usuario_id);
+      const associados = await db.associado
+        .filter((a) => !a.deleted_at && !!a.usuario_id && usuarioIds.includes(a.usuario_id!))
+        .toArray();
+      const nomeFallbackMap = new Map(associados.map((a) => [a.usuario_id!, a.nome]));
+      return vinculos.map((v) => ({
+        usuarioId: v.usuario_id,
+        nome: nomeFallbackMap.get(v.usuario_id) ?? v.usuario_id.slice(0, 8),
+        role: v.role,
+        status: v.status,
+      }));
+    },
+    [],
+    [assocId],
+  );
+
+  // Fonte de verdade para membros: API quando disponível, Dexie como fallback
+  const membros: Membro[] = vinculosApi.length > 0
+    ? vinculosApi
+        .filter((v) => v.status === "ativo" && v.role !== "adm")
+        .map((v) => ({ usuarioId: v.usuarioId, nome: v.nome, role: v.role, status: v.status }))
+    : (membrosLocal ?? []);
+
+  // Nome resolvido: API > Dexie > id curto
+  const getNome = (usuarioId: string): string =>
+    membros.find((m) => m.usuarioId === usuarioId)?.nome ??
+    usuarioId.slice(0, 8);
+
+  const mensalidades = useLiveQuery<Mensalidade[]>(
+    async () => {
+      if (!assocId) return [];
+      const vinculos = await db.usuario_associacao
+        .where("associacao_id")
+        .equals(assocId)
+        .filter((v) => v.status === "ativo")
+        .toArray();
+      const userIdSet = new Set(vinculos.map((v) => v.usuario_id));
+      return db.mensalidade
+        .filter((m) => !m.deleted_at && !!m.usuario_id && userIdSet.has(m.usuario_id!))
+        .toArray();
+    },
+    [],
+    [assocId],
+  );
+
+  // Dispara sync ao montar/reconectar para puxar dados frescos do servidor
+  useEffect(() => {
+    if (online) {
+      syncManager.run(getDeviceId()).catch(() => {});
+    }
+  }, [online]);
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -480,42 +519,40 @@ function AdminView() {
     }
     setSubmitting(true);
     try {
-      await api.post("/mensalidades", {
+      // Sempre salva no Dexie via repository + enfileira no sync_queue
+      await mensalidadeRepository.create({
         usuario_id: usuarioId,
         valor,
         data_pagamento: form.data_pagamento || null,
         forma_pagamento: form.forma_pagamento || null,
       });
-      toast.success("Pagamento registrado com sucesso!");
+      toast.success(
+        `Pagamento registrado.${!online ? " (aguardando sincronização)" : ""}`,
+      );
       setForm(formVazio);
-      await carregarDados();
-    } catch {
-      toast.error("Erro ao registrar pagamento.");
+      // useLiveQuery atualiza a lista automaticamente
+      if (online) {
+        syncManager.run(getDeviceId()).catch(() => {});
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao registrar pagamento. Tente novamente.");
     } finally {
       setSubmitting(false);
     }
   }
 
   const mensalidadesPorMembro = (usuarioId: string): Mensalidade[] =>
-    mensalidades
-      .filter((m) => m.usuario_id === usuarioId && !m.deleted_at)
-      .map((m) => ({
-        ...m,
-        associado_id: m.associado_id ?? "",
-        data_pagamento: m.data_pagamento ?? undefined,
-        version: 1,
-        updated_at: m.updated_at,
-      }));
+    (mensalidades ?? []).filter((m) => m.usuario_id === usuarioId);
 
-  const nomeMembro = (usuarioId: string) =>
-    membros.find((m) => m.usuarioId === usuarioId)?.nome ?? "—";
+  const nomeMembro = (usuarioId: string) => getNome(usuarioId);
 
-  const totalVencidos = membros.filter((m) =>
+  const totalVencidos = (membros ?? []).filter((m) =>
     isVencido(mensalidadesPorMembro(m.usuarioId)),
   ).length;
-  const totalEmDia = membros.length - totalVencidos;
+  const totalEmDia = (membros ?? []).length - totalVencidos;
 
-  const membrosFiltrados = membros.filter((m) => {
+  const membrosFiltrados = (membros ?? []).filter((m) => {
     const vencido = isVencido(mensalidadesPorMembro(m.usuarioId));
     if (filtro === "vencidos") return vencido;
     if (filtro === "em_dia") return !vencido;
@@ -535,46 +572,54 @@ function AdminView() {
         </p>
       </div>
 
-      {/* Cards de resumo */}
-      {!loading && (
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white rounded-2xl shadow-sm p-5 space-y-1">
-            <div className="flex items-center gap-2 text-[#414846]">
-              <Users size={18} />
-              <span className="text-sm font-medium">Total</span>
-            </div>
-            <p className="text-3xl font-bold text-[#01261f]">{membros.length}</p>
-          </div>
-          <button
-            type="button"
-            className={cn(
-              "bg-white rounded-2xl shadow-sm p-5 space-y-1 cursor-pointer transition-all text-left w-full",
-              filtro === "em_dia" ? "ring-2 ring-emerald-400" : "hover:ring-2 hover:ring-emerald-300",
-            )}
-            onClick={() => setFiltro(filtro === "em_dia" ? "todos" : "em_dia")}
-          >
-            <div className="flex items-center gap-2 text-emerald-600">
-              <CheckCircle size={18} />
-              <span className="text-sm font-medium">Em dia</span>
-            </div>
-            <p className="text-3xl font-bold text-emerald-700">{totalEmDia}</p>
-          </button>
-          <button
-            type="button"
-            className={cn(
-              "bg-white rounded-2xl shadow-sm p-5 space-y-1 cursor-pointer transition-all text-left w-full",
-              filtro === "vencidos" ? "ring-2 ring-red-400" : "hover:ring-2 hover:ring-red-300",
-            )}
-            onClick={() => setFiltro(filtro === "vencidos" ? "todos" : "vencidos")}
-          >
-            <div className="flex items-center gap-2 text-red-600">
-              <AlertCircle size={18} />
-              <span className="text-sm font-medium">Vencidos</span>
-            </div>
-            <p className="text-3xl font-bold text-red-700">{totalVencidos}</p>
-          </button>
+      {/* Banner offline */}
+      {!online && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#fff3e0] border border-[#E67E22]/30 text-sm text-[#9a4f00]">
+          <WifiOff size={16} className="shrink-0" />
+          <span>
+            Sem conexão. Registros ficam na fila e serão enviados quando você reconectar.
+          </span>
         </div>
       )}
+
+      {/* Cards de resumo */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-white rounded-2xl shadow-sm p-5 space-y-1">
+          <div className="flex items-center gap-2 text-[#414846]">
+            <Users size={18} />
+            <span className="text-sm font-medium">Total</span>
+          </div>
+          <p className="text-3xl font-bold text-[#01261f]">{(membros ?? []).length}</p>
+        </div>
+        <button
+          type="button"
+          className={cn(
+            "bg-white rounded-2xl shadow-sm p-5 space-y-1 cursor-pointer transition-all text-left w-full",
+            filtro === "em_dia" ? "ring-2 ring-emerald-400" : "hover:ring-2 hover:ring-emerald-300",
+          )}
+          onClick={() => setFiltro(filtro === "em_dia" ? "todos" : "em_dia")}
+        >
+          <div className="flex items-center gap-2 text-emerald-600">
+            <CheckCircle size={18} />
+            <span className="text-sm font-medium">Em dia</span>
+          </div>
+          <p className="text-3xl font-bold text-emerald-700">{totalEmDia}</p>
+        </button>
+        <button
+          type="button"
+          className={cn(
+            "bg-white rounded-2xl shadow-sm p-5 space-y-1 cursor-pointer transition-all text-left w-full",
+            filtro === "vencidos" ? "ring-2 ring-red-400" : "hover:ring-2 hover:ring-red-300",
+          )}
+          onClick={() => setFiltro(filtro === "vencidos" ? "todos" : "vencidos")}
+        >
+          <div className="flex items-center gap-2 text-red-600">
+            <AlertCircle size={18} />
+            <span className="text-sm font-medium">Vencidos</span>
+          </div>
+          <p className="text-3xl font-bold text-red-700">{totalVencidos}</p>
+        </button>
+      </div>
 
       {/* Lista de membros por status */}
       <div className="space-y-4">
@@ -585,13 +630,7 @@ function AdminView() {
           <span className="text-xs text-[#414846]">{labelVencimento()}</span>
         </div>
 
-        {loading ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-14 rounded-xl bg-[#f6f3ee] animate-pulse" />
-            ))}
-          </div>
-        ) : membrosFiltrados.length === 0 ? (
+        {membrosFiltrados.length === 0 ? (
           <div className="bg-[#f6f3ee] rounded-xl p-6 text-center text-[#414846]">
             {filtro === "todos" ? "Nenhum membro ativo." : "Nenhum membro nessa categoria."}
           </div>
@@ -617,7 +656,7 @@ function AdminView() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-[#01261f] text-sm truncate">{m.nome}</p>
+                    <p className="font-medium text-[#01261f] text-sm truncate">{getNome(m.usuarioId)}</p>
                     <p className="text-xs text-[#414846]">
                       {(() => {
                         if (vencido) return "Sem pagamento no mês";
@@ -657,31 +696,27 @@ function AdminView() {
             <Label htmlFor="usuario_id" className="text-[#01261f] font-medium">
               Membro <span className="text-red-500">*</span>
             </Label>
-            {loading ? (
-              <div className="h-10 rounded-lg bg-[#f6f3ee] animate-pulse" />
-            ) : (
-              <select
-                id="usuario_id"
-                name="usuario_id"
-                value={form.usuario_id}
-                onChange={handleChange}
-                required
-                className={cn(
-                  "h-10 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none",
-                  "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-                  !form.usuario_id && "text-muted-foreground",
-                )}
-              >
-                <option value="" disabled>
-                  Selecione um membro
+            <select
+              id="usuario_id"
+              name="usuario_id"
+              value={form.usuario_id}
+              onChange={handleChange}
+              required
+              className={cn(
+                "h-10 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none",
+                "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+                !form.usuario_id && "text-muted-foreground",
+              )}
+            >
+              <option value="" disabled>
+                Selecione um membro
+              </option>
+              {(membros ?? []).map((m) => (
+                <option key={m.usuarioId} value={m.usuarioId}>
+                  {getNome(m.usuarioId)}
                 </option>
-                {membros.map((m) => (
-                  <option key={m.usuarioId} value={m.usuarioId}>
-                    {m.nome}
-                  </option>
-                ))}
-              </select>
-            )}
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

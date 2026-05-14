@@ -3,6 +3,7 @@ import { and, eq, isNull } from "drizzle-orm";
 
 export async function createTransacaoFinanceira(data: {
   id?: string;
+  associacaoId?: string | null;
   tipo: string;
   valor: number;
   descricao?: string | null;
@@ -14,6 +15,7 @@ export async function createTransacaoFinanceira(data: {
     .insert(transacaoFinanceira)
     .values({
       ...(data.id && { id: data.id }),
+      associacaoId: data.associacaoId ?? null,
       tipo: data.tipo,
       valor: data.valor,
       descricao: data.descricao ?? null,

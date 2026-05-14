@@ -8,7 +8,8 @@
     "build": "tsc",
     "prepare": "tsc",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "node scripts/drop-and-migrate.js",
+    "db:migrate": "node scripts/run-migrate.js",
+    "db:migrate:reset": "node scripts/drop-and-migrate.js",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
   },

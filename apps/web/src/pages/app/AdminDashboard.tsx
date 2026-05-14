@@ -10,9 +10,12 @@ import {
   Banknote,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { db } from "@/database/db";
 import { useLiveQuery } from "@/hooks/useLiveQuery";
+import api from "@/lib/api";
+import { useOnlineStatus } from "@/lib/network";
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
@@ -54,48 +57,77 @@ const quickActions: QuickAction[] = [
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const associacaoAtiva = useAuthStore((s) => s.associacaoAtiva);
+  const online = useOnlineStatus();
+  const assocId = associacaoAtiva?.associacaoId;
 
-  // Agregações reativas sobre o Dexie — funcionam offline
-  const totalAssociados = useLiveQuery(
-    () => db.associado.filter((a) => !a.deleted_at).count(),
-    0,
-  );
+  // Dados vindos da API (fonte primária quando online)
+  const [statsApi, setStatsApi] = useState<{
+    totalAssociados: number;
+    totalCaixa: number;
+    mensalidadesPendentes: number;
+    atividadesRecentes: Array<{ id: string; descricao: string; data: string }>;
+  } | null>(null);
 
-  const totalCaixa = useLiveQuery(async () => {
+  useEffect(() => {
+    if (!online || !assocId) return;
+    api
+      .get(`/dashboard?associacao_id=${assocId}`)
+      .then((res) => setStatsApi(res.data))
+      .catch(() => {}); // offline ou erro — usa Dexie
+  }, [online, assocId]);
+
+  // Fallback Dexie — usado quando offline ou API falhou
+  const totalAssociadosLocal = useLiveQuery(async () => {
+    if (!assocId) return 0;
+    return db.usuario_associacao
+      .where("associacao_id")
+      .equals(assocId)
+      .filter((v) => v.status === "ativo" && v.role !== "adm")
+      .count();
+  }, 0, [assocId]);
+
+  const totalCaixaLocal = useLiveQuery(async () => {
+    if (!assocId) return 0;
     const transacoes = await db.transacao_financeira
+      .where("associacao_id")
+      .equals(assocId)
       .filter((t) => !t.deleted_at)
       .toArray();
     return transacoes.reduce((acc, t) => {
       const v = t.tipo === "despesa" ? -t.valor : t.valor;
       return acc + v;
     }, 0);
-  }, 0);
+  }, 0, [assocId]);
 
-  const mensalidadesPendentes = useLiveQuery(
-    () =>
-      db.mensalidade.filter((m) => !m.deleted_at && !m.data_pagamento).count(),
+  const mensalidadesPendentesLocal = useLiveQuery(
+    () => db.mensalidade.filter((m) => !m.deleted_at && !m.data_pagamento).count(),
     0,
   );
 
-  const atividadesRecentes = useLiveQuery(async () => {
-    const associados = await db.associado
-      .filter((a) => !a.deleted_at)
+  const atividadesRecentesLocal = useLiveQuery(async () => {
+    if (!assocId) return [];
+    const vinculos = await db.usuario_associacao
+      .where("associacao_id")
+      .equals(assocId)
+      .filter((v) => v.status === "ativo")
       .toArray();
-    return associados
-      .sort(
-        (a, b) =>
-          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
-      )
+    return vinculos
+      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
       .slice(0, 5)
-      .map((a) => ({
-        id: a.id ?? a.nome,
-        descricao: a.nome,
-        data: a.updated_at,
-      }));
-  }, []);
+      .map((v) => ({ id: v.id, descricao: v.usuario_id.slice(0, 8), data: v.updated_at }));
+  }, [], [assocId]);
+
+  // Resolve dados: API quando disponível, Dexie como fallback
+  const totalAssociados = statsApi?.totalAssociados ?? totalAssociadosLocal;
+  const totalCaixa = statsApi?.totalCaixa ?? totalCaixaLocal;
+  const mensalidadesPendentes = statsApi?.mensalidadesPendentes ?? mensalidadesPendentesLocal;
+  const atividadesRecentes = statsApi?.atividadesRecentes ?? atividadesRecentesLocal;
 
   const formatCurrency = (value: number) => {
-    if (Math.abs(value) >= 1000) return `R$ ${(value / 1000).toFixed(0)}k`;
+    if (Math.abs(value) >= 1000) {
+      const k = value / 1000;
+      return `R$ ${k % 1 === 0 ? k.toFixed(0) : k.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}k`;
+    }
     return `R$ ${value.toLocaleString("pt-BR")}`;
   };
 

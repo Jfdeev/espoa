@@ -1,5 +1,8 @@
 // scripts/run-migrate.js
-// Roda todas as migrações SQL pendentes via Neon HTTP driver
+// Roda migrations pendentes lendo o _journal.json (ignora arquivos órfãos)
+// Carrega o .env da API (fonte de verdade do DATABASE_URL)
+require("dotenv").config({ path: "../../apps/api/.env" });
+// Fallback para o .env raiz caso o da API não exista
 require("dotenv").config({ path: "../../.env" });
 
 const { neon } = require("@neondatabase/serverless");
@@ -12,10 +15,10 @@ async function main() {
   await sql`CREATE TABLE IF NOT EXISTS drizzle_migrations (id SERIAL PRIMARY KEY, name TEXT NOT NULL UNIQUE, applied_at TIMESTAMPTZ DEFAULT NOW())`;
 
   const drizzleDir = path.join(__dirname, "../drizzle");
-  const files = fs
-    .readdirSync(drizzleDir)
-    .filter((f) => f.endsWith(".sql"))
-    .sort();
+
+  // Lê o journal oficial do Drizzle para saber quais migrations existem e em que ordem
+  const journal = JSON.parse(fs.readFileSync(path.join(drizzleDir, "meta/_journal.json"), "utf-8"));
+  const files = journal.entries.map((e) => `${e.tag}.sql`);
 
   for (const file of files) {
     const rows = await sql`SELECT 1 FROM drizzle_migrations WHERE name = ${file}`;

@@ -26,6 +26,7 @@ export interface Mensalidade {
 
 export interface TransacaoFinanceira {
   id?: string;
+  associacao_id?: string | null;
   tipo: string;
   valor: number;
   descricao?: string;

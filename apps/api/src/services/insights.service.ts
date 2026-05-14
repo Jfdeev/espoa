@@ -57,9 +57,7 @@ function monthKey(date: string | Date): string {
  * @param periodo       - Janela de datas opcional para filtrar transações.
  *                        Quando ausente, retorna todos os registros (comportamento
  *                        original, mantendo compatibilidade com `getInsights`).
- *                        Nota: `transacao_financeira` não possui `associacao_id`,
- *                        portanto o filtro de período se aplica a todas as transações
- *                        do sistema — limitação do schema atual.
+ *                        Filtro aplicado por `associacao_id` na `transacao_financeira`.
  */
 export async function buildFinancialSnapshot(
   associacaoId: string,
@@ -75,6 +73,7 @@ export async function buildFinancialSnapshot(
       .from(transacaoFinanceira)
       .where(
         and(
+          eq(transacaoFinanceira.associacaoId, associacaoId),
           isNull(transacaoFinanceira.deletedAt),
           periodo?.inicio ? gte(transacaoFinanceira.data, periodo.inicio) : undefined,
           periodo?.fim ? lte(transacaoFinanceira.data, periodo.fim) : undefined,

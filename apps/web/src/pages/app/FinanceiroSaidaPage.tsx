@@ -116,6 +116,7 @@ export default function FinanceiroSaidaPage() {
         data,
         descricao: descricao.trim() || undefined,
         documento: documento.trim() || undefined,
+        associacao_id: associacaoAtiva.associacaoId,
       });
       toast.success("Saida registrada com sucesso");
       setValor("");
