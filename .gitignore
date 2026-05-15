@@ -7,3 +7,6 @@ apps/*/.turbo
 
 # Build outputs
 dist
+
+# Ignore espoa subdirectory
+espoa/
