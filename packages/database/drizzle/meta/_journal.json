@@ -57,6 +57,34 @@
       "when": 1777686487495,
       "tag": "0007_graceful_bullseye",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1778243069712,
+      "tag": "0008_chief_scorpion",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1778243069713,
+      "tag": "0009_add_documento_transacao_financeira",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1778243069714,
+      "tag": "0010_associado_usuario_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1778329200000,
+      "tag": "0011_transacao_financeira_associacao_id",
+      "breakpoints": true
     }
   ]
 }

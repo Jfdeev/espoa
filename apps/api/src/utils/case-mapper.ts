@@ -29,5 +29,8 @@ export function normalizePayload(payload: Record<string, unknown>) {
   if (typeof normalized.deletedAt === "string") {
     normalized.deletedAt = new Date(normalized.deletedAt);
   }
+  if (typeof normalized.createdAt === "string") {
+    normalized.createdAt = new Date(normalized.createdAt);
+  }
   return normalized;
 }

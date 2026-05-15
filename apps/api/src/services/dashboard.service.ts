@@ -1,9 +1,10 @@
-import { db, associado, mensalidade, usuarioAssociacao, usuario } from "@espoa/database";
-import { eq, and, isNull, count, sum, desc } from "drizzle-orm";
+import { db, associado, mensalidade, transacaoFinanceira, usuarioAssociacao, usuario } from "@espoa/database";
+import { eq, and, isNull, count, sum, desc, sql } from "drizzle-orm";
 
 export async function getDashboardStats(associacaoId: string) {
-  const [[membrosResult], [mensalidadesTotal], [mensalidadesPendentes], recentMembros] =
+  const [[membrosResult], [caixaResult], [mensalidadesPendentes], recentMembros] =
     await Promise.all([
+      // Total de membros ativos (excluindo admins)
       db
         .select({ total: count() })
         .from(usuarioAssociacao)
@@ -11,19 +12,24 @@ export async function getDashboardStats(associacaoId: string) {
           and(
             eq(usuarioAssociacao.associacaoId, associacaoId),
             eq(usuarioAssociacao.status, "ativo"),
+            eq(usuarioAssociacao.role, "associado"),
           ),
         ),
+      // Total em caixa: entradas - saídas de transacao_financeira
       db
-        .select({ total: sum(mensalidade.valor) })
-        .from(mensalidade)
-        .innerJoin(associado, eq(mensalidade.associadoId, associado.id))
+        .select({
+          total: sql<number>`
+            COALESCE(SUM(CASE WHEN ${transacaoFinanceira.tipo} = 'despesa' THEN -${transacaoFinanceira.valor} ELSE ${transacaoFinanceira.valor} END), 0)
+          `,
+        })
+        .from(transacaoFinanceira)
         .where(
           and(
-            eq(associado.associacaoId, associacaoId),
-            isNull(mensalidade.deletedAt),
-            isNull(associado.deletedAt),
+            eq(transacaoFinanceira.associacaoId, associacaoId),
+            isNull(transacaoFinanceira.deletedAt),
           ),
         ),
+      // Mensalidades pendentes (sem data_pagamento)
       db
         .select({ total: count() })
         .from(mensalidade)
@@ -36,6 +42,7 @@ export async function getDashboardStats(associacaoId: string) {
             isNull(associado.deletedAt),
           ),
         ),
+      // Membros recentes
       db
         .select({
           id: usuarioAssociacao.id,
@@ -58,7 +65,7 @@ export async function getDashboardStats(associacaoId: string) {
 
   return {
     totalAssociados: membrosResult.total,
-    totalCaixa: Number(mensalidadesTotal.total ?? 0),
+    totalCaixa: Number(caixaResult.total ?? 0),
     mensalidadesPendentes: mensalidadesPendentes.total,
     atividadesRecentes: recentMembros.map((m) => ({
       id: m.id,

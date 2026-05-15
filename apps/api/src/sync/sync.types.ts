@@ -6,6 +6,7 @@ export const SYNC_TABLE_NAMES = [
   "ata",
   "producao",
   "usuario_associacao",
+  "edital_pnae",
 ] as const;
 
 export type SyncTableName = (typeof SYNC_TABLE_NAMES)[number];

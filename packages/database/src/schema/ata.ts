@@ -7,12 +7,16 @@ import {
   integer,
   timestamp,
 } from "drizzle-orm/pg-core";
+import { associacao } from "./associacao";
 
 export const ata = pgTable("ata", {
   id: uuid("id").defaultRandom().primaryKey(),
+  associacaoId: uuid("associacao_id").references(() => associacao.id, { onDelete: "cascade" }),
   titulo: varchar("titulo", { length: 255 }).notNull(),
   conteudo: text("conteudo").notNull(),
   data: date("data").notNull(),
+  participantes: text("participantes"),
+  local: varchar("local", { length: 255 }),
   version: integer("version").notNull().default(1),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()

@@ -2,6 +2,8 @@ import { db } from "../database/db";
 import type { TransacaoFinanceira, Mensalidade } from "../database/types";
 import { getDeviceId } from "@/lib/device-id";
 import { enqueueSyncOperation } from "@/sync/enqueue";
+import api from "@/lib/api";
+import { isNetworkError, isOnline } from "@/lib/network";
 
 // ─── TransacaoFinanceira ─────────────────────────────────────────────────────
 
@@ -11,7 +13,10 @@ export type CreateTransacaoInput = Omit<
 >;
 
 export type UpdateTransacaoInput = Partial<
-  Omit<TransacaoFinanceira, "id" | "version" | "updated_at" | "deleted_at" | "device_id">
+  Omit<
+    TransacaoFinanceira,
+    "id" | "version" | "updated_at" | "deleted_at" | "device_id"
+  >
 >;
 
 export const transacaoRepository = {
@@ -24,14 +29,44 @@ export const transacaoRepository = {
       updated_at: now,
       device_id: getDeviceId(),
     };
-    await db.transaction("rw", [db.transacao_financeira, db.sync_queue], async () => {
-      await db.transacao_financeira.add(record);
-      await enqueueSyncOperation("transacao_financeira", record.id!, "create", record as unknown as Record<string, unknown>);
-    });
+    const token = localStorage.getItem("espoa-token");
+    if (token && isOnline()) {
+      try {
+        const { data: saved } = await api.post<TransacaoFinanceira>(
+          "/transacoes-financeiras",
+          record,
+        );
+        await db.transaction("rw", db.transacao_financeira, async () => {
+          await db.transacao_financeira.put(saved);
+        });
+        return saved;
+      } catch (error) {
+        if (!isNetworkError(error)) {
+          throw error;
+        }
+      }
+    }
+
+    await db.transaction(
+      "rw",
+      [db.transacao_financeira, db.sync_queue],
+      async () => {
+        await db.transacao_financeira.add(record);
+        await enqueueSyncOperation(
+          "transacao_financeira",
+          record.id!,
+          "create",
+          record as unknown as Record<string, unknown>,
+        );
+      },
+    );
     return record;
   },
 
-  async update(id: string, data: UpdateTransacaoInput): Promise<TransacaoFinanceira> {
+  async update(
+    id: string,
+    data: UpdateTransacaoInput,
+  ): Promise<TransacaoFinanceira> {
     const existing = await db.transacao_financeira.get(id);
     if (!existing) throw new Error(`TransacaoFinanceira ${id} não encontrada`);
 
@@ -43,10 +78,37 @@ export const transacaoRepository = {
       updated_at: new Date().toISOString(),
       device_id: getDeviceId(),
     };
-    await db.transaction("rw", [db.transacao_financeira, db.sync_queue], async () => {
-      await db.transacao_financeira.put(updated);
-      await enqueueSyncOperation("transacao_financeira", id, "update", updated as unknown as Record<string, unknown>);
-    });
+    const token = localStorage.getItem("espoa-token");
+    if (token && isOnline()) {
+      try {
+        const { data: saved } = await api.put<TransacaoFinanceira>(
+          `/transacoes-financeiras/${id}`,
+          updated,
+        );
+        await db.transaction("rw", db.transacao_financeira, async () => {
+          await db.transacao_financeira.put(saved);
+        });
+        return saved;
+      } catch (error) {
+        if (!isNetworkError(error)) {
+          throw error;
+        }
+      }
+    }
+
+    await db.transaction(
+      "rw",
+      [db.transacao_financeira, db.sync_queue],
+      async () => {
+        await db.transacao_financeira.put(updated);
+        await enqueueSyncOperation(
+          "transacao_financeira",
+          id,
+          "update",
+          updated as unknown as Record<string, unknown>,
+        );
+      },
+    );
     return updated;
   },
 
@@ -61,11 +123,34 @@ export const transacaoRepository = {
       device_id: getDeviceId(),
     };
     const fullRecord: TransacaoFinanceira = { ...existing, ...softDeleted };
+    const token = localStorage.getItem("espoa-token");
+    if (token && isOnline()) {
+      try {
+        await api.delete(`/transacoes-financeiras/${id}`);
+        await db.transaction("rw", db.transacao_financeira, async () => {
+          await db.transacao_financeira.update(id, softDeleted);
+        });
+        return;
+      } catch (error) {
+        if (!isNetworkError(error)) {
+          throw error;
+        }
+      }
+    }
 
-    await db.transaction("rw", [db.transacao_financeira, db.sync_queue], async () => {
-      await db.transacao_financeira.update(id, softDeleted);
-      await enqueueSyncOperation("transacao_financeira", id, "delete", fullRecord as unknown as Record<string, unknown>);
-    });
+    await db.transaction(
+      "rw",
+      [db.transacao_financeira, db.sync_queue],
+      async () => {
+        await db.transacao_financeira.update(id, softDeleted);
+        await enqueueSyncOperation(
+          "transacao_financeira",
+          id,
+          "delete",
+          fullRecord as unknown as Record<string, unknown>,
+        );
+      },
+    );
   },
 
   async list(): Promise<TransacaoFinanceira[]> {
@@ -89,7 +174,10 @@ export type CreateMensalidadeInput = Omit<
 >;
 
 export type UpdateMensalidadeInput = Partial<
-  Omit<Mensalidade, "id" | "version" | "updated_at" | "deleted_at" | "device_id">
+  Omit<
+    Mensalidade,
+    "id" | "version" | "updated_at" | "deleted_at" | "device_id"
+  >
 >;
 
 export const mensalidadeRepository = {
@@ -104,7 +192,12 @@ export const mensalidadeRepository = {
     };
     await db.transaction("rw", [db.mensalidade, db.sync_queue], async () => {
       await db.mensalidade.add(record);
-      await enqueueSyncOperation("mensalidade", record.id!, "create", record as unknown as Record<string, unknown>);
+      await enqueueSyncOperation(
+        "mensalidade",
+        record.id!,
+        "create",
+        record as unknown as Record<string, unknown>,
+      );
     });
     return record;
   },
@@ -123,7 +216,12 @@ export const mensalidadeRepository = {
     };
     await db.transaction("rw", [db.mensalidade, db.sync_queue], async () => {
       await db.mensalidade.put(updated);
-      await enqueueSyncOperation("mensalidade", id, "update", updated as unknown as Record<string, unknown>);
+      await enqueueSyncOperation(
+        "mensalidade",
+        id,
+        "update",
+        updated as unknown as Record<string, unknown>,
+      );
     });
     return updated;
   },
@@ -142,20 +240,31 @@ export const mensalidadeRepository = {
 
     await db.transaction("rw", [db.mensalidade, db.sync_queue], async () => {
       await db.mensalidade.update(id, softDeleted);
-      await enqueueSyncOperation("mensalidade", id, "delete", fullRecord as unknown as Record<string, unknown>);
+      await enqueueSyncOperation(
+        "mensalidade",
+        id,
+        "delete",
+        fullRecord as unknown as Record<string, unknown>,
+      );
     });
   },
 
   async list(): Promise<Mensalidade[]> {
-    return db.mensalidade
-      .filter((record) => !record.deleted_at)
-      .toArray();
+    return db.mensalidade.filter((record) => !record.deleted_at).toArray();
   },
 
   async listByAssociado(associadoId: string): Promise<Mensalidade[]> {
     return db.mensalidade
       .where("associado_id")
       .equals(associadoId)
+      .filter((record) => !record.deleted_at)
+      .toArray();
+  },
+
+  async listByUsuario(usuarioId: string): Promise<Mensalidade[]> {
+    return db.mensalidade
+      .where("usuario_id")
+      .equals(usuarioId)
       .filter((record) => !record.deleted_at)
       .toArray();
   },

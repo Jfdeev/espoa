@@ -4,6 +4,7 @@ import type { PushOperation, SyncResult } from "../sync/sync.types";
 
 export async function runSync(params: {
   deviceId: string;
+  userId?: string;
   push: PushOperation[];
   lastPulledAt: Date | null;
 }): Promise<SyncResult> {
@@ -13,7 +14,7 @@ export async function runSync(params: {
   );
 
   const [pulled, conflictLogs] = await Promise.all([
-    pullRowsByTable(params.lastPulledAt),
+    pullRowsByTable(params.lastPulledAt, params.userId),
     pullConflictLogs(params.deviceId, params.lastPulledAt),
   ]);
 

@@ -7,7 +7,16 @@ import OnboardingAssociadoPage from "./pages/onboarding/OnboardingAssociadoPage"
 import OnboardingADMPage from "./pages/onboarding/OnboardingADMPage";
 import AppPage from "./pages/app/AppPage";
 import AssociadosPage from "./pages/app/AssociadosPage";
+import EditaisPage from "./pages/app/EditaisPage";
+import EditalDetailPage from "./pages/app/EditalDetailPage";
+import AtasPage from "./pages/app/AtasPage";
+import MensalidadesPage from "./pages/app/MensalidadesPage";
+import RelatoriosPage from "./pages/app/RelatoriosPage";
+import ConfiguracoesPage from "./pages/app/ConfiguracoesPage";
 import DebugSyncPage from "./pages/app/DebugSyncPage";
+import FinanceiroEntradaPage from "./pages/app/FinanceiroEntradaPage";
+import FinanceiroSaidaPage from "./pages/app/FinanceiroSaidaPage";
+import FinanceiroResumoPage from "./pages/app/FinanceiroResumoPage";
 import SolicitacoesPage from "./pages/SolicitacoesPage";
 import AuthGuard from "./components/AuthGuard";
 import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
@@ -25,11 +34,35 @@ function App() {
           {/* Requer auth */}
           <Route element={<AuthGuard />}>
             <Route path="/onboarding" element={<OnboardingPage />} />
-            <Route path="/onboarding/associado" element={<OnboardingAssociadoPage />} />
+            <Route
+              path="/onboarding/associado"
+              element={<OnboardingAssociadoPage />}
+            />
             <Route path="/onboarding/adm" element={<OnboardingADMPage />} />
             <Route path="/solicitacoes" element={<SolicitacoesPage />} />
             <Route path="/app" element={<AppPage />} />
             <Route path="/app/associados" element={<AssociadosPage />} />
+            <Route
+              path="/app/financeiro/entrada"
+              element={<FinanceiroEntradaPage />}
+            />
+            <Route
+              path="/app/financeiro/saida"
+              element={<FinanceiroSaidaPage />}
+            />
+            <Route
+              path="/app/financeiro/resumo"
+              element={<FinanceiroResumoPage />}
+            />
+            <Route path="/app/editais" element={<EditaisPage />} />
+            <Route
+              path="/app/editais/:editalId"
+              element={<EditalDetailPage />}
+            />
+            <Route path="/app/atas" element={<AtasPage />} />
+            <Route path="/app/mensalidades" element={<MensalidadesPage />} />
+            <Route path="/app/relatorios" element={<RelatoriosPage />} />
+            <Route path="/app/configuracoes" element={<ConfiguracoesPage />} />
             <Route path="/debug/sync" element={<DebugSyncPage />} />
           </Route>
 
@@ -44,5 +77,3 @@ function App() {
 }
 
 export default App;
-
-

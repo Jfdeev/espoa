@@ -4,8 +4,9 @@ import {
   mensalidade,
   transacaoFinanceira,
   usuarioAssociacao,
+  usuario,
 } from "@espoa/database";
-import { and, count, desc, eq, isNull, sum } from "drizzle-orm";
+import { and, count, desc, eq, gte, isNull, lte, sum } from "drizzle-orm";
 
 interface MonthlyAggregate {
   month: string;
@@ -49,10 +50,20 @@ function monthKey(date: string | Date): string {
   return `${year}-${month}`;
 }
 
+/**
+ * Constrói um snapshot financeiro para a associação informada.
+ *
+ * @param associacaoId  - UUID da associação
+ * @param periodo       - Janela de datas opcional para filtrar transações.
+ *                        Quando ausente, retorna todos os registros (comportamento
+ *                        original, mantendo compatibilidade com `getInsights`).
+ *                        Filtro aplicado por `associacao_id` na `transacao_financeira`.
+ */
 export async function buildFinancialSnapshot(
   associacaoId: string,
+  periodo?: { inicio?: string; fim?: string },
 ): Promise<FinancialSnapshot> {
-  const [transacoes, mensalidades, [associadosAtivos]] = await Promise.all([
+  const [transacoes, mensPathA, mensPathB, [associadosAtivos]] = await Promise.all([
     db
       .select({
         tipo: transacaoFinanceira.tipo,
@@ -60,10 +71,19 @@ export async function buildFinancialSnapshot(
         data: transacaoFinanceira.data,
       })
       .from(transacaoFinanceira)
-      .where(isNull(transacaoFinanceira.deletedAt))
+      .where(
+        and(
+          eq(transacaoFinanceira.associacaoId, associacaoId),
+          isNull(transacaoFinanceira.deletedAt),
+          periodo?.inicio ? gte(transacaoFinanceira.data, periodo.inicio) : undefined,
+          periodo?.fim ? lte(transacaoFinanceira.data, periodo.fim) : undefined,
+        ),
+      )
       .orderBy(desc(transacaoFinanceira.data)),
+    // Path A: via associado_id → associado.associacao_id (dados legados offline-sync)
     db
       .select({
+        id: mensalidade.id,
         valor: mensalidade.valor,
         dataPagamento: mensalidade.dataPagamento,
       })
@@ -76,6 +96,21 @@ export async function buildFinancialSnapshot(
           isNull(associado.deletedAt),
         ),
       ),
+    // Path B: via usuario_id → usuario_associacao (registros criados pelo admin)
+    db
+      .select({
+        id: mensalidade.id,
+        valor: mensalidade.valor,
+        dataPagamento: mensalidade.dataPagamento,
+      })
+      .from(mensalidade)
+      .innerJoin(usuarioAssociacao, eq(mensalidade.usuarioId, usuarioAssociacao.usuarioId))
+      .where(
+        and(
+          eq(usuarioAssociacao.associacaoId, associacaoId),
+          isNull(mensalidade.deletedAt),
+        ),
+      ),
     db
       .select({ total: count() })
       .from(usuarioAssociacao)
@@ -86,6 +121,14 @@ export async function buildFinancialSnapshot(
         ),
       ),
   ]);
+
+  // Merge mensalidades — deduplicate por id para evitar dupla contagem
+  const seenMensIds = new Set<string>();
+  const mensalidades = [...mensPathA, ...mensPathB].filter((m) => {
+    if (seenMensIds.has(m.id)) return false;
+    seenMensIds.add(m.id);
+    return true;
+  });
 
   let totalEntradas = 0;
   let totalSaidas = 0;

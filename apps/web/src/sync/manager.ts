@@ -4,9 +4,6 @@ import type { ConflictLogClientRow, PulledRows, PushOperation, SyncTableName } f
 
 const LAST_PULL_CURSOR_KEY = "espoa.sync.lastPullCursor";
 
-/** Entries older than this that have been synced are eligible for pruning. */
-const RETENTION_DAYS = 30;
-
 type WritableSyncTable = {
   put: (row: unknown) => Promise<unknown>;
 };
@@ -19,6 +16,7 @@ const tableMap = {
   ata: db.ata,
   producao: db.producao,
   usuario_associacao: db.usuario_associacao,
+  edital_pnae: db.edital_pnae,
 } as const;
 
 const tableNames = Object.keys(tableMap) as SyncTableName[];
@@ -69,9 +67,6 @@ export class SyncManager {
     this.isSyncing = true;
 
     try {
-      // Prune stale synced entries before pushing to keep the queue lean
-      const pruned = await pruneOldSyncedEntries();
-
       const pendingQueue = await db.sync_queue
         .where("synced")
         .equals(0)
@@ -86,11 +81,15 @@ export class SyncManager {
         clientUpdatedAt: item.created_at,
       }));
 
+      console.log("[sync] pushing ops:", push.length, push.map(p => `${p.tableName}/${p.operation}/${p.recordId}`));
+
       const response = await syncRequest({
         deviceId,
         lastPulledAt: getLastPullCursor(),
         push,
       });
+
+      console.log("[sync] server acked:", response.ackedOperationIds, "pulled tables:", Object.entries(response.pulled).filter(([,v]) => (v as unknown[]).length > 0).map(([k,v]) => `${k}:${(v as unknown[]).length}`));
 
       if (response.ackedOperationIds.length > 0) {
         await markQueueAsSynced(response.ackedOperationIds);
@@ -108,7 +107,7 @@ export class SyncManager {
         status: "success",
         pushed: response.ackedOperationIds.length,
         pulled: pulledCount,
-        pruned,
+        pruned: 0,
       };
 
       // TODO(telemetry): emit the following metrics once a telemetry pipeline is wired up.
@@ -136,28 +135,6 @@ export class SyncManager {
   }
 }
 
-/**
- * Delete sync_queue entries that have already been acknowledged by the server
- * and are older than RETENTION_DAYS. Runs at the start of each sync cycle so
- * the outbox stays lean over time. Returns the number of pruned rows.
- */
-async function pruneOldSyncedEntries(): Promise<number> {
-  const cutoffMs = Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000;
-  const cutoff = new Date(cutoffMs).toISOString();
-
-  const keysToDelete = await db.sync_queue
-    .where("synced")
-    .equals(1)
-    .filter((item) => item.created_at < cutoff)
-    .primaryKeys();
-
-  if (keysToDelete.length > 0) {
-    await db.sync_queue.bulkDelete(keysToDelete as number[]);
-  }
-
-  return keysToDelete.length;
-}
-
 async function markQueueAsSynced(operationIds: string[]) {
   const ids = operationIds
     .map((id) => Number(id))
@@ -167,11 +144,7 @@ async function markQueueAsSynced(operationIds: string[]) {
     return;
   }
 
-  await db.transaction("rw", db.sync_queue, async () => {
-    for (const id of ids) {
-      await db.sync_queue.update(id, { synced: 1 });
-    }
-  });
+  await db.sync_queue.bulkDelete(ids);
 }
 
 async function applyPulledRows(pulled: PulledRows) {

@@ -211,6 +211,8 @@ function LoginForm({ setModo }: Readonly<{ setModo: (m: Modo) => void }>) {
 function CadastroForm() {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [cpf, setCpf] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmar, setConfirmar] = useState("");
   const [aceito, setAceito] = useState(false);
@@ -224,7 +226,13 @@ function CadastroForm() {
     if (!aceito) { toast.error("Aceite os Termos de Uso para continuar"); return; }
     setCarregando(true);
     try {
-      const { data } = await api.post("/auth/register", { nome, email, password: senha });
+      const { data } = await api.post("/auth/register", {
+        nome,
+        email,
+        password: senha,
+        ...(telefone.trim() && { telefone: telefone.trim() }),
+        ...(cpf.trim() && { cpf: cpf.replace(/\D/g, "") }),
+      });
       const me = await api.get("/auth/me", { headers: { Authorization: `Bearer ${data.token}` } });
       setAuth(data.token, me.data.usuario, me.data.vinculos);
       navigate(resolverDestino(me.data.vinculos));
@@ -245,6 +253,10 @@ function CadastroForm() {
       <form onSubmit={handleSubmit} className="space-y-6 flex-grow">
         <Field label="Nome" id="nome" type="text" placeholder="Seu nome completo" value={nome} onChange={(e) => setNome(e.target.value)} required autoComplete="name" />
         <Field label="Email" id="email" type="email" icon="mail" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Field label="Telefone (WhatsApp)" id="telefone" type="tel" icon="phone" placeholder="(99) 99999-9999" value={telefone} onChange={(e) => setTelefone(e.target.value)} autoComplete="tel" />
+          <Field label="CPF" id="cpf" type="text" placeholder="000.000.000-00" value={cpf} onChange={(e) => setCpf(e.target.value)} autoComplete="off" />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Field label="Senha" id="senha" type="password" placeholder="••••••••" value={senha} onChange={(e) => setSenha(e.target.value)} required minLength={8} autoComplete="new-password" />
           <Field label="Confirmação de Senha" id="confirmar_senha" type="password" placeholder="••••••••" value={confirmar} onChange={(e) => setConfirmar(e.target.value)} required autoComplete="new-password" />

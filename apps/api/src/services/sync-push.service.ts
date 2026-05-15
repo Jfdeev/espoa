@@ -43,11 +43,31 @@ export async function applyPushOperations(
       .returning({ id: syncQueue.id });
 
     if (inserted.length === 0) {
-      // Already processed (idempotent dedup)
+      // Already in sync_queue — but applyOperation may have failed previously.
+      // Ack it so the client stops retrying, and attempt apply again (idempotent upsert).
+      try {
+        await applyOperation(db, op, deviceId);
+      } catch {
+        // Best-effort retry — if it still fails, at least ack so client unblocks
+      }
+      ackedOperationIds.push(op.operationId);
       continue;
     }
 
-    await applyOperation(db, op, deviceId);
+    try {
+      await applyOperation(db, op, deviceId);
+    } catch (err) {
+      console.error(
+        `[sync-push] applyOperation failed for op ${op.operationId} (${op.tableName}):`,
+        err instanceof Error ? err.message : err,
+      );
+      // Write conflict log so the client is notified; ack to prevent infinite retries
+      try {
+        await writeConflictLog(db, deviceId, op, null, `Erro interno: ${err instanceof Error ? err.message : String(err)}`);
+      } catch {
+        // conflict_log write failed — ack anyway so client unblocks
+      }
+    }
     ackedOperationIds.push(op.operationId);
   }
 
@@ -100,16 +120,24 @@ async function applyVinculoIntent(tx: any, op: PushOperation, deviceId: string) 
     return;
   }
 
-  // Look up via composite key (usuarioId, associacaoId) — same as REST endpoint
-  const [current] = await tx
+  // Primary lookup: by PK (record_id = usuario_associacao.id — natural for update ops)
+  let [current] = await tx
     .select()
     .from(usuarioAssociacao)
-    .where(
-      and(
-        eq(usuarioAssociacao.usuarioId, op.recordId),
-        eq(usuarioAssociacao.associacaoId, associacaoId),
-      ),
-    );
+    .where(eq(usuarioAssociacao.id, op.recordId));
+
+  // Fallback: by composite key (record_id = usuarioId) for legacy clients
+  if (!current) {
+    [current] = await tx
+      .select()
+      .from(usuarioAssociacao)
+      .where(
+        and(
+          eq(usuarioAssociacao.usuarioId, op.recordId),
+          eq(usuarioAssociacao.associacaoId, associacaoId),
+        ),
+      );
+  }
 
   if (!current) {
     // Record doesn't exist yet — write conflict so client knows
