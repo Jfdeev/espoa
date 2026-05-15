@@ -8,6 +8,8 @@
     "start": "node dist/app.js",
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
     "insights:cli": "ts-node-dev --transpile-only src/cli/run-insights.ts",
+    "pnae:cli": "ts-node-dev --transpile-only src/cli/run-pnae-report.ts",
+    "suggestions:cli": "ts-node-dev --transpile-only src/cli/run-suggestions.ts",
     "test": "vitest run"
   },
   "keywords": [],
