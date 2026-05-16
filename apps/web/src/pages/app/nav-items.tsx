@@ -1,6 +1,5 @@
 import {
   LayoutDashboard,
-  Wheat,
   Leaf,
   Users,
   Wallet,
