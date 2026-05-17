@@ -8,6 +8,7 @@ import {
   Calendar,
   Users,
   Banknote,
+  Leaf,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -50,6 +51,12 @@ const quickActions: QuickAction[] = [
     icon: <Wallet size={22} />,
     label: "Financeiro",
     href: "/app/financeiro/entrada",
+  },
+  {
+    id: "producao",
+    icon: <Leaf size={22} />,
+    label: "Produção",
+    href: "/app/colheitas",
   },
   { id: "reuniao", icon: <Calendar size={22} />, label: "Agendar Reunião" },
 ];

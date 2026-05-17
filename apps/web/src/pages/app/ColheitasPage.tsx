@@ -16,6 +16,14 @@ import { db } from "@/database/db";
 import AppLayout from "./AppLayout";
 import { adminNavItems, memberNavItems } from "./nav-items";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -59,6 +67,7 @@ export default function ColheitasPage() {
   const [form, setForm] = useState(formVazio);
   const [salvando, setSalvando] = useState(false);
   const [excluindoId, setExcluindoId] = useState<string | null>(null);
+  const [confirmandoId, setConfirmandoId] = useState<string | null>(null);
 
   const producoes = useLiveQuery(async () => {
     if (!associacaoAtiva) return [];
@@ -302,7 +311,7 @@ export default function ColheitasPage() {
                           <Pencil size={16} />
                         </button>
                         <button
-                          onClick={() => handleExcluir(p.id!)}
+                          onClick={() => setConfirmandoId(p.id!)}
                           disabled={excluindoId === p.id}
                           className="flex items-center justify-center w-10 h-10 rounded-full text-[#414846]/40 hover:text-[#ba1a1a] hover:bg-[#ffdad6] transition-colors disabled:opacity-40"
                           aria-label="Remover colheita"
@@ -394,21 +403,22 @@ export default function ColheitasPage() {
                     <Leaf size={15} />
                     O que foi colhido? <span className="text-red-500">*</span>
                   </Label>
-                  <Input
+                  <select
                     id="cultura"
                     name="cultura"
-                    list="culturas-list"
                     value={form.cultura}
                     onChange={handleChange}
-                    placeholder="Ex: Milho, Feijão, Soja..."
-                    className="h-11"
-                  />
-                  <datalist id="culturas-list">
-                    {CULTURAS_SUGERIDAS.map((c) => <option key={c} value={c} />)}
-                  </datalist>
-                  <p className="text-xs text-[#414846]/70">
-                    Você pode digitar ou escolher uma sugestão da lista.
-                  </p>
+                    className={cn(
+                      "h-11 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none",
+                      "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+                      !form.cultura && "text-muted-foreground",
+                    )}
+                  >
+                    <option value="" disabled>Selecione a cultura...</option>
+                    {CULTURAS_SUGERIDAS.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Quantidade e Data */}
@@ -470,6 +480,39 @@ export default function ColheitasPage() {
         )}
 
       </div>
+
+      <Dialog
+        open={!!confirmandoId}
+        onOpenChange={(open) => { if (!open) setConfirmandoId(null); }}
+      >
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Excluir colheita?</DialogTitle>
+            <DialogDescription>
+              Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              onClick={() => setConfirmandoId(null)}
+              className="h-10 px-5 rounded-xl border border-input text-sm font-medium hover:bg-[#f6f3ee] transition-colors"
+            >
+              Não
+            </button>
+            <button
+              onClick={() => {
+                const id = confirmandoId!;
+                setConfirmandoId(null);
+                handleExcluir(id);
+              }}
+              disabled={!!excluindoId}
+              className="h-10 px-5 rounded-xl bg-[#ba1a1a] text-white text-sm font-medium hover:bg-[#9b1515] transition-colors disabled:opacity-50"
+            >
+              Sim, excluir
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
