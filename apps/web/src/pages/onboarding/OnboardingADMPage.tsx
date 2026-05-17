@@ -8,6 +8,8 @@ import { useAuthStore } from "@/store/auth.store";
 import { useOnlineStatus, isNetworkError } from "@/lib/network";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
+import { syncManager } from "@/sync/manager";
+import { getDeviceId } from "@/lib/device-id";
 
 const ESTADOS_BR = [
   "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA",
@@ -362,6 +364,7 @@ function CriarView({ onVoltar }: Readonly<{ onVoltar: () => void }>) {
       await api.post("/associacoes", data);
       const me = await api.get("/auth/me");
       setPerfil(me.data.usuario, me.data.vinculos);
+      await syncManager.run(getDeviceId()).catch(() => {});
       navigate("/app");
     } catch (err: unknown) {
       toast.error((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Erro ao criar associação");

@@ -1,4 +1,5 @@
 import { Plus, BarChart3, Package, CloudSun, Leaf } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth.store";
 import { db } from "@/database/db";
 import { useLiveQuery } from "@/hooks/useLiveQuery";
@@ -13,6 +14,7 @@ interface ActionCardData {
   description: string;
   href: string;
   variant?: CardVariant;
+  state?: Record<string, unknown>;
 }
 
 const actionCards: ActionCardData[] = [
@@ -21,7 +23,8 @@ const actionCards: ActionCardData[] = [
     icon: <Plus size={28} />,
     label: "Registrar Colheita",
     description: "Registre seus rendimentos e métricas mais recentes.",
-    href: "/app/colheitas/novo",
+    href: "/app/colheitas",
+    state: { openForm: true },
     variant: "primary",
   },
   {
@@ -68,12 +71,14 @@ function timeAgo(dateStr: string): string {
 }
 
 function ActionCard({ card }: { card: ActionCardData }) {
+  const navigate = useNavigate();
   const isPrimary = card.variant === "primary";
   return (
-    <a
-      href={card.href}
+    <button
+      type="button"
+      onClick={() => navigate(card.href, card.state ? { state: card.state } : undefined)}
       className={cn(
-        "group relative overflow-hidden rounded-xl p-8 flex flex-col items-center justify-center gap-6 min-h-[240px] hover:bg-[#f6f3ee] transition-colors duration-300",
+        "group relative overflow-hidden rounded-xl p-8 flex flex-col items-center justify-center gap-6 min-h-[240px] hover:bg-[#f6f3ee] transition-colors duration-300 text-left w-full",
         isPrimary
           ? "bg-white shadow-[0_12px_40px_rgba(28,28,25,0.06)]"
           : "bg-white border border-[#c1c8c4]/30",
@@ -91,21 +96,27 @@ function ActionCard({ card }: { card: ActionCardData }) {
         <h3 className="font-headline text-xl font-bold text-[#01261f] mb-2">{card.label}</h3>
         <p className="text-sm text-[#414846]">{card.description}</p>
       </div>
-    </a>
+    </button>
   );
 }
 
 export default function MemberDashboard() {
   const perfil = useAuthStore((s) => s.perfil);
+  const associacaoAtiva = useAuthStore((s) => s.associacaoAtiva);
   const firstName = perfil?.nome?.split(" ")[0] ?? "usuário";
 
-  // Produções recentes — funciona offline a partir do Dexie local
+  // Produções recentes — filtra pela associação ativa para não misturar dados
   const producaoRecente = useLiveQuery(async () => {
-    const items = await db.producao.filter((p) => !p.deleted_at).toArray();
+    if (!associacaoAtiva) return [];
+    const ids = await db.associado
+      .where("associacao_id").equals(associacaoAtiva.associacaoId)
+      .filter((a) => !a.deleted_at)
+      .primaryKeys() as string[];
+    const items = await db.producao.filter((p) => !p.deleted_at && ids.includes(p.associado_id)).toArray();
     return items
       .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
       .slice(0, 5);
-  }, []);
+  }, [], [associacaoAtiva?.associacaoId]);
 
   return (
     <div className="flex justify-center items-start pt-8 pb-4 px-6">

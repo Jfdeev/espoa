@@ -57,8 +57,11 @@ export default function AdminDashboard() {
 
   // Agregações reativas sobre o Dexie — funcionam offline
   const totalAssociados = useLiveQuery(
-    () => db.associado.filter((a) => !a.deleted_at).count(),
+    () => associacaoAtiva
+      ? db.associado.where("associacao_id").equals(associacaoAtiva.associacaoId).filter((a) => !a.deleted_at).count()
+      : Promise.resolve(0),
     0,
+    [associacaoAtiva?.associacaoId],
   );
 
   const totalCaixa = useLiveQuery(async () => {
@@ -78,7 +81,9 @@ export default function AdminDashboard() {
   );
 
   const atividadesRecentes = useLiveQuery(async () => {
+    if (!associacaoAtiva) return [];
     const associados = await db.associado
+      .where("associacao_id").equals(associacaoAtiva.associacaoId)
       .filter((a) => !a.deleted_at)
       .toArray();
     return associados
@@ -92,7 +97,7 @@ export default function AdminDashboard() {
         descricao: a.nome,
         data: a.updated_at,
       }));
-  }, []);
+  }, [], [associacaoAtiva?.associacaoId]);
 
   const formatCurrency = (value: number) => {
     if (Math.abs(value) >= 1000) return `R$ ${(value / 1000).toFixed(0)}k`;

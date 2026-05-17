@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Leaf, WifiOff, Trash2, Sprout, Scale, CalendarDays, User, Plus, ArrowLeft, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
@@ -51,30 +52,38 @@ export default function ColheitasPage() {
   const perfil = useAuthStore((s) => s.perfil);
   const isAdmin = associacaoAtiva?.role === "adm";
 
-  const [view, setView] = useState<"lista" | "form">("lista");
+  const location = useLocation();
+  const openForm = (location.state as { openForm?: boolean } | null)?.openForm === true;
+  const [view, setView] = useState<"lista" | "form">(openForm ? "form" : "lista");
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [form, setForm] = useState(formVazio);
   const [salvando, setSalvando] = useState(false);
   const [excluindoId, setExcluindoId] = useState<string | null>(null);
 
-  const producoes = useLiveQuery(
-    () => producaoRepository.list(),
-    undefined,
-    [],
-  );
+  const producoes = useLiveQuery(async () => {
+    if (!associacaoAtiva) return [];
+    const ids = await db.associado
+      .where("associacao_id").equals(associacaoAtiva.associacaoId)
+      .filter((a) => !a.deleted_at)
+      .primaryKeys() as string[];
+    return db.producao.filter((p) => !p.deleted_at && ids.includes(p.associado_id)).toArray();
+  }, undefined, [associacaoAtiva?.associacaoId]);
 
   const associados = useLiveQuery(
-    () => db.associado.filter((a) => !a.deleted_at).toArray(),
+    () => associacaoAtiva
+      ? db.associado.where("associacao_id").equals(associacaoAtiva.associacaoId).filter((a) => !a.deleted_at).toArray()
+      : Promise.resolve([]),
     undefined,
-    [],
+    [associacaoAtiva?.associacaoId],
   );
 
   // Para o associado: encontra o próprio registro via usuario_id
+  // null = ainda carregando; undefined = carregou e não encontrou; objeto = encontrou
   const associadoSelf = useLiveQuery(
     () => perfil
       ? db.associado.filter((a) => a.usuario_id === perfil.id && !a.deleted_at).first()
-      : Promise.resolve(undefined),
-    undefined,
+      : Promise.resolve(null),
+    null,
     [perfil?.id],
   );
 
@@ -188,7 +197,8 @@ export default function ColheitasPage() {
   // Controla o carregamento da LISTA (precisa de producoes e associados)
   const carregando = producoes === undefined || associados === undefined;
   // Controla o carregamento do FORMULÁRIO (também precisa do próprio associado, para não-admins)
-  const formCarregando = carregando || (!isAdmin && associadoSelf === undefined);
+  // associadoSelf === null significa ainda carregando; undefined significa carregou mas não encontrou (permite clicar e ver o toast de erro)
+  const formCarregando = carregando || (!isAdmin && associadoSelf === null);
 
   return (
     <AppLayout navItems={navItems} title="Colheitas">

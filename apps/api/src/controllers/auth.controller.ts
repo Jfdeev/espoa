@@ -487,6 +487,27 @@ export async function gerenciarVinculo(
     )
     .returning();
 
+  if (acao === "aprovar") {
+    const jaExiste = await db
+      .select({ id: associado.id })
+      .from(associado)
+      .where(and(eq(associado.usuarioId, userId), eq(associado.associacaoId, assocId)))
+      .limit(1);
+
+    if (jaExiste.length === 0) {
+      const [membro] = await getUserById(userId);
+      if (membro) {
+        await db.insert(associado).values({
+          nome: membro.nome,
+          usuarioId: membro.id,
+          associacaoId: assocId,
+          dataEntrada: new Date().toISOString().slice(0, 10),
+          status: "ativo",
+        });
+      }
+    }
+  }
+
   res.json({ vinculo: atualizado });
 }
 
