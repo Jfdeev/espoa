@@ -1,12 +1,12 @@
 import {
   LayoutDashboard,
-  Wheat,
   Leaf,
   Users,
   Wallet,
   BanknoteArrowUp,
   FileText,
   BarChart3,
+  BookOpen,
 } from "lucide-react";
 
 export interface NavItem {
@@ -21,12 +21,6 @@ export const adminNavItems: NavItem[] = [
     icon: <LayoutDashboard size={20} />,
     href: "/app",
   },
-  {
-    label: "Propriedades",
-    icon: <Wheat size={20} />,
-    href: "/app/propriedades",
-  },
-  { label: "Colheitas", icon: <Leaf size={20} />, href: "/app/colheitas" },
   { label: "Associados", icon: <Users size={20} />, href: "/app/associados" },
   {
     label: "Financeiro",
@@ -34,6 +28,7 @@ export const adminNavItems: NavItem[] = [
     href: "/app/financeiro/entrada",
   },
   { label: "Editais PNAE", icon: <FileText size={20} />, href: "/app/editais" },
+  { label: "Atas", icon: <BookOpen size={20} />, href: "/app/atas" },
   {
     label: "Mensalidades",
     icon: <BanknoteArrowUp size={20} />,
@@ -44,12 +39,7 @@ export const adminNavItems: NavItem[] = [
 
 export const memberNavItems: NavItem[] = [
   { label: "Dashboard", icon: <LayoutDashboard size={20} />, href: "/app" },
-  {
-    label: "Propriedades",
-    icon: <Wheat size={20} />,
-    href: "/app/propriedades",
-  },
-  { label: "Colheita", icon: <Leaf size={20} />, href: "/app/colheitas" },
+  { label: "Produção", icon: <Leaf size={20} />, href: "/app/produção" },
   { label: "Associações", icon: <Users size={20} />, href: "/app/associacoes" },
   {
     label: "Mensalidades",

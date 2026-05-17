@@ -113,13 +113,41 @@ db.version(6)
     // New table + index-only changes — no data migration needed
   });
 
-// v7 — adiciona associacao_id como índice em associado para filtrar por associação ativa
+// v7 — adiciona associacao_id como índice em transacao_financeira
 db.version(7).stores({
+  associacao: "id, nome, municipio, status, deleted_at",
+  associado: "id, nome, usuario_id, status, deleted_at",
+  mensalidade: "id, associado_id, usuario_id, data_pagamento, deleted_at",
+  transacao_financeira: "id, associacao_id, tipo, data, deleted_at",
+  ata: "id, data, deleted_at",
+  producao: "id, associado_id, cultura, data, deleted_at",
+  usuario_associacao: "id, usuario_id, associacao_id, status, updated_at",
+  edital_pnae: "id, associacao_id, status, data_limite, deleted_at",
+  sync_queue: "++id, table_name, record_id, synced, created_at",
+  conflict_log: "++id, table_name, record_id, resolved, created_at",
+});
+
+// v8 — adiciona associacao_id como índice na tabela ata
+db.version(8).stores({
+  associacao: "id, nome, municipio, status, deleted_at",
+  associado: "id, nome, usuario_id, status, deleted_at",
+  mensalidade: "id, associado_id, usuario_id, data_pagamento, deleted_at",
+  transacao_financeira: "id, associacao_id, tipo, data, deleted_at",
+  ata: "id, associacao_id, data, deleted_at",
+  producao: "id, associado_id, cultura, data, deleted_at",
+  usuario_associacao: "id, usuario_id, associacao_id, status, updated_at",
+  edital_pnae: "id, associacao_id, status, data_limite, deleted_at",
+  sync_queue: "++id, table_name, record_id, synced, created_at",
+  conflict_log: "++id, table_name, record_id, resolved, created_at",
+});
+
+// v9 — adiciona associacao_id como índice em associado para filtrar por associação ativa
+db.version(9).stores({
   associacao: "id, nome, municipio, status, deleted_at",
   associado: "id, nome, usuario_id, associacao_id, status, deleted_at",
   mensalidade: "id, associado_id, usuario_id, data_pagamento, deleted_at",
-  transacao_financeira: "id, tipo, data, deleted_at",
-  ata: "id, data, deleted_at",
+  transacao_financeira: "id, associacao_id, tipo, data, deleted_at",
+  ata: "id, associacao_id, data, deleted_at",
   producao: "id, associado_id, cultura, data, deleted_at",
   usuario_associacao: "id, usuario_id, associacao_id, status, updated_at",
   edital_pnae: "id, associacao_id, status, data_limite, deleted_at",

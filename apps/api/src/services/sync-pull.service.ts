@@ -7,6 +7,7 @@ import {
   editalPnae as editalPnaeTable,
   associacao as associacaoTable,
   usuarioAssociacao as usuarioAssociacaoTable,
+  transacaoFinanceira as transacaoFinanceiraTable,
 } from "@espoa/database";
 import { and, eq, gt, inArray, getTableColumns } from "drizzle-orm";
 import {
@@ -25,6 +26,7 @@ const ASSOC_SCOPED: SyncTableName[] = [
   "edital_pnae",
   "associacao",
   "usuario_associacao",
+  "transacao_financeira",
 ];
 
 export async function pullRowsByTable(
@@ -36,7 +38,12 @@ export async function pullRowsByTable(
   const assocIds = userId ? await getAssociacaoIds(userId) : [];
 
   for (const tableName of syncTableNames) {
-    pulled[tableName] = await getPulledRows(tableName, lastPulledAt, userId, assocIds);
+    try {
+      pulled[tableName] = await getPulledRows(tableName, lastPulledAt, userId, assocIds);
+    } catch (err) {
+      console.error(`[sync-pull] Erro ao fazer pull de "${tableName}":`, err instanceof Error ? err.message : err);
+      pulled[tableName] = [];
+    }
   }
 
   return pulled;
@@ -153,8 +160,21 @@ async function getPulledRows(
     return rows.map((row: Record<string, unknown>) => toSnakeObject(row));
   }
 
-  // ── ata, transacao_financeira: sem associacao_id no schema ───────────────────
-  // Retorna tudo por ora; corrigir exige adicionar associacao_id a essas tabelas.
+  // ── transacao_financeira: associacao_id direto ────────────────────────────────
+  if (tableName === "transacao_financeira") {
+    const rows = lastPulledAt
+      ? await db
+          .select()
+          .from(transacaoFinanceiraTable)
+          .where(and(inArray(transacaoFinanceiraTable.associacaoId, assocIds), gt(transacaoFinanceiraTable.updatedAt, lastPulledAt)))
+      : await db
+          .select()
+          .from(transacaoFinanceiraTable)
+          .where(inArray(transacaoFinanceiraTable.associacaoId, assocIds));
+    return rows.map((row: Record<string, unknown>) => toSnakeObject(row));
+  }
+
+  // ── ata: sem associacao_id no schema por ora ──────────────────────────────────
   const table = syncTables[tableName] as any;
   const rows = lastPulledAt
     ? await db.select().from(table).where(gt(table.updatedAt, lastPulledAt))

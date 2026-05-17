@@ -26,6 +26,7 @@ export interface Mensalidade {
 
 export interface TransacaoFinanceira {
   id?: string;
+  associacao_id?: string | null;
   tipo: string;
   valor: number;
   descricao?: string;
@@ -39,9 +40,12 @@ export interface TransacaoFinanceira {
 
 export interface Ata {
   id?: string;
+  associacao_id?: string | null;
   titulo: string;
   conteudo: string;
   data: string;
+  participantes?: string | null;
+  local?: string | null;
   version: number;
   updated_at: string;
   device_id?: string;

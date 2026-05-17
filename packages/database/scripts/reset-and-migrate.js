@@ -1,3 +1,4 @@
+// ⚠️  DANGER: APAGA TODOS OS DADOS DE PRODUÇÃO — usar somente em dev local
 // Reset falsos registros de migração e reaplicar corretamente
 require("dotenv").config({ path: "../../.env" });
 const { neon } = require("@neondatabase/serverless");
