@@ -67,7 +67,8 @@ describe("producaoRepository.create", () => {
 describe("producaoRepository.update", () => {
   it("updates fields and increments version", async () => {
     const created = await producaoRepository.create(base);
-    const updated = await producaoRepository.update(created.id!, { quantidade: 800 });
+    if (!created.id) throw new Error("created.id is undefined");
+    const updated = await producaoRepository.update(created.id, { quantidade: 800 });
     expect(updated.quantidade).toBe(800);
     expect(updated.version).toBe(2);
     expect(updated.cultura).toBe("Milho");

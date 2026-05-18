@@ -13,9 +13,9 @@ import { syncManager } from "@/sync/manager";
 import { getDeviceId } from "@/lib/device-id";
 import { useAuthStore } from "@/store/auth.store";
 import { db } from "@/database/db";
+import type { Associado } from "@/database/types";
 import AppLayout from "./AppLayout";
 import { adminNavItems, memberNavItems } from "./nav-items";
-import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -24,11 +24,19 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { DatePickerInput } from "@/components/ui/date-picker";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const CULTURAS_SUGERIDAS = [
-  "Cacáu", "Mel", "Pimenta-do-reino", "Mandioca",
+  "Cacau", "Mel", "Pimenta-do-reino", "Mandioca",
 ];
 
 const formVazio = {
@@ -68,6 +76,7 @@ export default function ColheitasPage() {
   const [salvando, setSalvando] = useState(false);
   const [excluindoId, setExcluindoId] = useState<string | null>(null);
   const [confirmandoId, setConfirmandoId] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const producoes = useLiveQuery(async () => {
     if (!associacaoAtiva) return [];
@@ -78,17 +87,17 @@ export default function ColheitasPage() {
     return db.producao.filter((p) => !p.deleted_at && ids.includes(p.associado_id)).toArray();
   }, undefined, [associacaoAtiva?.associacaoId]);
 
-  const associados = useLiveQuery(
+  const associados = useLiveQuery<Associado[] | undefined>(
     () => associacaoAtiva
       ? db.associado.where("associacao_id").equals(associacaoAtiva.associacaoId).filter((a) => !a.deleted_at).toArray()
-      : Promise.resolve([]),
+      : Promise.resolve([] as Associado[]),
     undefined,
     [associacaoAtiva?.associacaoId],
   );
 
   // Para o associado: encontra o próprio registro via usuario_id
   // null = ainda carregando; undefined = carregou e não encontrou; objeto = encontrou
-  const associadoSelf = useLiveQuery(
+  const associadoSelf = useLiveQuery<Associado | undefined | null>(
     () => perfil
       ? db.associado.filter((a) => a.usuario_id === perfil.id && !a.deleted_at).first()
       : Promise.resolve(null),
@@ -163,19 +172,23 @@ export default function ColheitasPage() {
         });
       }
 
-      toast.success(
-        online
-          ? editandoId ? "Colheita atualizada com sucesso!" : "Colheita registrada com sucesso!"
-          : "Salvo no dispositivo. Será enviado quando você reconectar.",
-      );
-
       if (online) {
         syncManager.run(getDeviceId()).catch(() => {});
       }
 
+      const wasEditing = !!editandoId;
       setForm(formVazio);
       setEditandoId(null);
-      setView("lista");
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        setView("lista");
+        toast.success(
+          online
+            ? wasEditing ? "Colheita atualizada com sucesso!" : "Colheita registrada com sucesso!"
+            : "Salvo no dispositivo. Será enviado quando você reconectar.",
+        );
+      }, 2000);
     } catch {
       toast.error("Não foi possível salvar. Tente novamente.");
     } finally {
@@ -240,10 +253,10 @@ export default function ColheitasPage() {
               </div>
               <button
                 onClick={() => { setForm(formVazio); setView("form"); }}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#01261f] text-white text-sm font-medium hover:bg-[#1a3c34] transition-colors shrink-0"
+                className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#01261f] text-white text-sm font-medium hover:bg-[#1a3c34] transition-colors shrink-0"
               >
                 <Plus size={16} />
-                Nova Colheita
+                Colheita
               </button>
             </div>
 
@@ -270,7 +283,7 @@ export default function ColheitasPage() {
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#01261f] text-white text-sm font-medium hover:bg-[#1a3c34] transition-colors"
                 >
                   <Plus size={16} />
-                  Nova Colheita
+                  Colheita
                 </button>
               </div>
             ) : (
@@ -370,24 +383,28 @@ export default function ColheitasPage() {
                     formCarregando ? (
                       <div className="h-11 rounded-lg bg-[#f6f3ee] animate-pulse" />
                     ) : (
-                      <select
-                        id="associado_id"
-                        name="associado_id"
+                      <Select
                         value={form.associado_id}
-                        onChange={handleChange}
-                        className={cn(
-                          "h-11 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none",
-                          "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-                          !form.associado_id && "text-muted-foreground",
-                        )}
+                        onValueChange={(val) => setForm((prev) => ({ ...prev, associado_id: val ?? "" }))}
                       >
-                        <option value="" disabled>Selecione o responsável...</option>
-                        {associados?.map((a) => (
-                          <option key={a.id} value={a.id}>
-                            {a.nome}{a.usuario_id === perfil?.id ? " (você)" : ""}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger className="h-11 w-full">
+                          <SelectValue placeholder="Selecione o responsável...">
+                            {form.associado_id && associados
+                              ? (() => {
+                                  const a = associados.find((x) => x.id === form.associado_id);
+                                  return a ? `${a.nome}${a.usuario_id === perfil?.id ? " (você)" : ""}` : form.associado_id;
+                                })()
+                              : null}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {associados?.map((a) => (
+                            <SelectItem key={a.id} value={a.id ?? ""}>
+                              {a.nome}{a.usuario_id === perfil?.id ? " (você)" : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     )
                   ) : (
                     // Associado: nome pré-preenchido, somente leitura
@@ -403,26 +420,23 @@ export default function ColheitasPage() {
                     <Leaf size={15} />
                     O que foi colhido? <span className="text-red-500">*</span>
                   </Label>
-                  <select
-                    id="cultura"
-                    name="cultura"
+                  <Select
                     value={form.cultura}
-                    onChange={handleChange}
-                    className={cn(
-                      "h-11 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none",
-                      "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-                      !form.cultura && "text-muted-foreground",
-                    )}
+                    onValueChange={(val) => setForm((prev) => ({ ...prev, cultura: val ?? "" }))}
                   >
-                    <option value="" disabled>Selecione a cultura...</option>
-                    {CULTURAS_SUGERIDAS.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="h-11 w-full">
+                      <SelectValue placeholder="Selecione a cultura..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CULTURAS_SUGERIDAS.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Quantidade e Data */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 gap-5">
                   <div className="space-y-2">
                     <Label htmlFor="quantidade" className="flex items-center gap-2 text-[#01261f] font-medium text-sm">
                       <Scale size={15} />
@@ -447,18 +461,14 @@ export default function ColheitasPage() {
                       <CalendarDays size={15} />
                       Data da colheita <span className="text-red-500">*</span>
                     </Label>
-                    <Input
-                      id="data"
-                      name="data"
-                      type="date"
+                    <DatePickerInput
                       value={form.data}
-                      onChange={handleChange}
-                      className="h-11"
+                      onChange={(v) => setForm((prev) => ({ ...prev, data: v }))}
                     />
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 pt-2">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-2">
                   <Button
                     type="submit"
                     disabled={salvando || formCarregando}
@@ -469,7 +479,7 @@ export default function ColheitasPage() {
                   <button
                     type="button"
                     onClick={() => { setForm(formVazio); setEditandoId(null); setView("lista"); }}
-                    className="text-sm text-[#414846] hover:text-[#01261f] transition-colors"
+                    className="text-sm text-[#414846] hover:text-[#01261f] transition-colors text-center"
                   >
                     Cancelar
                   </button>
@@ -480,6 +490,29 @@ export default function ColheitasPage() {
         )}
 
       </div>
+
+      {/* FAB mobile — visível apenas na lista em telas pequenas */}
+      {view === "lista" && (
+        <button
+          onClick={() => { setForm(formVazio); setView("form"); }}
+          className="sm:hidden fixed bottom-6 right-6 z-40 flex items-center gap-2.5 px-6 py-4 rounded-2xl bg-[#01261f] text-white text-base font-semibold shadow-lg hover:bg-[#1a3c34] active:scale-95 transition-all"
+        >
+          <Plus size={20} />
+          Colheita
+        </button>
+      )}
+
+      {showSuccess && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-8 bg-[#16a34a] text-white animate-in fade-in duration-300">
+          <p className="font-headline text-5xl font-bold tracking-tight">pronto!</p>
+          <div className="w-28 h-28 rounded-full bg-white/15 flex items-center justify-center">
+            <Sprout size={64} strokeWidth={1.5} />
+          </div>
+          <p className="font-headline text-2xl font-bold text-center leading-snug">
+            sua colheita foi<br />registrada
+          </p>
+        </div>
+      )}
 
       <Dialog
         open={!!confirmandoId}
