@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { transacaoRepository } from "@/repositories/financeiro.repository";
 import { db } from "@/database/db";
 import { useLiveQuery } from "@/hooks/useLiveQuery";
-import { ArrowDownLeft, ArrowUpRight, BarChart3, TrendingDown, Wallet } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, BarChart3 } from "lucide-react";
 
 function getTodayInputValue() {
   const now = new Date();

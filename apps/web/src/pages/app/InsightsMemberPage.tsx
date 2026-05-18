@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Lightbulb,
   ShieldAlert,
@@ -138,7 +138,7 @@ export default function InsightsMemberPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadAll = async () => {
+  const loadAll = useCallback(async () => {
     if (!assocId) return;
     setLoading(true);
     setError(null);
@@ -158,11 +158,11 @@ export default function InsightsMemberPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [assocId]);
 
   useEffect(() => {
     loadAll();
-  }, [assocId]);
+  }, [loadAll]);
 
   // Filtrar: para o associado, mostrar apenas os mais relevantes
   // Prioridade: críticos e alertas primeiro, máximo de 3 insights

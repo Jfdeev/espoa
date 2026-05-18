@@ -1,14 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Lightbulb,
-  TrendingUp,
-  TrendingDown,
   AlertTriangle,
   ShieldAlert,
   Info,
   Wallet,
   Banknote,
-  Users,
   Leaf,
   FileText,
   RefreshCw,
@@ -247,46 +244,46 @@ export default function InsightsAdminPage() {
   const [errorInsights, setErrorInsights] = useState<string | null>(null);
   const [errorSuggestions, setErrorSuggestions] = useState<string | null>(null);
 
-  const loadInsights = async () => {
+  const loadInsights = useCallback(async () => {
     if (!assocId) return;
     setLoadingInsights(true);
     setErrorInsights(null);
     try {
       const data = await fetchInsights(assocId);
       setInsights(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       const msg =
-        err.response?.status === 503
+        (err as { response?: { status?: number } }).response?.status === 503
           ? "Serviço de IA indisponível no momento."
           : "Não foi possível carregar os insights.";
       setErrorInsights(msg);
     } finally {
       setLoadingInsights(false);
     }
-  };
+  }, [assocId]);
 
-  const loadSuggestions = async () => {
+  const loadSuggestions = useCallback(async () => {
     if (!assocId) return;
     setLoadingSuggestions(true);
     setErrorSuggestions(null);
     try {
       const data = await fetchSuggestions(assocId);
       setSuggestions(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       const msg =
-        err.response?.status === 503
+        (err as { response?: { status?: number } }).response?.status === 503
           ? "Serviço de IA indisponível no momento."
           : "Não foi possível carregar as sugestões.";
       setErrorSuggestions(msg);
     } finally {
       setLoadingSuggestions(false);
     }
-  };
+  }, [assocId]);
 
   useEffect(() => {
     loadInsights();
     loadSuggestions();
-  }, [assocId]);
+  }, [loadInsights, loadSuggestions]);
 
   const handleRefresh = () => {
     loadInsights();
