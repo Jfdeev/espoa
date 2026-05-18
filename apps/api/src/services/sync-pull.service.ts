@@ -1,5 +1,15 @@
-import { db, conflictLog, mensalidade as mensalidadeTable, transacaoFinanceira, usuarioAssociacao } from "@espoa/database";
-import { and, eq, gt, inArray, isNull } from "drizzle-orm";
+import {
+  db,
+  conflictLog,
+  mensalidade as mensalidadeTable,
+  associado as associadoTable,
+  producao as producaoTable,
+  editalPnae as editalPnaeTable,
+  associacao as associacaoTable,
+  usuarioAssociacao as usuarioAssociacaoTable,
+  transacaoFinanceira as transacaoFinanceiraTable,
+} from "@espoa/database";
+import { and, eq, gt, inArray, getTableColumns } from "drizzle-orm";
 import {
   syncTableNames,
   syncTables,
@@ -8,14 +18,16 @@ import {
 import type { ConflictLogRow, PulledRows, SyncTableName } from "../sync/sync.types";
 import { toSnakeObject } from "../utils/case-mapper";
 
-/** Retorna os associacao_ids ativos do usuário para usar nos filtros de pull */
-async function getAssociacaoIdsDoUsuario(userId: string): Promise<string[]> {
-  const vinculos = await db
-    .select({ associacaoId: usuarioAssociacao.associacaoId })
-    .from(usuarioAssociacao)
-    .where(and(eq(usuarioAssociacao.usuarioId, userId), eq(usuarioAssociacao.status, "ativo")));
-  return vinculos.map((v) => v.associacaoId);
-}
+// Tabelas que só fazem sentido no contexto de uma associação específica.
+// Se o usuário não tiver associação ativa, retornam vazio.
+const ASSOC_SCOPED = new Set<SyncTableName>([
+  "associado",
+  "producao",
+  "edital_pnae",
+  "associacao",
+  "usuario_associacao",
+  "transacao_financeira",
+]);
 
 export async function pullRowsByTable(
   lastPulledAt: Date | null,
@@ -23,11 +35,12 @@ export async function pullRowsByTable(
 ): Promise<PulledRows> {
   const pulled = createEmptyPulledRows();
 
+  const assocIds = userId ? await getAssociacaoIds(userId) : [];
+
   for (const tableName of syncTableNames) {
     try {
-      pulled[tableName] = await getPulledRows(tableName, lastPulledAt, userId);
+      pulled[tableName] = await getPulledRows(tableName, lastPulledAt, userId, assocIds);
     } catch (err) {
-      // Log o erro mas não deixa uma tabela quebrar o sync inteiro
       console.error(`[sync-pull] Erro ao fazer pull de "${tableName}":`, err instanceof Error ? err.message : err);
       pulled[tableName] = [];
     }
@@ -36,46 +49,79 @@ export async function pullRowsByTable(
   return pulled;
 }
 
+async function getAssociacaoIds(userId: string): Promise<string[]> {
+  const vinculos = await db
+    .select({ associacaoId: usuarioAssociacaoTable.associacaoId })
+    .from(usuarioAssociacaoTable)
+    .where(
+      and(
+        eq(usuarioAssociacaoTable.usuarioId, userId),
+        eq(usuarioAssociacaoTable.status, "ativo"),
+      ),
+    );
+  return vinculos.map((v) => v.associacaoId);
+}
+
+// Configuração das tabelas que filtram por inArray em uma coluna de associação.
+type AssocTableConfig = { table: any; filterCol: any; updatedAtCol: any };
+
+const ASSOC_TABLE_CONFIG: Partial<Record<SyncTableName, AssocTableConfig>> = {
+  associado:            { table: associadoTable,            filterCol: associadoTable.associacaoId,            updatedAtCol: associadoTable.updatedAt },
+  edital_pnae:          { table: editalPnaeTable,           filterCol: editalPnaeTable.associacaoId,           updatedAtCol: editalPnaeTable.updatedAt },
+  associacao:           { table: associacaoTable,           filterCol: associacaoTable.id,                     updatedAtCol: associacaoTable.updatedAt },
+  usuario_associacao:   { table: usuarioAssociacaoTable,    filterCol: usuarioAssociacaoTable.associacaoId,    updatedAtCol: usuarioAssociacaoTable.updatedAt },
+  transacao_financeira: { table: transacaoFinanceiraTable,  filterCol: transacaoFinanceiraTable.associacaoId,  updatedAtCol: transacaoFinanceiraTable.updatedAt },
+};
+
+async function fetchByAssocIds(
+  config: AssocTableConfig,
+  assocIds: string[],
+  lastPulledAt: Date | null,
+): Promise<Record<string, unknown>[]> {
+  const baseWhere = inArray(config.filterCol, assocIds);
+  const rows = lastPulledAt
+    ? await db.select().from(config.table).where(and(baseWhere, gt(config.updatedAtCol, lastPulledAt)))
+    : await db.select().from(config.table).where(baseWhere);
+  return rows.map((row: Record<string, unknown>) => toSnakeObject(row));
+}
+
+async function fetchMensalidade(userId: string, lastPulledAt: Date | null) {
+  const rows = lastPulledAt
+    ? await db.select().from(mensalidadeTable).where(and(eq(mensalidadeTable.usuarioId, userId), gt(mensalidadeTable.updatedAt, lastPulledAt)))
+    : await db.select().from(mensalidadeTable).where(eq(mensalidadeTable.usuarioId, userId));
+  return rows.map((row: Record<string, unknown>) => toSnakeObject(row));
+}
+
+async function fetchProducao(assocIds: string[], lastPulledAt: Date | null) {
+  const cols = getTableColumns(producaoTable);
+  const join = eq(producaoTable.associadoId, associadoTable.id);
+  const baseWhere = inArray(associadoTable.associacaoId, assocIds);
+  const rows = lastPulledAt
+    ? await db.select(cols).from(producaoTable).innerJoin(associadoTable, join).where(and(baseWhere, gt(producaoTable.updatedAt, lastPulledAt)))
+    : await db.select(cols).from(producaoTable).innerJoin(associadoTable, join).where(baseWhere);
+  return rows.map((row: Record<string, unknown>) => toSnakeObject(row));
+}
+
 async function getPulledRows(
   tableName: SyncTableName,
   lastPulledAt: Date | null,
   userId?: string,
+  assocIds: string[] = [],
 ) {
-  // Mensalidades: só pull das do próprio usuário
-  if (tableName === "mensalidade" && userId) {
-    const rows = lastPulledAt
-      ? await db
-          .select()
-          .from(mensalidadeTable)
-          .where(and(eq(mensalidadeTable.usuarioId, userId), gt(mensalidadeTable.updatedAt, lastPulledAt)))
-      : await db
-          .select()
-          .from(mensalidadeTable)
-          .where(eq(mensalidadeTable.usuarioId, userId));
-    return rows.map((row: Record<string, unknown>) => toSnakeObject(row));
-  }
+  if (ASSOC_SCOPED.has(tableName) && assocIds.length === 0) return [];
 
-  // transacao_financeira: só pull das associações do usuário
-  if (tableName === "transacao_financeira" && userId) {
-    const assocIds = await getAssociacaoIdsDoUsuario(userId);
-    if (assocIds.length === 0) return [];
-    const rows = lastPulledAt
-      ? await db
-          .select()
-          .from(transacaoFinanceira)
-          .where(and(inArray(transacaoFinanceira.associacaoId, assocIds), gt(transacaoFinanceira.updatedAt, lastPulledAt)))
-      : await db
-          .select()
-          .from(transacaoFinanceira)
-          .where(inArray(transacaoFinanceira.associacaoId, assocIds));
-    return rows.map((row: Record<string, unknown>) => toSnakeObject(row));
-  }
+  if (tableName === "mensalidade" && userId) return fetchMensalidade(userId, lastPulledAt);
 
+  if (tableName === "producao") return fetchProducao(assocIds, lastPulledAt);
+
+  const assocConfig = ASSOC_TABLE_CONFIG[tableName];
+  if (assocConfig) return fetchByAssocIds(assocConfig, assocIds, lastPulledAt);
+
+  // ata: sem associacao_id no schema por ora
   const table = syncTables[tableName] as any;
   const rows = lastPulledAt
     ? await db.select().from(table).where(gt(table.updatedAt, lastPulledAt))
     : await db.select().from(table);
-
   return rows.map((row: Record<string, unknown>) => toSnakeObject(row));
 }
 

@@ -14,6 +14,7 @@ import MensalidadesPage from "./pages/app/MensalidadesPage";
 import RelatoriosPage from "./pages/app/RelatoriosPage";
 import ConfiguracoesPage from "./pages/app/ConfiguracoesPage";
 import DebugSyncPage from "./pages/app/DebugSyncPage";
+import ColheitasPage from "./pages/app/ColheitasPage";
 import FinanceiroEntradaPage from "./pages/app/FinanceiroEntradaPage";
 import FinanceiroSaidaPage from "./pages/app/FinanceiroSaidaPage";
 import FinanceiroResumoPage from "./pages/app/FinanceiroResumoPage";
@@ -64,6 +65,7 @@ function App() {
             <Route path="/app/relatorios" element={<RelatoriosPage />} />
             <Route path="/app/configuracoes" element={<ConfiguracoesPage />} />
             <Route path="/debug/sync" element={<DebugSyncPage />} />
+            <Route path="/app/colheitas" element={<ColheitasPage />} />
           </Route>
 
           {/* Fallback */}

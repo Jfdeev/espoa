@@ -22,6 +22,7 @@ export const adminNavItems: NavItem[] = [
     href: "/app",
   },
   { label: "Associados", icon: <Users size={20} />, href: "/app/associados" },
+  { label: "Produção", icon: <Leaf size={20} />, href: "/app/colheitas" },
   {
     label: "Financeiro",
     icon: <Wallet size={20} />,
@@ -39,7 +40,7 @@ export const adminNavItems: NavItem[] = [
 
 export const memberNavItems: NavItem[] = [
   { label: "Dashboard", icon: <LayoutDashboard size={20} />, href: "/app" },
-  { label: "Produção", icon: <Leaf size={20} />, href: "/app/produção" },
+  { label: "Produção", icon: <Leaf size={20} />, href: "/app/colheitas" },
   { label: "Associações", icon: <Users size={20} />, href: "/app/associacoes" },
   {
     label: "Mensalidades",
