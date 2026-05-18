@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: espoa-ai
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: apps/ai
+    buildCommand: pnpm install && pnpm build
+    startCommand: node dist/app.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
