@@ -1,4 +1,4 @@
-import { db, producao } from "@espoa/database";
+import { db, producao, associado } from "@espoa/database";
 import { eq, and, isNull } from "drizzle-orm";
 
 export async function createProducao(data: {
@@ -24,7 +24,24 @@ export async function createProducao(data: {
   return { data: created };
 }
 
-export async function listProducoes() {
+export async function listProducoes(associacaoId?: string) {
+  if (associacaoId) {
+    return db
+      .select({
+        id: producao.id,
+        associadoId: producao.associadoId,
+        cultura: producao.cultura,
+        quantidade: producao.quantidade,
+        data: producao.data,
+        version: producao.version,
+        updatedAt: producao.updatedAt,
+        deviceId: producao.deviceId,
+        deletedAt: producao.deletedAt,
+      })
+      .from(producao)
+      .innerJoin(associado, eq(producao.associadoId, associado.id))
+      .where(and(isNull(producao.deletedAt), eq(associado.associacaoId, associacaoId)));
+  }
   return db
     .select()
     .from(producao)

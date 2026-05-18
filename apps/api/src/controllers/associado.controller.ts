@@ -2,11 +2,12 @@ import type { Request, Response } from "express";
 import {
   createAssociado,
   listAssociados,
+  listAssociadosByAssociacao,
   getAssociado,
   updateAssociado,
   deleteAssociado,
 } from "../services/associado.service";
-import { toCamelObject } from "../utils/case-mapper";
+import { toCamelObject, toSnakeObject } from "../utils/case-mapper";
 import { makeCrudHandlers } from "./crud.helpers";
 
 const crud = makeCrudHandlers("associados", {
@@ -46,7 +47,19 @@ export async function postAssociado(req: Request, res: Response) {
   }
 }
 
-export const getAssociados = crud.list;
+export async function getAssociados(req: Request, res: Response) {
+  try {
+    const { associacao_id } = req.query as { associacao_id?: string };
+    const rows = associacao_id
+      ? await listAssociadosByAssociacao(associacao_id)
+      : await listAssociados();
+    return res.json(rows.map((r) => toSnakeObject(r as any)));
+  } catch (error) {
+    console.error("GET /associados error", error);
+    return res.status(500).json({ error: "list_failed" });
+  }
+}
+
 export const getAssociadoById = crud.getById;
 export const putAssociado = crud.update;
 export const deleteAssociadoById = crud.remove;

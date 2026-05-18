@@ -14,6 +14,13 @@ export interface MensalidadeSummary {
   taxaInadimplencia: number;
 }
 
+export interface ProducaoSummary {
+  totalColheitas: number;
+  totalKg: number;
+  porCultura: Record<string, number>;
+  porMes: Array<{ month: string; quantidade: number; colheitas: number }>;
+}
+
 export interface FinancialSnapshot {
   associacaoId: string;
   generatedAt: string;
@@ -24,6 +31,7 @@ export interface FinancialSnapshot {
   porTipoSaida: Record<string, number>;
   porTipoEntrada: Record<string, number>;
   mensalidades: MensalidadeSummary;
+  producao?: ProducaoSummary;
 }
 
 export type InsightSeverity = "info" | "alerta" | "critico";

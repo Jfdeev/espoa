@@ -5,6 +5,7 @@ import {
   transacaoFinanceira,
   usuarioAssociacao,
   usuario,
+  producao,
 } from "@espoa/database";
 import { and, count, desc, eq, gte, isNull, lte, sum } from "drizzle-orm";
 
@@ -200,6 +201,46 @@ export async function buildFinancialSnapshot(
       valorEsperado,
       taxaInadimplencia,
     },
+    producao: await buildProducaoSummary(associacaoId),
+  };
+}
+
+async function buildProducaoSummary(associacaoId: string) {
+  const registros = await db
+    .select({
+      cultura: producao.cultura,
+      quantidade: producao.quantidade,
+      data: producao.data,
+    })
+    .from(producao)
+    .innerJoin(associado, eq(producao.associadoId, associado.id))
+    .where(and(eq(associado.associacaoId, associacaoId), isNull(producao.deletedAt)));
+
+  if (registros.length === 0) return undefined;
+
+  let totalKg = 0;
+  const porCultura: Record<string, number> = {};
+  const porMesMap = new Map<string, { month: string; quantidade: number; colheitas: number }>();
+
+  for (const r of registros) {
+    const qtd = Number(r.quantidade) || 0;
+    totalKg += qtd;
+
+    const cult = r.cultura.trim().toLowerCase();
+    porCultura[cult] = (porCultura[cult] ?? 0) + qtd;
+
+    const key = monthKey(r.data);
+    const bucket = porMesMap.get(key) ?? { month: key, quantidade: 0, colheitas: 0 };
+    bucket.quantidade += qtd;
+    bucket.colheitas += 1;
+    porMesMap.set(key, bucket);
+  }
+
+  return {
+    totalColheitas: registros.length,
+    totalKg,
+    porCultura,
+    porMes: Array.from(porMesMap.values()).sort((a, b) => a.month.localeCompare(b.month)),
   };
 }
 

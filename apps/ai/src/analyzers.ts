@@ -1,4 +1,10 @@
 import type { FinancialSnapshot, Insight } from "./types";
+import {
+  analyzeProducaoResumo,
+  analyzeProducaoConcentracao,
+  analyzeProducaoTendencia,
+  analyzeProducaoSazonalidade,
+} from "./producao-analyzers";
 
 function formatCurrency(value: number): string {
   return value.toLocaleString("pt-BR", {
@@ -247,6 +253,10 @@ export function generateInsights(snapshot: FinancialSnapshot): Insight[] {
     analyzeTipoGastoDominante(snapshot),
     analyzeFonteReceitaDominante(snapshot),
     analyzeInadimplencia(snapshot),
+    analyzeProducaoResumo(snapshot),
+    analyzeProducaoConcentracao(snapshot),
+    analyzeProducaoTendencia(snapshot),
+    analyzeProducaoSazonalidade(snapshot),
   ];
   return candidatos.filter((c): c is Insight => c !== null);
 }
