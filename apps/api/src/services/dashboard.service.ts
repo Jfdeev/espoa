@@ -4,7 +4,7 @@ import { eq, and, isNull, count, sum, desc, sql } from "drizzle-orm";
 export async function getDashboardStats(associacaoId: string) {
   const [[membrosResult], [caixaResult], [mensalidadesPendentes], recentMembros] =
     await Promise.all([
-      // Total de membros ativos (excluindo admins)
+      // Total de membros ativos
       db
         .select({ total: count() })
         .from(usuarioAssociacao)
@@ -12,7 +12,6 @@ export async function getDashboardStats(associacaoId: string) {
           and(
             eq(usuarioAssociacao.associacaoId, associacaoId),
             eq(usuarioAssociacao.status, "ativo"),
-            eq(usuarioAssociacao.role, "associado"),
           ),
         ),
       // Total em caixa: entradas - saídas de transacao_financeira

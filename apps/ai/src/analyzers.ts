@@ -124,12 +124,40 @@ export function analyzeTipoGastoDominante(
     id: "tipo_gasto_dominante",
     categoria: "fluxo_caixa",
     severidade: participacao > 70 ? "alerta" : "info",
-    titulo: `Categoria "${tipoTop}" concentra os gastos`,
+    titulo: `"${tipoTop}" concentra os gastos`,
     mensagem: `${participacao.toFixed(
       0,
-    )}% das saidas vieram da categoria "${tipoTop}" (${formatCurrency(
+    )}% das saidas foram com "${tipoTop}" (${formatCurrency(
       valorTop,
-    )}). Considere diversificar o controle por categoria.`,
+    )}). Considere revisar se esse gasto esta proporcional.`,
+  };
+}
+
+export function analyzeFonteReceitaDominante(
+  snapshot: FinancialSnapshot,
+): Insight | null {
+  const tipos = Object.entries(snapshot.porTipoEntrada ?? {});
+  if (tipos.length === 0) return null;
+
+  const total = tipos.reduce((sum, [, v]) => sum + v, 0);
+  if (total <= 0) return null;
+
+  tipos.sort(([, a], [, b]) => b - a);
+  const [tipoTop, valorTop] = tipos[0];
+  const participacao = (valorTop / total) * 100;
+
+  if (participacao < 50) return null;
+
+  return {
+    id: "fonte_receita_dominante",
+    categoria: "fluxo_caixa",
+    severidade: participacao > 80 ? "alerta" : "info",
+    titulo: `Receita concentrada em "${tipoTop}"`,
+    mensagem: `${participacao.toFixed(
+      0,
+    )}% das entradas vieram de "${tipoTop}" (${formatCurrency(
+      valorTop,
+    )}). Alta dependencia de uma unica fonte de receita.`,
   };
 }
 
@@ -217,6 +245,7 @@ export function generateInsights(snapshot: FinancialSnapshot): Insight[] {
     analyzeSaldoTrend(snapshot),
     analyzeMaiorGasto(snapshot),
     analyzeTipoGastoDominante(snapshot),
+    analyzeFonteReceitaDominante(snapshot),
     analyzeInadimplencia(snapshot),
   ];
   return candidatos.filter((c): c is Insight => c !== null);

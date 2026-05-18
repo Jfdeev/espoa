@@ -23,8 +23,7 @@ function LeftPanel() {
       <div className="relative z-10 flex flex-col justify-between p-16 w-full h-full text-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-3xl">park</span>
-            <span style={{ fontFamily: "Noto Serif, serif" }} className="text-2xl font-bold tracking-tight">Espoa</span>
+            <img src="/espoa-logo.png" alt="Espoá" className="h-14 brightness-0 invert" />
           </div>
           <Link to="/" className="flex items-center gap-1 text-sm text-white bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition-colors font-medium">
             <span className="material-symbols-outlined text-[16px]">arrow_back</span>{" "}
@@ -54,8 +53,7 @@ function MobileLogo() {
   return (
     <div className="lg:hidden flex items-center justify-between mb-8">
       <div className="flex items-center gap-2">
-        <span className="material-symbols-outlined text-[#01261f]">park</span>
-        <span style={{ fontFamily: "Noto Serif, serif" }} className="text-xl font-bold text-[#01261f]">Espoa</span>
+        <img src="/espoa-logo.png" alt="Espoá" className="h-14" />
       </div>
       <Link to="/" className="flex items-center gap-1 text-sm text-[#01261f] bg-[#ebe8e3] hover:bg-[#dedad4] px-3 py-1.5 rounded-lg transition-colors font-medium">
         <span className="material-symbols-outlined text-[16px]">arrow_back</span>{" "}

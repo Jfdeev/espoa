@@ -82,7 +82,7 @@ export default function AdminDashboard() {
     return db.usuario_associacao
       .where("associacao_id")
       .equals(assocId)
-      .filter((v) => v.status === "ativo" && v.role !== "adm")
+      .filter((v) => v.status === "ativo")
       .count();
   }, 0, [assocId]);
 

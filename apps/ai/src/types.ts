@@ -22,6 +22,7 @@ export interface FinancialSnapshot {
   totalSaidas: number;
   porMes: MonthlyAggregate[];
   porTipoSaida: Record<string, number>;
+  porTipoEntrada: Record<string, number>;
   mensalidades: MensalidadeSummary;
 }
 

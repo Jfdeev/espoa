@@ -32,6 +32,7 @@ export interface FinancialSnapshot {
   totalSaidas: number;
   porMes: MonthlyAggregate[];
   porTipoSaida: Record<string, number>;
+  porTipoEntrada: Record<string, number>;
   mensalidades: MensalidadeSummary;
 }
 
@@ -69,6 +70,7 @@ export async function buildFinancialSnapshot(
         tipo: transacaoFinanceira.tipo,
         valor: transacaoFinanceira.valor,
         data: transacaoFinanceira.data,
+        descricao: transacaoFinanceira.descricao,
       })
       .from(transacaoFinanceira)
       .where(
@@ -133,6 +135,7 @@ export async function buildFinancialSnapshot(
   let totalEntradas = 0;
   let totalSaidas = 0;
   const porTipoSaida: Record<string, number> = {};
+  const porTipoEntrada: Record<string, number> = {};
   const porMesMap = new Map<string, MonthlyAggregate>();
 
   for (const t of transacoes) {
@@ -145,10 +148,12 @@ export async function buildFinancialSnapshot(
     if (classifyTipo(t.tipo) === "entrada") {
       totalEntradas += valor;
       bucket.entradas += valor;
+      const entradaLabel = (t.descricao ?? "").trim().toLowerCase() || "outros";
+      porTipoEntrada[entradaLabel] = (porTipoEntrada[entradaLabel] ?? 0) + valor;
     } else {
       totalSaidas += valor;
       bucket.saidas += valor;
-      const tipoLabel = t.tipo.trim().toLowerCase() || "outros";
+      const tipoLabel = (t.descricao ?? "").trim().toLowerCase() || "outros";
       porTipoSaida[tipoLabel] = (porTipoSaida[tipoLabel] ?? 0) + valor;
     }
     bucket.saldo = bucket.entradas - bucket.saidas;
@@ -186,6 +191,7 @@ export async function buildFinancialSnapshot(
     totalSaidas,
     porMes,
     porTipoSaida,
+    porTipoEntrada,
     mensalidades: {
       totalAssociadosAtivos: associadosAtivos?.total ?? 0,
       pagas,

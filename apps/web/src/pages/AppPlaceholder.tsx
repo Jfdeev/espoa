@@ -7,7 +7,7 @@ export default function AppPlaceholder() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/40">
       <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold">Espoa</h1>
+        <img src="/espoa-logo.png" alt="Espoá" className="h-14 mx-auto" />
         <p className="text-muted-foreground">
           Olá, {perfil?.nome ?? "usuário"}!
         </p>

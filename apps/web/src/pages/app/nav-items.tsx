@@ -8,6 +8,7 @@ import {
   FileText,
   BarChart3,
   BookOpen,
+  Sparkles,
 } from "lucide-react";
 
 export interface NavItem {
@@ -42,6 +43,11 @@ export const adminNavItems: NavItem[] = [
     href: "/app/mensalidades",
   },
   { label: "Relatórios", icon: <BarChart3 size={20} />, href: "/app/relatorios" },
+  {
+    label: "Inteligência",
+    icon: <Sparkles size={20} />,
+    href: "/app/inteligencia",
+  },
 ];
 
 export const memberNavItems: NavItem[] = [
@@ -57,5 +63,10 @@ export const memberNavItems: NavItem[] = [
     label: "Mensalidades",
     icon: <BanknoteArrowUp size={20} />,
     href: "/app/mensalidades",
+  },
+  {
+    label: "Dicas",
+    icon: <Sparkles size={20} />,
+    href: "/app/dicas",
   },
 ];

@@ -17,6 +17,8 @@ import DebugSyncPage from "./pages/app/DebugSyncPage";
 import FinanceiroEntradaPage from "./pages/app/FinanceiroEntradaPage";
 import FinanceiroSaidaPage from "./pages/app/FinanceiroSaidaPage";
 import FinanceiroResumoPage from "./pages/app/FinanceiroResumoPage";
+import InsightsAdminPage from "./pages/app/InsightsAdminPage";
+import InsightsMemberPage from "./pages/app/InsightsMemberPage";
 import SolicitacoesPage from "./pages/SolicitacoesPage";
 import AuthGuard from "./components/AuthGuard";
 import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
@@ -53,6 +55,14 @@ function App() {
             <Route
               path="/app/financeiro/resumo"
               element={<FinanceiroResumoPage />}
+            />
+            <Route
+              path="/app/inteligencia"
+              element={<InsightsAdminPage />}
+            />
+            <Route
+              path="/app/dicas"
+              element={<InsightsMemberPage />}
             />
             <Route path="/app/editais" element={<EditaisPage />} />
             <Route
