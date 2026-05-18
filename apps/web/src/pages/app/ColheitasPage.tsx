@@ -104,8 +104,8 @@ export default function ColheitasPage() {
             data: r.data as string,
             version: (r.version ?? 1) as number,
             updated_at: (r.updated_at ?? r.updatedAt ?? new Date().toISOString()) as string,
-            device_id: (r.device_id ?? r.deviceId ?? null) as string | null,
-            deleted_at: (r.deleted_at ?? r.deletedAt ?? null) as string | null,
+            device_id: (r.device_id ?? r.deviceId ?? undefined) as string | undefined,
+            deleted_at: (r.deleted_at ?? r.deletedAt ?? undefined) as string | undefined,
           })),
         );
       })
