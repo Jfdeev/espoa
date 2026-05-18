@@ -426,48 +426,86 @@ function AdminView() {
   const [submitting, setSubmitting] = useState(false);
   const [filtro, setFiltro] = useState<FiltroStatus>("todos");
 
-  // Vínculos vindos da API (fonte primária quando online — evita depender do sync incremental)
-  const [vinculosApi, setVinculosApi] = useState<Array<{ usuarioId: string; nome: string; role: string; status: string }>>([]);
+  // Membros vindos da API (fonte primária quando online)
+  const [membrosApi, setMembrosApi] = useState<Membro[]>([]);
+  const [apiLoaded, setApiLoaded] = useState(false);
 
-  // Busca vínculos da API sempre que ficar online
+  // Busca membros da API (unifica usuario_associacao + associado no backend)
   useEffect(() => {
     if (!online || !assocId) return;
     api
-      .get<Array<{ usuarioId: string; nome: string; status: string; role: string }>>(`/associacoes/${assocId}/vinculos`)
-      .then((res) => setVinculosApi(res.data))
-      .catch(() => {}); // offline — usa fallback do Dexie
+      .get<Array<{ id: string; nome: string; usuarioId: string | null; usuario_id: string | null; role: string; status: string }>>(`/associacoes/${assocId}/membros`)
+      .then((res) => {
+        const lista = res.data
+          .filter((m) => m.status !== "rejeitado" && m.status !== "inativo")
+          .map((m) => ({
+            usuarioId: m.usuarioId ?? m.usuario_id ?? m.id,
+            nome: m.nome,
+            role: m.role,
+            status: m.status,
+          }));
+        setMembrosApi(lista);
+        setApiLoaded(true);
+      })
+      .catch(() => {
+        setApiLoaded(false);
+      });
   }, [online, assocId]);
 
   // Lista de membros ativos do Dexie — usada como fallback quando offline
+  // Busca de AMBAS as fontes: usuario_associacao E associado (tabela legacy)
   const membrosLocal = useLiveQuery<Membro[]>(
     async () => {
       if (!assocId) return [];
+
+      // Fonte 1: usuario_associacao (membros que já fizeram login e vincularam)
       const vinculos = await db.usuario_associacao
         .where("associacao_id")
         .equals(assocId)
-        .filter((v) => v.status === "ativo" && v.role !== "adm")
+        .filter((v) => v.status === "ativo" || v.status === "convidado" || v.status === "pendente")
         .toArray();
-      const usuarioIds = vinculos.map((v) => v.usuario_id);
+
+      // Fonte 2: tabela associado (membros cadastrados pelo admin, podem não ter conta)
       const associados = await db.associado
-        .filter((a) => !a.deleted_at && !!a.usuario_id && usuarioIds.includes(a.usuario_id!))
+        .filter((a) => !a.deleted_at && a.associacao_id === assocId && a.status === "ativo")
         .toArray();
-      const nomeFallbackMap = new Map(associados.map((a) => [a.usuario_id!, a.nome]));
-      return vinculos.map((v) => ({
-        usuarioId: v.usuario_id,
-        nome: nomeFallbackMap.get(v.usuario_id) ?? v.usuario_id.slice(0, 8),
-        role: v.role,
-        status: v.status,
-      }));
+
+      // Monta mapa de nomes a partir dos associados
+      const nomesPorUsuarioId = new Map<string, string>();
+      const membrosMerged = new Map<string, Membro>();
+
+      // Adiciona associados da tabela associado (fonte primária de nomes)
+      for (const a of associados) {
+        const key = a.usuario_id ?? a.id!;
+        nomesPorUsuarioId.set(key, a.nome);
+        membrosMerged.set(key, {
+          usuarioId: key,
+          nome: a.nome,
+          role: "associado",
+          status: a.status,
+        });
+      }
+
+      // Adiciona/sobrescreve com dados de usuario_associacao (mais autoridade para status/role)
+      for (const v of vinculos) {
+        const nome = nomesPorUsuarioId.get(v.usuario_id) ?? v.usuario_id.slice(0, 8);
+        membrosMerged.set(v.usuario_id, {
+          usuarioId: v.usuario_id,
+          nome,
+          role: v.role,
+          status: v.status,
+        });
+      }
+
+      return Array.from(membrosMerged.values());
     },
     [],
     [assocId],
   );
 
-  // Fonte de verdade para membros: API quando disponível, Dexie como fallback
-  const membros: Membro[] = vinculosApi.length > 0
-    ? vinculosApi
-        .filter((v) => v.status === "ativo" && v.role !== "adm")
-        .map((v) => ({ usuarioId: v.usuarioId, nome: v.nome, role: v.role, status: v.status }))
+  // Fonte de verdade: API quando online e carregou, Dexie como fallback (offline)
+  const membros: Membro[] = apiLoaded && membrosApi.length > 0
+    ? membrosApi
     : (membrosLocal ?? []);
 
   // Nome resolvido: API > Dexie > id curto
@@ -478,14 +516,29 @@ function AdminView() {
   const mensalidades = useLiveQuery<Mensalidade[]>(
     async () => {
       if (!assocId) return [];
+      // Coleta todos os IDs de membros da associação (ambas as tabelas)
       const vinculos = await db.usuario_associacao
         .where("associacao_id")
         .equals(assocId)
-        .filter((v) => v.status === "ativo")
         .toArray();
-      const userIdSet = new Set(vinculos.map((v) => v.usuario_id));
+      const associados = await db.associado
+        .filter((a) => !a.deleted_at && a.associacao_id === assocId)
+        .toArray();
+
+      const memberIds = new Set<string>();
+      for (const v of vinculos) memberIds.add(v.usuario_id);
+      for (const a of associados) {
+        if (a.usuario_id) memberIds.add(a.usuario_id);
+        if (a.id) memberIds.add(a.id);
+      }
+
       return db.mensalidade
-        .filter((m) => !m.deleted_at && !!m.usuario_id && userIdSet.has(m.usuario_id!))
+        .filter((m) => {
+          if (m.deleted_at) return false;
+          if (m.usuario_id && memberIds.has(m.usuario_id)) return true;
+          if (m.associado_id && memberIds.has(m.associado_id)) return true;
+          return false;
+        })
         .toArray();
     },
     [],

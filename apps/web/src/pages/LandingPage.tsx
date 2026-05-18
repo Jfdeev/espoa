@@ -123,12 +123,12 @@ export default function LandingPage() {
         }`}
       >
         <nav className="flex justify-between items-center h-20 px-6 md:px-12 w-full max-w-screen-2xl mx-auto">
-          <span
-            className="nav-item-animate font-headline text-2xl font-bold text-primary-container"
+          <img
+            src="/espoa-logo.png"
+            alt="Espoá"
+            className="nav-item-animate h-14"
             style={{ animationDelay: "0.1s" }}
-          >
-            Espoa
-          </span>
+          />
 
           <div className="hidden md:flex gap-10 items-center">
             {NAV_LINKS.map((link, i) => (
@@ -372,7 +372,7 @@ export default function LandingPage() {
       <footer className="bg-linear-to-br from-[#01261f] to-[#1a3c34] text-[#F5F2ED] w-full py-16 px-6 md:px-12 mt-auto">
         <div className="max-w-screen-2xl mx-auto flex flex-col md:flex-row justify-between items-start gap-8">
           <div className="space-y-6 max-w-sm">
-            <div className="font-headline text-3xl text-white">Espoa</div>
+            <img src="/espoa-logo.png" alt="Espoá" className="h-14 brightness-0 invert" />
             <p className="font-body text-sm tracking-wide leading-relaxed text-[#F5F2ED]/60">
               O Espoa é a plataforma líder em gestão para associações rurais na
               América Latina, focada em sustentabilidade e retorno financeiro ao

@@ -1,5 +1,6 @@
 export interface Associado {
   id?: string;
+  associacao_id?: string | null;
   nome: string;
   contato?: string;
   data_entrada: string;

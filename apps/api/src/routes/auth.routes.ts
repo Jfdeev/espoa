@@ -18,6 +18,7 @@ import {
   convidarMembro,
   responderConvite,
 } from "../controllers/auth.controller";
+import { listarMembrosAssociacao } from "../controllers/membros.controller";
 
 export const authRouter = Router();
 
@@ -36,6 +37,7 @@ authRouter.get("/associacoes", requireAuth, listarAssociacoes);
 authRouter.post("/associacoes", requireAuth, criarAssociacao);
 authRouter.post("/associacoes/:id/solicitar-vinculo", requireAuth, solicitarVinculo);
 authRouter.get("/associacoes/:id/vinculos", requireAuth, listarVinculosAssociacao);
+authRouter.get("/associacoes/:id/membros", requireAuth, listarMembrosAssociacao);
 authRouter.patch("/associacoes/:assocId/vinculos/:userId", requireAuth, gerenciarVinculo);
 authRouter.patch("/associacoes/:assocId/vinculos/:userId/role", requireAuth, alterarRoleVinculo);
 authRouter.post("/associacoes/:assocId/convidar", requireAuth, convidarMembro);

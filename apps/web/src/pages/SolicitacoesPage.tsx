@@ -184,10 +184,7 @@ export default function SolicitacoesPage() {
       {/* Header */}
       <header className="px-8 py-6 flex items-center justify-between border-b border-[#e5e2dd]">
         <div className="flex items-center gap-3">
-          <span className="material-symbols-outlined text-[#01261f] text-2xl">park</span>
-          <span style={{ fontFamily: "Noto Serif, serif" }} className="text-xl font-bold text-[#01261f]">
-            Espoa
-          </span>
+          <img src="/espoa-logo.png" alt="Espoá" className="h-14" />
         </div>
         <button
           type="button"

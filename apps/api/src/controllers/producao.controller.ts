@@ -41,7 +41,17 @@ export async function postProducao(req: Request, res: Response) {
   }
 }
 
-export const getProducoes = crud.list;
+export async function getProducoes(req: Request, res: Response) {
+  try {
+    const { associacao_id } = req.query as { associacao_id?: string };
+    const rows = await listProducoes(associacao_id);
+    return res.json(rows.map((r) => toSnakeObject(r as any)));
+  } catch (error) {
+    console.error("GET /producoes error", error);
+    return res.status(500).json({ error: "list_failed" });
+  }
+}
+
 export const getProducaoById = crud.getById;
 export const putProducao = crud.update;
 export const deleteProducaoById = crud.remove;

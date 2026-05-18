@@ -6,6 +6,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { db } from "@/database/db";
 import { useLiveQuery } from "@/hooks/useLiveQuery";
 import { Input } from "@/components/ui/input";
+import { ArrowDownLeft, ArrowUpRight, BarChart3, TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import {
   filterTransacoes,
   paginateTransacoes,
@@ -94,82 +95,90 @@ export default function FinanceiroResumoPage() {
 
   return (
     <AppLayout navItems={adminNavItems} title="Financeiro">
-      <div className="p-6 lg:p-12 max-w-4xl mx-auto space-y-8">
-        <header className="space-y-2">
-          <h1 className="font-headline text-3xl font-bold text-md-primary">
-            Resumo financeiro
-          </h1>
-          <p className="text-[#414846]">
-            Acompanhe saldo e totais da associacao.
-          </p>
-          <div className="flex items-center gap-3 text-sm">
-            <Link
-              to="/app/financeiro/entrada"
-              className="text-[#414846] hover:text-md-primary"
-            >
-              Entradas
-            </Link>
-            <span className="text-[#c1c8c4]">|</span>
-            <Link
-              to="/app/financeiro/saida"
-              className="text-[#414846] hover:text-md-primary"
-            >
-              Saidas
-            </Link>
-            <span className="text-[#c1c8c4]">|</span>
-            <span className="font-semibold text-md-primary">Resumo</span>
-          </div>
-        </header>
+      <div className="p-4 lg:p-8 max-w-4xl mx-auto space-y-6">
+        {/* Navigation Tabs */}
+        <nav className="flex items-center gap-1 p-1 bg-[#f6f3ee] rounded-xl w-fit">
+          <Link
+            to="/app/financeiro/entrada"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-[#414846] hover:bg-white/60 transition-colors"
+          >
+            <ArrowDownLeft size={16} />
+            Entradas
+          </Link>
+          <Link
+            to="/app/financeiro/saida"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-[#414846] hover:bg-white/60 transition-colors"
+          >
+            <ArrowUpRight size={16} />
+            Saidas
+          </Link>
+          <span className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-semibold text-md-primary">
+            <BarChart3 size={16} />
+            Resumo
+          </span>
+        </nav>
 
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-2xl p-6 border border-[#c1c8c4]/30">
-            <p className="text-xs uppercase tracking-wider text-[#414846]">
-              Saldo atual
-            </p>
-            <p className="mt-4 font-headline text-3xl font-bold text-md-primary">
+        {/* Summary Cards */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white rounded-2xl p-5 border border-[#e5e2dd] shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-md-primary/10 flex items-center justify-center">
+                <Wallet size={20} className="text-md-primary" />
+              </div>
+              <p className="text-xs font-medium text-[#6b7170] uppercase tracking-wider">Saldo</p>
+            </div>
+            <p className={`mt-3 font-headline text-2xl font-bold ${resumo.saldo >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
               {formatCurrency(resumo.saldo)}
             </p>
           </div>
 
-          <div className="bg-[#f6f3ee] rounded-2xl p-6 border border-[#c1c8c4]/30">
-            <p className="text-xs uppercase tracking-wider text-[#414846]">
-              Total de entradas
-            </p>
-            <p className="mt-4 font-headline text-3xl font-bold text-[#1c1c19]">
+          <div className="bg-white rounded-2xl p-5 border border-[#e5e2dd] shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                <TrendingUp size={20} className="text-emerald-600" />
+              </div>
+              <p className="text-xs font-medium text-[#6b7170] uppercase tracking-wider">Entradas</p>
+            </div>
+            <p className="mt-3 font-headline text-2xl font-bold text-emerald-700">
               {formatCurrency(resumo.entradas)}
             </p>
           </div>
 
-          <div className="bg-[#f6f3ee] rounded-2xl p-6 border border-[#c1c8c4]/30">
-            <p className="text-xs uppercase tracking-wider text-[#414846]">
-              Total de saidas
-            </p>
-            <p className="mt-4 font-headline text-3xl font-bold text-[#1c1c19]">
+          <div className="bg-white rounded-2xl p-5 border border-[#e5e2dd] shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center">
+                <TrendingDown size={20} className="text-rose-600" />
+              </div>
+              <p className="text-xs font-medium text-[#6b7170] uppercase tracking-wider">Saidas</p>
+            </div>
+            <p className="mt-3 font-headline text-2xl font-bold text-rose-700">
               {formatCurrency(resumo.saidas)}
             </p>
           </div>
         </section>
 
+        {/* Filters & Table */}
         <section className="space-y-4">
-          <div className="flex flex-col gap-4 rounded-2xl border border-[#c1c8c4]/30 bg-white p-6">
+          <div className="bg-white rounded-2xl border border-[#e5e2dd] shadow-sm p-5 space-y-4">
             <div className="flex flex-col md:flex-row md:items-end gap-4">
-              <div className="flex-1 space-y-2">
-                <label className="text-xs uppercase tracking-wider text-[#414846]">
+              <div className="flex-1 space-y-1.5">
+                <label className="text-xs font-medium text-[#6b7170] uppercase tracking-wider">
                   Buscar
                 </label>
                 <Input
-                  placeholder="Descricao ou documento"
+                  placeholder="Descricao ou documento..."
+                  className="h-10"
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs uppercase tracking-wider text-[#414846]">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-[#6b7170] uppercase tracking-wider">
                   Tipo
                 </label>
                 <select
-                  className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+                  className="h-10 w-full rounded-xl border border-input bg-white px-3 py-2 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                   value={tipoFiltro}
                   onChange={(e) =>
                     setTipoFiltro(e.target.value as typeof tipoFiltro)
@@ -183,23 +192,25 @@ export default function FinanceiroResumoPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs uppercase tracking-wider text-[#414846]">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-[#6b7170] uppercase tracking-wider">
                   Data inicial
                 </label>
                 <Input
                   type="date"
+                  className="h-10"
                   value={dataInicio}
                   onChange={(e) => setDataInicio(e.target.value)}
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs uppercase tracking-wider text-[#414846]">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-[#6b7170] uppercase tracking-wider">
                   Data final
                 </label>
                 <Input
                   type="date"
+                  className="h-10"
                   value={dataFim}
                   onChange={(e) => setDataFim(e.target.value)}
                 />
@@ -207,22 +218,26 @@ export default function FinanceiroResumoPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[#c1c8c4]/30 bg-white">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 px-6 py-4 text-xs uppercase tracking-wider text-[#414846] border-b border-[#c1c8c4]/30">
+          {/* Transactions List */}
+          <div className="bg-white rounded-2xl border border-[#e5e2dd] shadow-sm overflow-hidden">
+            <div className="hidden md:grid grid-cols-5 gap-4 px-6 py-3 text-xs font-medium uppercase tracking-wider text-[#6b7170] border-b border-[#f0ede8] bg-[#fcfbf9]">
               <span>Data</span>
               <span>Tipo</span>
-              <span className="md:col-span-2">Detalhes</span>
+              <span className="col-span-2">Detalhes</span>
               <span className="text-right">Valor</span>
             </div>
 
             {transacoesFiltradas.length === 0 ? (
-              <div className="px-6 py-6 text-sm text-[#414846]">
-                Nenhuma transacao encontrada para os filtros atuais.
+              <div className="px-6 py-10 text-center">
+                <p className="text-sm text-[#6b7170]">
+                  Nenhuma transacao encontrada para os filtros atuais.
+                </p>
               </div>
             ) : (
-              <div className="divide-y divide-[#c1c8c4]/30">
+              <div className="divide-y divide-[#f0ede8]">
                 {transacoesPaginadas.map((t) => {
                   const isOpen = transacaoExpandida === t.id;
+                  const isEntrada = t.tipo !== "despesa";
                   return (
                     <div key={t.id}>
                       <button
@@ -232,39 +247,36 @@ export default function FinanceiroResumoPage() {
                             current === t.id ? null : (t.id ?? null),
                           )
                         }
-                        className="w-full grid grid-cols-1 md:grid-cols-5 gap-4 px-6 py-4 text-sm text-[#1c1c19] text-left hover:bg-[#f6f3ee] transition-colors"
+                        className="w-full grid grid-cols-1 md:grid-cols-5 gap-2 md:gap-4 px-6 py-4 text-sm text-[#1c1c19] text-left hover:bg-[#faf9f7] transition-colors"
                       >
-                        <span>{formatDate(t.data)}</span>
-                        <span
-                          className={
-                            t.tipo === "despesa"
-                              ? "text-red-700"
-                              : "text-md-primary"
-                          }
-                        >
-                          {t.tipo === "despesa" ? "Saida" : "Entrada"}
+                        <span className="text-[#6b7170] md:text-[#1c1c19]">{formatDate(t.data)}</span>
+                        <span className="flex items-center gap-1.5">
+                          <span className={`w-2 h-2 rounded-full ${isEntrada ? "bg-emerald-500" : "bg-rose-500"}`} />
+                          <span className={isEntrada ? "text-emerald-700" : "text-rose-700"}>
+                            {isEntrada ? "Entrada" : "Saida"}
+                          </span>
                         </span>
-                        <span className="md:col-span-2 text-[#414846]">
-                          Clique para ver detalhes
+                        <span className="md:col-span-2 text-[#6b7170] truncate">
+                          {t.descricao || "Clique para ver detalhes"}
                         </span>
-                        <span className="text-right font-semibold">
-                          {formatCurrency(t.valor)}
+                        <span className={`text-right font-semibold ${isEntrada ? "text-emerald-700" : "text-rose-700"}`}>
+                          {isEntrada ? "+" : "-"}{formatCurrency(t.valor)}
                         </span>
                       </button>
                       {isOpen && (
-                        <div className="px-6 pb-5 text-sm text-[#1c1c19]">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#fcf9f4] border border-[#e5e2dd] rounded-xl p-4">
+                        <div className="px-6 pb-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#faf9f7] border border-[#f0ede8] rounded-xl p-4">
                             <div>
-                              <p className="text-xs uppercase tracking-wider text-[#414846]">
+                              <p className="text-xs font-medium text-[#6b7170] uppercase tracking-wider">
                                 Descricao
                               </p>
-                              <p className="mt-1">{t.descricao ?? "-"}</p>
+                              <p className="mt-1 text-sm">{t.descricao ?? "-"}</p>
                             </div>
                             <div>
-                              <p className="text-xs uppercase tracking-wider text-[#414846]">
+                              <p className="text-xs font-medium text-[#6b7170] uppercase tracking-wider">
                                 Documento
                               </p>
-                              <p className="mt-1">{t.documento ?? "-"}</p>
+                              <p className="mt-1 text-sm">{t.documento ?? "-"}</p>
                             </div>
                           </div>
                         </div>
@@ -276,8 +288,9 @@ export default function FinanceiroResumoPage() {
             )}
           </div>
 
+          {/* Pagination */}
           {transacoesFiltradas.length > 0 && (
-            <div className="flex flex-col gap-3 items-center justify-between text-sm text-[#414846] md:flex-row">
+            <div className="flex flex-col gap-3 items-center justify-between text-sm text-[#6b7170] md:flex-row">
               <span>
                 Mostrando {(paginaSegura - 1) * pageSize + 1}
                 {"-"}
@@ -290,7 +303,7 @@ export default function FinanceiroResumoPage() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="h-8 px-3 rounded-lg border border-[#c1c8c4]/50 disabled:opacity-50"
+                  className="h-9 px-4 rounded-lg border border-[#e5e2dd] text-sm font-medium hover:bg-[#f6f3ee] disabled:opacity-40 transition-colors"
                   onClick={() =>
                     setPageState({
                       key: pageKey,
@@ -301,12 +314,12 @@ export default function FinanceiroResumoPage() {
                 >
                   Anterior
                 </button>
-                <span className="text-[#1c1c19] font-semibold">
-                  Pagina {paginaSegura} de {totalPaginas}
+                <span className="text-[#1c1c19] font-semibold px-2">
+                  {paginaSegura} / {totalPaginas}
                 </span>
                 <button
                   type="button"
-                  className="h-8 px-3 rounded-lg border border-[#c1c8c4]/50 disabled:opacity-50"
+                  className="h-9 px-4 rounded-lg border border-[#e5e2dd] text-sm font-medium hover:bg-[#f6f3ee] disabled:opacity-40 transition-colors"
                   onClick={() =>
                     setPageState({
                       key: pageKey,

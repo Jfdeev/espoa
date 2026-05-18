@@ -225,6 +225,7 @@ export async function getRelatorioFinanceiro({
     agregacoes: {
       porMes: snapshot.porMes,
       porTipoSaida: snapshot.porTipoSaida,
+      porTipoEntrada: snapshot.porTipoEntrada,
     },
     detalhes: {
       mensalidades: snapshot.mensalidades,

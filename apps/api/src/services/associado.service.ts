@@ -55,6 +55,13 @@ export async function listAssociados() {
     .where(isNull(associado.deletedAt));
 }
 
+export async function listAssociadosByAssociacao(associacaoId: string) {
+  return db
+    .select()
+    .from(associado)
+    .where(and(eq(associado.associacaoId, associacaoId), isNull(associado.deletedAt)));
+}
+
 export async function getAssociado(id: string) {
   const [row] = await db
     .select()

@@ -1,0 +1,33 @@
+{
+  "associacaoId": "demo-associacao",
+  "generatedAt": "2026-05-15T03:00:00.000Z",
+  "edital": {
+    "id": "edital-001",
+    "titulo": "Chamada Publica PNAE 2026 - Merenda Escolar",
+    "numeroEdital": "001/2026",
+    "orgaoResponsavel": "Secretaria Municipal de Educacao",
+    "municipio": "Sao Joao",
+    "estado": "MG",
+    "dataLimite": "2026-06-10",
+    "valorTotalEstimado": 48000,
+    "status": "aberto",
+    "produtos": [
+      { "produto": "Alface", "quantidade": 800, "unidade": "kg", "precoReferencia": 4.5 },
+      { "produto": "Tomate", "quantidade": 1200, "unidade": "kg", "precoReferencia": 6 },
+      { "produto": "Cenoura", "quantidade": 600, "unidade": "kg", "precoReferencia": 5 },
+      { "produto": "Banana", "quantidade": 500, "unidade": "kg", "precoReferencia": 3.5 }
+    ]
+  },
+  "periodo": { "inicio": "2026-01-01", "fim": "2026-05-15" },
+  "producao": {
+    "quantidadeTotal": 2650,
+    "totalRegistros": 41,
+    "associadosUnicos": 7,
+    "culturasUnicas": 3,
+    "porCultura": [
+      { "cultura": "Alface", "quantidadeTotal": 950, "registros": 14, "associados": 5 },
+      { "cultura": "Tomate", "quantidadeTotal": 700, "registros": 18, "associados": 4 },
+      { "cultura": "Cenoura", "quantidadeTotal": 1000, "registros": 9, "associados": 3 }
+    ]
+  }
+}

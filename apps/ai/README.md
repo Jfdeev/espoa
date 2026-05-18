@@ -1,8 +1,13 @@
-# AI Service - Insights Financeiros
+# AI Service - Insights, Relatorios PNAE e Sugestoes
 
-Microsservico responsavel por gerar **insights financeiros** automaticos para a associacao a partir de um snapshot consolidado pelo backend.
+Microsservico responsavel por transformar dados consolidados da associacao em
+**informacoes compreensiveis**: insights financeiros (IA-01), apoio a geracao de
+relatorios PNAE (IA-02) e sugestoes de acao (IA-03).
 
-Esse servico nao acessa o banco diretamente. Ele recebe um payload com os dados ja consolidados pelo `apps/api` e devolve uma lista de insights em texto simples para serem exibidos como cards no frontend.
+Esse servico nao acessa o banco diretamente nem usa LLM. Ele recebe um payload
+com os dados ja consolidados pelo `apps/api` e devolve resultados deterministas
+em texto simples para serem exibidos no frontend. Toda saida e **apoio a
+decisao** — nunca uma decisao automatica.
 
 ## Como funciona
 
@@ -82,6 +87,86 @@ Recebe um snapshot financeiro e devolve insights.
 - `alerta` (amarelo) — atencao recomendada
 - `critico` (vermelho) — acao imediata sugerida
 
+### `POST /pnae-report` — IA-02
+
+Apoio na geracao de relatorios PNAE. Recebe a demanda do edital + a producao
+ja agregada pelo backend e devolve o material **organizado e em linguagem
+compreensivel**: cruzamento producao x demanda, nivel de prontidao, secoes
+textuais e um `textoRelatorio` pronto para ser salvo em
+`relatorio_pnae.conteudo`.
+
+**Request body** (`PnaeReportSnapshot`) — ver `sample-pnae-snapshot.json`:
+
+```json
+{
+  "associacaoId": "uuid",
+  "generatedAt": "2026-05-15T03:00:00.000Z",
+  "edital": {
+    "id": "uuid",
+    "titulo": "Chamada Publica PNAE 2026",
+    "dataLimite": "2026-06-10",
+    "status": "aberto",
+    "produtos": [
+      { "produto": "Alface", "quantidade": 800, "unidade": "kg", "precoReferencia": 4.5 }
+    ]
+  },
+  "periodo": { "inicio": "2026-01-01", "fim": "2026-05-15" },
+  "producao": {
+    "quantidadeTotal": 2650,
+    "totalRegistros": 41,
+    "associadosUnicos": 7,
+    "culturasUnicas": 3,
+    "porCultura": [
+      { "cultura": "Alface", "quantidadeTotal": 950, "registros": 14 }
+    ]
+  }
+}
+```
+
+> Se `edital.produtos` vier vazio (o schema atual de `edital_pnae` ainda nao
+> tem produtos), o servico nao quebra: ele organiza os dados de producao para
+> preenchimento manual do projeto de venda.
+
+**Response 200** (`PnaeReportResponse`): `resumoExecutivo`, `prontidao`
+(`nivel`, `coberturaMedia`, `produtosAtendidos`/`produtosTotal`), `matching`
+(por produto: `status` = `atende` | `parcial` | `sem_producao`, `gap`,
+`surplus`, `valorEstimado`), `secoes`, `alertas` e `textoRelatorio`.
+
+### `POST /suggestions` — IA-03
+
+Sugestoes de ajuste na gestao financeira e na organizacao da producao.
+**Sempre apoio, nunca decisao automatica**: cada sugestao traz `apoio: true` +
+`justificativa`, e a resposta inclui um `aviso` explicito de que a decisao
+final e da associacao.
+
+**Request body** (`SuggestionsSnapshot`) — ver `sample-suggestions-snapshot.json`:
+o snapshot financeiro (mesmo de `/insights`) em `financeiro`, opcionalmente
+`producao` (agregada) e `editaisAbertos`.
+
+**Response 200** (`SuggestionsResponse`):
+
+```json
+{
+  "associacaoId": "uuid",
+  "generatedAt": "2026-05-15T03:29:05.627Z",
+  "aviso": "Estas sao sugestoes de apoio... a decisao final e sempre da associacao.",
+  "sugestoes": [
+    {
+      "id": "fin_saldo_negativo",
+      "area": "financeiro",
+      "prioridade": "alta",
+      "titulo": "Recompor o caixa",
+      "recomendacao": "Considere priorizar a cobranca...",
+      "justificativa": "O saldo atual esta negativo em R$ 420,00.",
+      "apoio": true
+    }
+  ]
+}
+```
+
+Areas: `financeiro`, `mensalidades`, `producao`, `pnae`, `geral`.
+Prioridades: `alta`, `media`, `baixa` (resposta ordenada por prioridade).
+
 ## Variaveis de ambiente
 
 | Var | Descricao | Default |
@@ -99,8 +184,13 @@ pnpm install
 # Subir o servico
 pnpm --filter ai dev
 
-# Ou rodar a geracao de insights via terminal (sem precisar do servidor)
+# Ou rodar via terminal, sem precisar do servidor (demonstracoes)
 pnpm --filter ai insights:cli
+pnpm --filter ai pnae:cli
+pnpm --filter ai suggestions:cli
+
+# Rodar os testes
+pnpm --filter ai test
 ```
 
 ## Testar manualmente
@@ -110,4 +200,12 @@ pnpm --filter ai insights:cli
 curl -X POST http://localhost:8090/insights \
   -H "Content-Type: application/json" \
   -d @sample-snapshot.json
+
+curl -X POST http://localhost:8090/pnae-report \
+  -H "Content-Type: application/json" \
+  -d @sample-pnae-snapshot.json
+
+curl -X POST http://localhost:8090/suggestions \
+  -H "Content-Type: application/json" \
+  -d @sample-suggestions-snapshot.json
 ```

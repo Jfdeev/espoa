@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Leaf, WifiOff, Trash2, Sprout, Scale, CalendarDays, User, Plus, ArrowLeft, Pencil } from "lucide-react";
 import { toast } from "sonner";
@@ -13,6 +13,7 @@ import { syncManager } from "@/sync/manager";
 import { getDeviceId } from "@/lib/device-id";
 import { useAuthStore } from "@/store/auth.store";
 import { db } from "@/database/db";
+import api from "@/lib/api";
 import type { Associado } from "@/database/types";
 import AppLayout from "./AppLayout";
 import { adminNavItems, memberNavItems } from "./nav-items";
@@ -78,32 +79,82 @@ export default function ColheitasPage() {
   const [confirmandoId, setConfirmandoId] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const producoes = useLiveQuery(async () => {
-    if (!associacaoAtiva) return [];
-    const ids = await db.associado
-      .where("associacao_id").equals(associacaoAtiva.associacaoId)
-      .filter((a) => !a.deleted_at)
-      .primaryKeys() as string[];
-    return db.producao.filter((p) => !p.deleted_at && ids.includes(p.associado_id)).toArray();
-  }, undefined, [associacaoAtiva?.associacaoId]);
-
-  const associados = useLiveQuery<Associado[] | undefined>(
-    () => associacaoAtiva
-      ? db.associado.where("associacao_id").equals(associacaoAtiva.associacaoId).filter((a) => !a.deleted_at).toArray()
-      : Promise.resolve([] as Associado[]),
+  const producoes = useLiveQuery(
+    async () => {
+      const all = await db.producao.filter((p) => !p.deleted_at).toArray();
+      return all.sort((a, b) => a.data.localeCompare(b.data));
+    },
     undefined,
-    [associacaoAtiva?.associacaoId],
+    [],
   );
 
-  // Para o associado: encontra o próprio registro via usuario_id
-  // null = ainda carregando; undefined = carregou e não encontrou; objeto = encontrou
-  const associadoSelf = useLiveQuery<Associado | undefined | null>(
+  // Quando online, busca produções da API e popula o Dexie para exibição
+  useEffect(() => {
+    if (!online || !associacaoAtiva?.associacaoId) return;
+    api
+      .get<Array<Record<string, unknown>>>(`/producoes?associacao_id=${associacaoAtiva.associacaoId}`)
+      .then(async (res) => {
+        if (!res.data.length) return;
+        await db.producao.bulkPut(
+          res.data.map((r) => ({
+            id: r.id as string,
+            associado_id: (r.associado_id ?? r.associadoId) as string,
+            cultura: r.cultura as string,
+            quantidade: r.quantidade as number,
+            data: r.data as string,
+            version: (r.version ?? 1) as number,
+            updated_at: (r.updated_at ?? r.updatedAt ?? new Date().toISOString()) as string,
+            device_id: (r.device_id ?? r.deviceId ?? undefined) as string | undefined,
+            deleted_at: (r.deleted_at ?? r.deletedAt ?? undefined) as string | undefined,
+          })),
+        );
+      })
+      .catch(() => {/* mantém dados do Dexie */});
+  }, [online, associacaoAtiva?.associacaoId]);
+
+  // Dropdown "Quem fez a colheita": busca membros via usuario_associacao + usuario
+  const [associados, setAssociados] = useState<Array<{ id: string; nome: string; usuario_id: string | null; status: string }>>([]);
+
+  useEffect(() => {
+    if (!online || !associacaoAtiva?.associacaoId) return;
+    api
+      .get<Array<{ id: string; nome: string; usuarioId?: string; usuario_id?: string; status: string }>>(`/associacoes/${associacaoAtiva.associacaoId}/membros`)
+      .then((res) => {
+        const lista = res.data
+          .filter((m) => m.status === "ativo")
+          .map((m) => ({
+            id: m.id,
+            nome: m.nome,
+            usuario_id: m.usuario_id ?? m.usuarioId ?? null,
+            status: m.status,
+          }));
+        setAssociados(lista);
+      })
+      .catch(() => {
+        // Fallback: tenta Dexie
+        if (associacaoAtiva?.associacaoId) {
+          db.associado
+            .where("associacao_id").equals(associacaoAtiva.associacaoId)
+            .filter((a) => !a.deleted_at)
+            .toArray()
+            .then((local) => setAssociados(local.map((a) => ({ id: a.id!, nome: a.nome, usuario_id: a.usuario_id ?? null, status: a.status }))));
+        }
+      });
+  }, [online, associacaoAtiva?.associacaoId]);
+
+  // Para o associado não-admin: encontra o próprio registro via usuario_id
+  // Tenta primeiro na lista da API, depois Dexie como fallback
+  const associadoSelfFromApi = associados.find((a) => a.usuario_id === perfil?.id);
+  const associadoSelfFromDexie = useLiveQuery<Associado | undefined | null>(
     () => perfil
       ? db.associado.filter((a) => a.usuario_id === perfil.id && !a.deleted_at).first()
       : Promise.resolve(null),
     null,
     [perfil?.id],
   );
+  const associadoSelf = associadoSelfFromApi
+    ? { id: associadoSelfFromApi.id, nome: associadoSelfFromApi.nome, usuario_id: associadoSelfFromApi.usuario_id }
+    : associadoSelfFromDexie;
 
   function nomeAssociado(id: string) {
     return associados?.find((a) => a.id === id)?.nome ?? "—";
@@ -216,8 +267,8 @@ export default function ColheitasPage() {
   }
 
   const navItems = isAdmin ? adminNavItems : memberNavItems;
-  // Controla o carregamento da LISTA (precisa de producoes e associados)
-  const carregando = producoes === undefined || associados === undefined;
+  // Controla o carregamento da LISTA (precisa de producoes)
+  const carregando = producoes === undefined;
   // Controla o carregamento do FORMULÁRIO (também precisa do próprio associado, para não-admins)
   // associadoSelf === null significa ainda carregando; undefined significa carregou mas não encontrou (permite clicar e ver o toast de erro)
   const formCarregando = carregando || (!isAdmin && associadoSelf === null);

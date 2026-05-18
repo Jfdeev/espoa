@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { transacaoRepository } from "@/repositories/financeiro.repository";
 import { db } from "@/database/db";
 import { useLiveQuery } from "@/hooks/useLiveQuery";
+import { ArrowDownLeft, ArrowUpRight, BarChart3 } from "lucide-react";
 
 function getTodayInputValue() {
   const now = new Date();
@@ -66,7 +67,7 @@ export default function FinanceiroEntradaPage() {
   const [descricao, setDescricao] = useState("");
   const [documento, setDocumento] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ valor?: string; data?: string }>({});
+  const [errors, setErrors] = useState<{ valor?: string; data?: string; descricao?: string }>({});
   const [valorFormatError, setValorFormatError] = useState<string | null>(null);
 
   const saldoAtual = useLiveQuery(async () => {
@@ -97,8 +98,9 @@ export default function FinanceiroEntradaPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    const nextErrors: { valor?: string; data?: string } = {};
+    const nextErrors: { valor?: string; data?: string; descricao?: string } = {};
     if (!data) nextErrors.data = "Informe a data da entrada";
+    if (!descricao.trim()) nextErrors.descricao = "Informe uma descricao para a entrada";
     if (valorFormatError) {
       nextErrors.valor = valorFormatError;
     } else if (!valorNumero || valorNumero <= 0) {
@@ -132,120 +134,140 @@ export default function FinanceiroEntradaPage() {
 
   return (
     <AppLayout navItems={adminNavItems} title="Financeiro">
-      <div className="p-6 lg:p-12 max-w-3xl mx-auto space-y-8">
-        <header className="space-y-2">
-          <h1 className="font-headline text-3xl font-bold text-md-primary">
-            Registrar entrada
-          </h1>
-          <p className="text-[#414846]">
-            Registre as entradas financeiras da associacao. Transacoes futuras
-            sao permitidas.
-          </p>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="font-semibold text-md-primary">Entradas</span>
-            <span className="text-[#c1c8c4]">|</span>
-            <Link
-              to="/app/financeiro/saida"
-              className="text-[#414846] hover:text-md-primary"
-            >
-              Saidas
-            </Link>
-            <span className="text-[#c1c8c4]">|</span>
-            <Link
-              to="/app/financeiro/resumo"
-              className="text-[#414846] hover:text-md-primary"
-            >
-              Resumo
-            </Link>
-          </div>
-        </header>
+      <div className="p-4 lg:p-8 max-w-3xl mx-auto space-y-6">
+        {/* Navigation Tabs */}
+        <nav className="flex items-center gap-1 p-1 bg-[#f6f3ee] rounded-xl w-fit">
+          <span className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white shadow-sm text-sm font-semibold text-md-primary">
+            <ArrowDownLeft size={16} />
+            Entradas
+          </span>
+          <Link
+            to="/app/financeiro/saida"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-[#414846] hover:bg-white/60 transition-colors"
+          >
+            <ArrowUpRight size={16} />
+            Saidas
+          </Link>
+          <Link
+            to="/app/financeiro/resumo"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-[#414846] hover:bg-white/60 transition-colors"
+          >
+            <BarChart3 size={16} />
+            Resumo
+          </Link>
+        </nav>
 
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-6 bg-white rounded-2xl p-6 border border-[#c1c8c4]/30"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+
+        {/* Form */}
+        <div className="bg-white rounded-2xl border border-[#e5e2dd] shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-[#f0ede8] bg-[#fcfbf9]">
+            <h2 className="font-headline text-lg font-bold text-md-primary">
+              Registrar entrada
+            </h2>
+            <p className="text-sm text-[#6b7170] mt-0.5">
+              Registre receitas da associacao — transacoes futuras sao permitidas.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <Label htmlFor="valor" className="text-[#1c1c19] font-medium">Valor (R$) *</Label>
+                <Input
+                  id="valor"
+                  name="valor"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  className="h-11 text-lg font-semibold"
+                  value={valor}
+                  onChange={(e) => {
+                    const nextValue = sanitizeMoneyInput(e.target.value);
+                    setValor(nextValue.value);
+                    setValorFormatError(
+                      nextValue.hasComma
+                        ? "Centavos devem ser indicados com um ponto."
+                        : null,
+                    );
+                  }}
+                  aria-invalid={Boolean(errors.valor)}
+                />
+                {valorFormatError ? (
+                  <p className="text-xs text-red-600">{valorFormatError}</p>
+                ) : (
+                  errors.valor && (
+                    <p className="text-xs text-red-600">{errors.valor}</p>
+                  )
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="data" className="text-[#1c1c19] font-medium">Data da entrada *</Label>
+                <Input
+                  id="data"
+                  name="data"
+                  type="date"
+                  className="h-11"
+                  value={data}
+                  onChange={(e) => setData(e.target.value)}
+                  aria-invalid={Boolean(errors.data)}
+                />
+                {errors.data && (
+                  <p className="text-xs text-red-600">{errors.data}</p>
+                )}
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="valor">Valor (R$)</Label>
-              <Input
-                id="valor"
-                name="valor"
-                inputMode="decimal"
-                placeholder="0.00"
-                value={valor}
-                onChange={(e) => {
-                  const nextValue = sanitizeMoneyInput(e.target.value);
-                  setValor(nextValue.value);
-                  setValorFormatError(
-                    nextValue.hasComma
-                      ? "Centavos devem ser indicados com um ponto."
-                      : null,
-                  );
-                }}
-                aria-invalid={Boolean(errors.valor)}
+              <Label htmlFor="descricao" className="text-[#1c1c19] font-medium">Descricao *</Label>
+              <Textarea
+                id="descricao"
+                name="descricao"
+                placeholder="Ex: Venda de producao, doacao, cota associativa"
+                className="min-h-20 resize-none"
+                value={descricao}
+                onChange={(e) => setDescricao(e.target.value)}
+                aria-invalid={Boolean(errors.descricao)}
               />
-              {valorFormatError ? (
-                <p className="text-xs text-red-600">{valorFormatError}</p>
-              ) : (
-                errors.valor && (
-                  <p className="text-xs text-red-600">{errors.valor}</p>
-                )
+              {errors.descricao && (
+                <p className="text-xs text-red-600">{errors.descricao}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="data">Data da entrada</Label>
+              <Label htmlFor="documento" className="text-[#6b7170]">
+                Documento ou comprovante (opcional)
+              </Label>
               <Input
-                id="data"
-                name="data"
-                type="date"
-                value={data}
-                onChange={(e) => setData(e.target.value)}
-                aria-invalid={Boolean(errors.data)}
+                id="documento"
+                name="documento"
+                placeholder="Ex: Boleto, recibo, numero de protocolo"
+                value={documento}
+                onChange={(e) => setDocumento(e.target.value)}
               />
-              {errors.data && (
-                <p className="text-xs text-red-600">{errors.data}</p>
-              )}
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="documento">
-              Documento ou comprovante (opcional)
-            </Label>
-            <Input
-              id="documento"
-              name="documento"
-              placeholder="Ex: Boleto, recibo, numero de protocolo"
-              value={documento}
-              onChange={(e) => setDocumento(e.target.value)}
-            />
-          </div>
+            {showNegativeWarning && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-start gap-3">
+                <span className="text-amber-500 mt-0.5">⚠️</span>
+                <span>
+                  Essa entrada ainda deixa o saldo estimado negativo (
+                  {formatCurrency(saldoProjetado)}). Nenhuma acao sera bloqueada.
+                </span>
+              </div>
+            )}
 
-          <div className="space-y-2">
-            <Label htmlFor="descricao">Descricao (opcional)</Label>
-            <Textarea
-              id="descricao"
-              name="descricao"
-              placeholder="Detalhes sobre a entrada"
-              value={descricao}
-              onChange={(e) => setDescricao(e.target.value)}
-            />
-          </div>
-
-          {showNegativeWarning && (
-            <div className="rounded-lg border border-[#E67E22]/30 bg-[#fff4e6] px-4 py-3 text-sm text-[#8a4b14]">
-              Essa entrada ainda deixa o saldo estimado negativo (
-              {formatCurrency(saldoProjetado)}). Nenhuma acao sera bloqueada.
+            <div className="flex items-center justify-end pt-2">
+              <Button
+                type="submit"
+                disabled={loading}
+                className="h-11 px-8 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow-sm"
+              >
+                {loading ? "Salvando..." : "Salvar entrada"}
+              </Button>
             </div>
-          )}
-
-          <div className="flex items-center justify-end gap-3">
-            <Button type="submit" disabled={loading}>
-              {loading ? "Salvando..." : "Salvar entrada"}
-            </Button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </AppLayout>
   );
