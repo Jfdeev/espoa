@@ -8,6 +8,7 @@ import {
   Calendar,
   Users,
   Banknote,
+  Leaf,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -51,6 +52,12 @@ const quickActions: QuickAction[] = [
     label: "Financeiro",
     href: "/app/financeiro/entrada",
   },
+  {
+    id: "producao",
+    icon: <Leaf size={22} />,
+    label: "Produção",
+    href: "/app/colheitas",
+  },
   { id: "reuniao", icon: <Calendar size={22} />, label: "Agendar Reunião" },
 ];
 
@@ -77,14 +84,13 @@ export default function AdminDashboard() {
   }, [online, assocId]);
 
   // Fallback Dexie — usado quando offline ou API falhou
-  const totalAssociadosLocal = useLiveQuery(async () => {
-    if (!assocId) return 0;
-    return db.usuario_associacao
-      .where("associacao_id")
-      .equals(assocId)
-      .filter((v) => v.status === "ativo")
-      .count();
-  }, 0, [assocId]);
+  const totalAssociadosLocal = useLiveQuery(
+    () => assocId
+      ? db.associado.where("associacao_id").equals(assocId).filter((a) => !a.deleted_at).count()
+      : Promise.resolve(0),
+    0,
+    [assocId],
+  );
 
   const totalCaixaLocal = useLiveQuery(async () => {
     if (!assocId) return 0;
@@ -106,15 +112,18 @@ export default function AdminDashboard() {
 
   const atividadesRecentesLocal = useLiveQuery(async () => {
     if (!assocId) return [];
-    const vinculos = await db.usuario_associacao
-      .where("associacao_id")
-      .equals(assocId)
-      .filter((v) => v.status === "ativo")
+    const associados = await db.associado
+      .where("associacao_id").equals(assocId)
+      .filter((a) => !a.deleted_at)
       .toArray();
-    return vinculos
+    return associados
       .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
       .slice(0, 5)
-      .map((v) => ({ id: v.id, descricao: v.usuario_id.slice(0, 8), data: v.updated_at }));
+      .map((a) => ({
+        id: a.id ?? a.nome,
+        descricao: a.nome,
+        data: a.updated_at,
+      }));
   }, [], [assocId]);
 
   // Resolve dados: API quando disponível, Dexie como fallback

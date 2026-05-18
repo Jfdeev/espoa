@@ -1,4 +1,4 @@
-import { db, syncQueue, usuarioAssociacao, conflictLog } from "@espoa/database";
+import { db, syncQueue, usuarioAssociacao, conflictLog, associado, usuario } from "@espoa/database";
 import { and, eq } from "drizzle-orm";
 import { normalizePayload, toCamelObject, toSnakeObject } from "../utils/case-mapper";
 import { syncTables } from "../sync/sync.tables";
@@ -168,6 +168,8 @@ async function applyVinculoIntent(tx: any, op: PushOperation, deviceId: string) 
         deviceId,
       })
       .where(eq(usuarioAssociacao.id, current.id));
+
+    await ensureAssociadoRecord(tx, current.usuarioId, current.associacaoId, now);
     return;
   }
 
@@ -258,6 +260,7 @@ async function applyVinculoIntent(tx: any, op: PushOperation, deviceId: string) 
           deviceId,
         })
         .where(eq(usuarioAssociacao.id, current.id));
+      await ensureAssociadoRecord(tx, current.usuarioId, current.associacaoId, now);
     } else {
       await tx
         .update(usuarioAssociacao)
@@ -274,6 +277,32 @@ async function applyVinculoIntent(tx: any, op: PushOperation, deviceId: string) 
 
   // Unknown intent — write conflict so client is notified
   await writeConflictLog(tx, deviceId, op, current, `Intent desconhecida: ${String(intent)}`);
+}
+
+async function ensureAssociadoRecord(tx: any, usuarioId: string, associacaoId: string, now: Date) {
+  const [jaExiste] = await tx
+    .select({ id: associado.id })
+    .from(associado)
+    .where(and(eq(associado.usuarioId, usuarioId), eq(associado.associacaoId, associacaoId)))
+    .limit(1);
+
+  if (!jaExiste) {
+    const [membro] = await tx
+      .select({ nome: usuario.nome })
+      .from(usuario)
+      .where(eq(usuario.id, usuarioId))
+      .limit(1);
+
+    if (membro) {
+      await tx.insert(associado).values({
+        nome: membro.nome,
+        usuarioId,
+        associacaoId,
+        dataEntrada: now.toISOString().slice(0, 10),
+        status: "ativo",
+      });
+    }
+  }
 }
 
 async function writeConflictLog(

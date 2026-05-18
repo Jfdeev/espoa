@@ -1,4 +1,4 @@
-import { db, associacao } from "@espoa/database";
+import { db, associacao, usuarioAssociacao, associado, usuario } from "@espoa/database";
 import { eq, and, isNull } from "drizzle-orm";
 
 export async function createAssociacao(data: {
@@ -40,6 +40,30 @@ export async function createAssociacao(data: {
       deviceId: data.deviceId ?? null,
     })
     .returning();
+
+  if (data.createdBy) {
+    const [creator] = await db
+      .select({ nome: usuario.nome })
+      .from(usuario)
+      .where(eq(usuario.id, data.createdBy))
+      .limit(1);
+
+    await db.insert(usuarioAssociacao).values({
+      usuarioId: data.createdBy,
+      associacaoId: created.id,
+      role: "adm",
+      status: "ativo",
+      joinedAt: new Date(),
+    });
+
+    await db.insert(associado).values({
+      nome: creator?.nome ?? "",
+      usuarioId: data.createdBy,
+      associacaoId: created.id,
+      dataEntrada: new Date().toISOString().slice(0, 10),
+      status: "ativo",
+    });
+  }
 
   return { data: created };
 }

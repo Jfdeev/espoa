@@ -1,4 +1,4 @@
-import { db, usuario, associacao, usuarioAssociacao } from "@espoa/database";
+import { db, usuario, associacao, usuarioAssociacao, associado } from "@espoa/database";
 import { and, eq, ilike, or } from "drizzle-orm";
 import bcryptjs from "bcryptjs";
 import { randomBytes } from "node:crypto";
@@ -389,6 +389,14 @@ export async function criarAssociacao(
     joinedAt: new Date(),
   });
 
+  await db.insert(associado).values({
+    nome: me.nome,
+    usuarioId: me.id,
+    associacaoId: novaAssociacao.id,
+    dataEntrada: new Date().toISOString().slice(0, 10),
+    status: "ativo",
+  });
+
   res.status(201).json({ associacao: novaAssociacao });
 }
 
@@ -478,6 +486,27 @@ export async function gerenciarVinculo(
       ),
     )
     .returning();
+
+  if (acao === "aprovar") {
+    const jaExiste = await db
+      .select({ id: associado.id })
+      .from(associado)
+      .where(and(eq(associado.usuarioId, userId), eq(associado.associacaoId, assocId)))
+      .limit(1);
+
+    if (jaExiste.length === 0) {
+      const [membro] = await getUserById(userId);
+      if (membro) {
+        await db.insert(associado).values({
+          nome: membro.nome,
+          usuarioId: membro.id,
+          associacaoId: assocId,
+          dataEntrada: new Date().toISOString().slice(0, 10),
+          status: "ativo",
+        });
+      }
+    }
+  }
 
   res.json({ vinculo: atualizado });
 }
