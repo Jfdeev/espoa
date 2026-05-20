@@ -16,6 +16,8 @@ import { suggestionsRouter } from "./routes/suggestions.routes";
 import { editalPnaeRouter } from "./routes/edital-pnae.routes";
 import { relatoriosRouter } from "./routes/relatorios.routes";
 import { ataRouter } from "./routes/ata.routes";
+import { transparenciaRouter } from "./routes/transparencia.routes";
+import { avisoRouter } from "./routes/aviso.routes";
 
 const app = express();
 
@@ -38,5 +40,7 @@ app.use(suggestionsRouter);
 app.use(editalPnaeRouter);
 app.use(relatoriosRouter);
 app.use(ataRouter);
+app.use(transparenciaRouter);
+app.use(avisoRouter);
 
 export { app };

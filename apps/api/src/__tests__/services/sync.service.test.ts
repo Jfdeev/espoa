@@ -69,7 +69,17 @@ describe("runSync", () => {
       },
     ];
     await runSync({ deviceId: "device-42", push, lastPulledAt: null });
-    expect(applyPushOperations).toHaveBeenCalledWith("device-42", push);
+    expect(applyPushOperations).toHaveBeenCalledWith("device-42", push, undefined);
+  });
+
+  it("forwards userId to applyPushOperations for authorization", async () => {
+    await runSync({
+      deviceId: "device-1",
+      userId: "user-abc",
+      push: [],
+      lastPulledAt: null,
+    });
+    expect(applyPushOperations).toHaveBeenCalledWith("device-1", [], "user-abc");
   });
 
   it("passes lastPulledAt to pullRowsByTable", async () => {

@@ -10,4 +10,7 @@ export default defineConfig({
   dbCredentials: {
     url: process.env.DATABASE_URL!,
   },
+  // Ignora tabelas internas do drizzle-kit no diff do `push`
+  // (sem isso, ele tenta DROP TABLE drizzle_migrations)
+  tablesFilter: ["!drizzle_migrations", "!__drizzle_migrations"],
 });

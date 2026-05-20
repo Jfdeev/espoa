@@ -3,6 +3,8 @@ import { and, eq } from "drizzle-orm";
 import { normalizePayload, toCamelObject, toSnakeObject } from "../utils/case-mapper";
 import { syncTables } from "../sync/sync.tables";
 import type { PushOperation } from "../sync/sync.types";
+import { authorizePushOperation } from "./sync-push.authz";
+import { notifyMembersOfNewAta } from "./ata-notifications.service";
 
 export function isValidOperation(
   op: Partial<PushOperation>,
@@ -21,11 +23,31 @@ export function isValidOperation(
 export async function applyPushOperations(
   deviceId: string,
   ops: PushOperation[],
+  userId?: string,
 ) {
   const ackedOperationIds: string[] = [];
 
   for (const op of ops) {
     if (!isValidOperation(op)) {
+      continue;
+    }
+
+    // Authorize before any DB writes — espelha as regras dos middlewares REST.
+    // Operações negadas geram conflict_log para o cliente e são ack'd para parar retries.
+    const authz = await authorizePushOperation(userId, op);
+    if (!authz.ok) {
+      try {
+        await writeConflictLog(
+          db,
+          deviceId,
+          op,
+          null,
+          `Operação negada: ${authz.reason}`,
+        );
+      } catch {
+        // conflict_log write failed — ack anyway so client unblocks
+      }
+      ackedOperationIds.push(op.operationId);
       continue;
     }
 
@@ -56,6 +78,8 @@ export async function applyPushOperations(
 
     try {
       await applyOperation(db, op, deviceId);
+      // Side-effects pós-aplicação (notificações etc) — fire-and-forget
+      void runPostApplyHooks(op);
     } catch (err) {
       console.error(
         `[sync-push] applyOperation failed for op ${op.operationId} (${op.tableName}):`,
@@ -72,6 +96,23 @@ export async function applyPushOperations(
   }
 
   return ackedOperationIds;
+}
+
+async function runPostApplyHooks(op: PushOperation): Promise<void> {
+  try {
+    if (op.tableName === "ata" && op.operation === "create") {
+      const payload = toCamelObject(op.payload) as Record<string, any>;
+      if (payload.associacaoId) {
+        await notifyMembersOfNewAta({
+          associacaoId: payload.associacaoId,
+          tituloAta: payload.titulo ?? "Nova ata",
+          dataAta: payload.data ?? "",
+        });
+      }
+    }
+  } catch (err) {
+    console.error("[sync-push] post-apply hook error:", err);
+  }
 }
 
 async function applyOperation(tx: any, op: PushOperation, deviceId: string) {

@@ -11,6 +11,7 @@ export async function runSync(params: {
   const ackedOperationIds = await applyPushOperations(
     params.deviceId,
     params.push,
+    params.userId,
   );
 
   const [pulled, conflictLogs] = await Promise.all([

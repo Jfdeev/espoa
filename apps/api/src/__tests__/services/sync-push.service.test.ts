@@ -72,6 +72,7 @@ vi.mock("@espoa/database", () => {
       status: "status",
     },
     ata: { id: "id" },
+    aviso: { id: "id" },
     mensalidade: { id: "id" },
     producao: { id: "id" },
     transacaoFinanceira: { id: "id" },
@@ -83,6 +84,13 @@ vi.mock("@espoa/database", () => {
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((a, b) => ({ eq: [a, b] })),
   and: vi.fn((...args: any[]) => ({ and: args })),
+  isNull: vi.fn((a) => ({ isNull: a })),
+}));
+
+// Authorize-always mock for the new push authz layer — tests in this file
+// exercise the apply path; authz is covered separately.
+vi.mock("../../services/sync-push.authz", () => ({
+  authorizePushOperation: vi.fn(async () => ({ ok: true })),
 }));
 
 import { isValidOperation, applyPushOperations } from "../../services/sync-push.service";

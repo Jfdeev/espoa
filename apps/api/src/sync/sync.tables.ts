@@ -2,6 +2,7 @@ import {
   associado,
   associacao,
   ata,
+  aviso,
   editalPnae,
   mensalidade,
   producao,
@@ -19,6 +20,7 @@ export const syncTables = {
   producao,
   usuario_associacao: usuarioAssociacao,
   edital_pnae: editalPnae,
+  aviso,
 } as const;
 
 export const syncTableNames = Object.keys(syncTables) as SyncTableName[];
@@ -33,5 +35,6 @@ export function createEmptyPulledRows(): PulledRows {
     producao: [],
     usuario_associacao: [],
     edital_pnae: [],
+    aviso: [],
   };
 }

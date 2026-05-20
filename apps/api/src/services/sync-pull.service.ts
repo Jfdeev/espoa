@@ -8,6 +8,8 @@ import {
   associacao as associacaoTable,
   usuarioAssociacao as usuarioAssociacaoTable,
   transacaoFinanceira as transacaoFinanceiraTable,
+  aviso as avisoTable,
+  ata as ataTable,
 } from "@espoa/database";
 import { and, eq, gt, inArray, getTableColumns } from "drizzle-orm";
 import {
@@ -114,10 +116,38 @@ async function getPulledRows(
 
   if (tableName === "producao") return fetchProducao(assocIds, lastPulledAt);
 
+  // aviso: só pull das associações do usuário
+  if (tableName === "aviso") {
+    if (assocIds.length === 0) return [];
+    const rows = lastPulledAt
+      ? await db
+          .select()
+          .from(avisoTable)
+          .where(and(inArray(avisoTable.associacaoId, assocIds), gt(avisoTable.updatedAt, lastPulledAt)))
+      : await db
+          .select()
+          .from(avisoTable)
+          .where(inArray(avisoTable.associacaoId, assocIds));
+    return rows.map((row: Record<string, unknown>) => toSnakeObject(row));
+  }
+
+  // ata: só pull das associações do usuário (evita vazamento entre associações)
+  if (tableName === "ata") {
+    if (assocIds.length === 0) return [];
+    const rows = lastPulledAt
+      ? await db
+          .select()
+          .from(ataTable)
+          .where(and(inArray(ataTable.associacaoId, assocIds), gt(ataTable.updatedAt, lastPulledAt)))
+      : await db
+          .select()
+          .from(ataTable)
+          .where(inArray(ataTable.associacaoId, assocIds));
+    return rows.map((row: Record<string, unknown>) => toSnakeObject(row));
+  }
+
   const assocConfig = ASSOC_TABLE_CONFIG[tableName];
   if (assocConfig) return fetchByAssocIds(assocConfig, assocIds, lastPulledAt);
-
-  // ata: sem associacao_id no schema por ora
   const table = syncTables[tableName] as any;
   const rows = lastPulledAt
     ? await db.select().from(table).where(gt(table.updatedAt, lastPulledAt))

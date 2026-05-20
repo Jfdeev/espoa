@@ -9,6 +9,17 @@ vi.mock("../../middleware/auth.middleware", () => ({
   }),
 }));
 
+vi.mock("../../middleware/admin.guard", () => ({
+  requireAdminFromBody: vi.fn((_req: any, _res: any, next: any) => next()),
+  requireAdminFromResource: vi.fn(
+    () => (_req: any, _res: any, next: any) => next(),
+  ),
+  requireAdminOfAssociacao: vi.fn(
+    () => (_req: any, _res: any, next: any) => next(),
+  ),
+  ensureUserIsAdmin: vi.fn(async () => true),
+}));
+
 vi.mock("../../controllers/auth.controller", () => ({
   register: vi.fn(),
   login: vi.fn(),

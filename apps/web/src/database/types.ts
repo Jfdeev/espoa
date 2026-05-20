@@ -47,10 +47,23 @@ export interface Ata {
   data: string;
   participantes?: string | null;
   local?: string | null;
+  resumo_ia?: string | null;
   version: number;
   updated_at: string;
   device_id?: string;
   deleted_at?: string;
+}
+
+export interface Aviso {
+  id?: string;
+  associacao_id: string;
+  titulo: string;
+  mensagem: string;
+  expira_em?: string | null;
+  version: number;
+  updated_at: string;
+  device_id?: string;
+  deleted_at?: string | null;
 }
 
 export interface Producao {

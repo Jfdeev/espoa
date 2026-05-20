@@ -10,7 +10,9 @@ import {
   Copy,
   Check,
   WifiOff,
+  FileText,
 } from "lucide-react";
+import { ComprovanteMensalidade } from "@/components/ComprovanteMensalidade";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
@@ -118,10 +120,12 @@ function useMensalidadesDoUsuario(usuarioId: string | undefined) {
 
 function AssociadoView() {
   const perfil = useAuthStore((s) => s.perfil);
+  const associacaoAtiva = useAuthStore((s) => s.associacaoAtiva);
   const [gerando, setGerando] = useState(false);
   const [verificando, setVerificando] = useState(false);
   const [billing, setBillingState] = useState<PixBillingData | null>(loadBilling);
   const [copiado, setCopiado] = useState(false);
+  const [comprovanteId, setComprovanteId] = useState<string | null>(null);
 
   function setBilling(b: PixBillingData | null) {
     saveBilling(b);
@@ -382,12 +386,48 @@ function AssociadoView() {
                   <span className="font-bold text-[#01261f]">
                     {formatCurrency(m.valor)}
                   </span>
+                  {m.id && m.data_pagamento && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setComprovanteId(m.id!)}
+                      className="h-8 px-2 text-xs gap-1"
+                      title="Baixar comprovante"
+                    >
+                      <FileText size={14} />
+                      <span className="hidden sm:inline">Comprovante</span>
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {comprovanteId &&
+        (() => {
+          const m = historico.find((h) => h.id === comprovanteId);
+          if (!m || !m.data_pagamento) return null;
+          return (
+            <ComprovanteMensalidade
+              open
+              onClose={() => setComprovanteId(null)}
+              data={{
+                numero: m.id?.slice(0, 8).toUpperCase() ?? "—",
+                nomeMembro: perfil?.nome ?? "Associado",
+                cpfMembro: perfil?.cpf ?? null,
+                nomeAssociacao:
+                  associacaoAtiva?.associacaoNome ?? "Associação",
+                valor: m.valor,
+                dataPagamento: m.data_pagamento,
+                mesReferencia: m.data_pagamento.slice(0, 7),
+                formaPagamento: m.forma_pagamento ?? null,
+              }}
+            />
+          );
+        })()}
     </div>
   );
 }
