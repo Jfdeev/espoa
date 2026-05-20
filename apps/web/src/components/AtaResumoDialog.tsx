@@ -33,21 +33,23 @@ export function AtaResumoDialog({
   useEffect(() => {
     if (!open || !ataId) return;
     let cancelled = false;
-    setLoading(true);
-    setResumo(null);
-    setErro(null);
-    setCached(false);
 
-    api
-      .post<{ resumo: string; cached: boolean }>(`/atas/${ataId}/resumo`)
-      .then(({ data }) => {
+    async function load() {
+      setLoading(true);
+      setResumo(null);
+      setErro(null);
+      setCached(false);
+      try {
+        const { data } = await api.post<{ resumo: string; cached: boolean }>(
+          `/atas/${ataId}/resumo`,
+        );
         if (cancelled) return;
         setResumo(data.resumo);
         setCached(data.cached);
-      })
-      .catch((err) => {
+      } catch (err) {
         if (cancelled) return;
-        const code = err?.response?.data?.error;
+        const code = (err as { response?: { data?: { error?: string } } })
+          ?.response?.data?.error;
         const msg =
           code === "ia_nao_configurada"
             ? "O resumo por IA ainda não está configurado neste ambiente."
@@ -57,11 +59,12 @@ export function AtaResumoDialog({
             ? "Você precisa ser membro ativo para ver o resumo desta ata."
             : "Erro ao buscar o resumo.";
         setErro(msg);
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    }
 
+    void load();
     return () => {
       cancelled = true;
     };

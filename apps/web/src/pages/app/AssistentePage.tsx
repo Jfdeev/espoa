@@ -76,8 +76,9 @@ export default function AssistentePage() {
         history,
       });
       setMessages((prev) => [...prev, makeMessage("assistant", reply)]);
-    } catch (err: any) {
-      const code = err?.response?.data?.error;
+    } catch (err) {
+      const code = (err as { response?: { data?: { error?: string } } })
+        ?.response?.data?.error;
       const msg =
         code === "ia_nao_configurada"
           ? "O assistente ainda não está configurado neste ambiente."

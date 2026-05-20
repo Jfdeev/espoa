@@ -73,8 +73,9 @@ export function ResumoMesCard() {
       });
       setResumo(data.resumo);
       saveStored(associacaoAtiva.associacaoId, data.resumo);
-    } catch (err: any) {
-      const code = err?.response?.data?.error;
+    } catch (err) {
+      const code = (err as { response?: { data?: { error?: string } } })
+        ?.response?.data?.error;
       if (code === "ia_nao_configurada") {
         // Sem IA configurada: esconde o card silenciosamente
         setSilenciado(true);

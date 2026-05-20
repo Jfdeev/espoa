@@ -64,10 +64,11 @@ export default function PerfilPage() {
       setPerfil(data.usuario, vinculos);
       setSucesso(true);
       setTimeout(() => setSucesso(false), 3000);
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as { response?: { data?: { error?: string } }; message?: string };
       const message =
-        err?.response?.data?.error ??
-        err?.message ??
+        e?.response?.data?.error ??
+        e?.message ??
         "Não foi possível atualizar seu perfil.";
       setErro(String(message));
     } finally {

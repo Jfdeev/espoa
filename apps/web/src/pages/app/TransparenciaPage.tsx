@@ -89,27 +89,32 @@ export default function TransparenciaPage() {
 
   useEffect(() => {
     if (!associacaoAtiva) return;
+    const assocAtiva = associacaoAtiva;
     let cancelled = false;
-    setLoading(true);
-    setErro(null);
-    fetchTransparencia({
-      associacaoId: associacaoAtiva.associacaoId,
-      periodo,
-    })
-      .then((r) => {
+
+    async function load() {
+      setLoading(true);
+      setErro(null);
+      try {
+        const r = await fetchTransparencia({
+          associacaoId: assocAtiva.associacaoId,
+          periodo,
+        });
         if (!cancelled) setData(r);
-      })
-      .catch((e) => {
+      } catch (e) {
         if (cancelled) return;
+        const err = e as { response?: { data?: { error?: string } }; message?: string };
         const message =
-          e?.response?.data?.error ??
-          e?.message ??
+          err?.response?.data?.error ??
+          err?.message ??
           "Não foi possível carregar a transparência.";
         setErro(String(message));
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    }
+
+    void load();
     return () => {
       cancelled = true;
     };
