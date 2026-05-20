@@ -3,6 +3,7 @@ import { and, eq, ilike, or } from "drizzle-orm";
 import bcryptjs from "bcryptjs";
 import { randomBytes } from "node:crypto";
 import { signToken } from "../lib/jwt";
+import { sendNotificationEmail, emailTemplates } from "../lib/email";
 import type { AuthenticatedRequest } from "../middleware/auth.middleware";
 import type { Request, Response } from "express";
 
@@ -508,7 +509,47 @@ export async function gerenciarVinculo(
     }
   }
 
+  // Fire-and-forget: notificar membro sobre o resultado da decisão
+  void notificarMembroSobreVinculo(userId, assocId, acao);
+
   res.json({ vinculo: atualizado });
+}
+
+async function notificarMembroSobreVinculo(
+  membroUserId: string,
+  associacaoId: string,
+  acao: "aprovar" | "rejeitar",
+) {
+  try {
+    const [membro] = await getUserById(membroUserId);
+    if (!membro?.email) return;
+
+    const [assoc] = await db
+      .select({ nome: associacao.nome })
+      .from(associacao)
+      .where(eq(associacao.id, associacaoId))
+      .limit(1);
+    if (!assoc) return;
+
+    const tpl =
+      acao === "aprovar"
+        ? emailTemplates.vinculoAprovado({
+            nomeMembro: membro.nome ?? "membro",
+            nomeAssociacao: assoc.nome,
+          })
+        : emailTemplates.vinculoRejeitado({
+            nomeMembro: membro.nome ?? "membro",
+            nomeAssociacao: assoc.nome,
+          });
+
+    sendNotificationEmail({
+      to: membro.email,
+      subject: tpl.subject,
+      html: tpl.html,
+    });
+  } catch (err) {
+    console.error("[notificarMembroSobreVinculo] erro:", err);
+  }
 }
 
 // ─── Vínculos da Associação ───────────────────────────────────────────────────

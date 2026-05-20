@@ -10,6 +10,9 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth.store";
 import { SyncStatusBadge } from "@/components/SyncStatusBadge";
+import { MensalidadeStatusBadge } from "@/components/MensalidadeStatusBadge";
+import { AssociacaoSwitcher } from "@/components/AssociacaoSwitcher";
+import { MemberBottomNav } from "@/components/MemberBottomNav";
 import {
   Dialog,
   DialogContent,
@@ -156,19 +159,29 @@ export default function AppLayout({ children, navItems, title }: AppLayoutProps)
     <div className="min-h-screen bg-[#fcf9f4] text-[#1c1c19] font-body antialiased">
       {/* ── Desktop Sidebar ─────────────────────────────────── */}
       <nav className="hidden lg:flex flex-col h-screen w-72 fixed left-0 top-0 bg-[#F5F2ED] border-r border-[#1A3C34]/10 z-50 p-6">
-        <div className="flex items-center gap-4 mb-10">
-          <ProfileAvatar url={perfil?.avatarUrl} />
+        <div className="mb-3 -mx-2">
+          <AssociacaoSwitcher className="w-full" />
+        </div>
+        <Link
+          to="/app/perfil"
+          className="flex items-center gap-3 mb-8 -m-2 p-2 rounded-lg hover:bg-[#1A3C34]/5 transition-colors"
+          title="Editar perfil"
+        >
+          <ProfileAvatar url={perfil?.avatarUrl} size="sm" />
           <div className="min-w-0">
-            <h2 className="font-headline font-bold text-base text-[#1A3C34] leading-tight truncate">
-              {appTitle}
-            </h2>
-            <p className="font-label text-sm text-[#1A3C34]/60 truncate">
+            <p className="font-label text-sm font-medium text-[#1A3C34] truncate">
               {perfil?.nome ?? ""}
             </p>
+            <p className="font-label text-xs text-[#1A3C34]/60">
+              Editar perfil
+            </p>
           </div>
-        </div>
+        </Link>
 
         <NavList items={navItems} currentPath={location.pathname} />
+        {associacaoAtiva?.role === "associado" && (
+          <MensalidadeStatusBadge className="mb-2" />
+        )}
         <SyncStatusBadge className="px-2 py-2 mb-1" />
         <SettingsLink />
         <LogoutButton />
@@ -184,13 +197,19 @@ export default function AppLayout({ children, navItems, title }: AppLayoutProps)
           <Menu size={24} />
         </button>
 
-        <span className="font-headline text-lg font-bold text-[#1A3C34] truncate max-w-[180px]">
-          {appTitle}
-        </span>
+        <AssociacaoSwitcher compact />
+
+        {/* appTitle preservado para a11y/title da página (não exibido) */}
+        <span className="sr-only">{appTitle}</span>
 
         <div className="flex items-center gap-2">
+          {associacaoAtiva?.role === "associado" && (
+            <MensalidadeStatusBadge variant="compact" />
+          )}
           <SyncStatusBadge />
-          <ProfileAvatar url={perfil?.avatarUrl} size="sm" />
+          <Link to="/app/perfil" title="Editar perfil">
+            <ProfileAvatar url={perfil?.avatarUrl} size="sm" />
+          </Link>
         </div>
       </header>
 
@@ -200,8 +219,8 @@ export default function AppLayout({ children, navItems, title }: AppLayoutProps)
           <div className="absolute inset-0 bg-black/40" onClick={closeDrawer} />
 
           <div className="relative w-72 h-full bg-[#F5F2ED] flex flex-col p-6 shadow-xl">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="font-headline font-bold text-[#1A3C34]">{appTitle}</h2>
+            <div className="flex items-center justify-between mb-4">
+              <span className="font-headline font-bold text-[#1A3C34]">Menu</span>
               <button
                 onClick={closeDrawer}
                 className="p-2 rounded-full hover:bg-[#1A3C34]/5 transition-colors"
@@ -211,7 +230,14 @@ export default function AppLayout({ children, navItems, title }: AppLayoutProps)
               </button>
             </div>
 
+            <div className="mb-6 -mx-2">
+              <AssociacaoSwitcher className="w-full" />
+            </div>
+
             <NavList items={navItems} currentPath={location.pathname} onNavigate={closeDrawer} />
+            {associacaoAtiva?.role === "associado" && (
+              <MensalidadeStatusBadge className="mb-2" />
+            )}
             <SettingsLink onClick={closeDrawer} />
             <LogoutButton onClick={closeDrawer} />
           </div>
@@ -219,7 +245,18 @@ export default function AppLayout({ children, navItems, title }: AppLayoutProps)
       )}
 
       {/* ── Main Content ─────────────────────────────────────── */}
-      <main className="lg:ml-72">{children}</main>
+      <main
+        className={cn(
+          "lg:ml-72",
+          // Espaço para a bottom nav do membro em mobile
+          associacaoAtiva?.role === "associado" && "pb-20 lg:pb-0",
+        )}
+      >
+        {children}
+      </main>
+
+      {/* ── Member Bottom Nav (mobile only) ──────────────────── */}
+      {associacaoAtiva?.role === "associado" && <MemberBottomNav />}
     </div>
   );
 }

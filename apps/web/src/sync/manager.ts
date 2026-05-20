@@ -17,6 +17,7 @@ const tableMap = {
   producao: db.producao,
   usuario_associacao: db.usuario_associacao,
   edital_pnae: db.edital_pnae,
+  aviso: db.aviso,
 } as const;
 
 const tableNames = Object.keys(tableMap) as SyncTableName[];

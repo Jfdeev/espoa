@@ -9,7 +9,7 @@ import AppPage from "./pages/app/AppPage";
 import AssociadosPage from "./pages/app/AssociadosPage";
 import EditaisPage from "./pages/app/EditaisPage";
 import EditalDetailPage from "./pages/app/EditalDetailPage";
-import AtasPage from "./pages/app/AtasPage";
+import AtasRoute from "./pages/app/AtasRoute";
 import MensalidadesPage from "./pages/app/MensalidadesPage";
 import RelatoriosPage from "./pages/app/RelatoriosPage";
 import ConfiguracoesPage from "./pages/app/ConfiguracoesPage";
@@ -20,6 +20,10 @@ import FinanceiroSaidaPage from "./pages/app/FinanceiroSaidaPage";
 import FinanceiroResumoPage from "./pages/app/FinanceiroResumoPage";
 import InsightsAdminPage from "./pages/app/InsightsAdminPage";
 import InsightsMemberPage from "./pages/app/InsightsMemberPage";
+import TransparenciaPage from "./pages/app/TransparenciaPage";
+import PerfilPage from "./pages/app/PerfilPage";
+import AvisosPage from "./pages/app/AvisosPage";
+import AssistentePage from "./pages/app/AssistentePage";
 import SolicitacoesPage from "./pages/SolicitacoesPage";
 import AuthGuard from "./components/AuthGuard";
 import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
@@ -70,8 +74,12 @@ function App() {
               path="/app/editais/:editalId"
               element={<EditalDetailPage />}
             />
-            <Route path="/app/atas" element={<AtasPage />} />
+            <Route path="/app/atas" element={<AtasRoute />} />
             <Route path="/app/mensalidades" element={<MensalidadesPage />} />
+            <Route path="/app/transparencia" element={<TransparenciaPage />} />
+            <Route path="/app/perfil" element={<PerfilPage />} />
+            <Route path="/app/avisos" element={<AvisosPage />} />
+            <Route path="/app/assistente" element={<AssistentePage />} />
             <Route path="/app/relatorios" element={<RelatoriosPage />} />
             <Route path="/app/configuracoes" element={<ConfiguracoesPage />} />
             <Route path="/debug/sync" element={<DebugSyncPage />} />

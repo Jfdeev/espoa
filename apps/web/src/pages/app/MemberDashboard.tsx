@@ -1,9 +1,11 @@
-import { Plus, BarChart3, Package, CloudSun, Leaf } from "lucide-react";
+import { Plus, BanknoteArrowUp, Leaf, PieChart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth.store";
 import { db } from "@/database/db";
 import { useLiveQuery } from "@/hooks/useLiveQuery";
 import { cn } from "@/lib/utils";
+import { ResumoMesCard } from "@/components/ResumoMesCard";
+import { AvisosMembroCard } from "@/components/AvisosMembroCard";
 
 type CardVariant = "primary" | "default";
 
@@ -21,32 +23,25 @@ const actionCards: ActionCardData[] = [
   {
     id: "colheita",
     icon: <Plus size={28} />,
-    label: "Registrar Colheita",
+    label: "Registrar Produção",
     description: "Registre seus rendimentos e métricas mais recentes.",
     href: "/app/colheitas",
     state: { openForm: true },
     variant: "primary",
   },
   {
-    id: "pagamento",
-    icon: <BarChart3 size={28} />,
-    label: "Realizar Pagamento",
-    description: "Analise o desempenho da temporada.",
-    href: "/app/pagamentos",
+    id: "transparencia",
+    icon: <PieChart size={28} />,
+    label: "Para onde vai seu dinheiro",
+    description: "Veja como a associação usa o que arrecada.",
+    href: "/app/transparencia",
   },
   {
-    id: "inventario",
-    icon: <Package size={28} />,
-    label: "Inventário Coletivo",
-    description: "Veja os produtos da associação que sobraram.",
-    href: "/app/inventario",
-  },
-  {
-    id: "clima",
-    icon: <CloudSun size={28} />,
-    label: "Clima Local",
-    description: "Planeje em torno das condições climáticas futuras.",
-    href: "/app/clima",
+    id: "mensalidade",
+    icon: <BanknoteArrowUp size={28} />,
+    label: "Minhas Mensalidades",
+    description: "Acompanhe pagamentos e status das suas mensalidades.",
+    href: "/app/mensalidades",
   },
 ];
 
@@ -128,6 +123,12 @@ export default function MemberDashboard() {
           </h1>
           <p className="text-[#414846]">Sua colheita está com boa perspectiva hoje.</p>
         </section>
+
+        {/* Avisos da associação */}
+        <AvisosMembroCard />
+
+        {/* Resumo do mês gerado por IA — esconde silenciosamente se IA não configurada */}
+        <ResumoMesCard />
 
         {/* Bento Grid */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -17,6 +17,7 @@ export const ata = pgTable("ata", {
   data: date("data").notNull(),
   participantes: text("participantes"),
   local: varchar("local", { length: 255 }),
+  resumoIa: text("resumo_ia"),
   version: integer("version").notNull().default(1),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()

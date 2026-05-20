@@ -85,6 +85,20 @@
       "when": 1778329200000,
       "tag": "0011_transacao_financeira_associacao_id",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1779148800000,
+      "tag": "0013_add_ata_resumo_ia",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1779235200000,
+      "tag": "0014_add_aviso_table",
+      "breakpoints": true
     }
   ]
 }

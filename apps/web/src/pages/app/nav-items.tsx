@@ -7,6 +7,8 @@ import {
   FileText,
   BarChart3,
   BookOpen,
+  PieChart,
+  Megaphone,
   Sparkles,
 } from "lucide-react";
 
@@ -31,6 +33,7 @@ export const adminNavItems: NavItem[] = [
   },
   { label: "Editais PNAE", icon: <FileText size={20} />, href: "/app/editais" },
   { label: "Atas", icon: <BookOpen size={20} />, href: "/app/atas" },
+  { label: "Avisos", icon: <Megaphone size={20} />, href: "/app/avisos" },
   {
     label: "Mensalidades",
     icon: <BanknoteArrowUp size={20} />,
@@ -42,16 +45,31 @@ export const adminNavItems: NavItem[] = [
     icon: <Sparkles size={20} />,
     href: "/app/inteligencia",
   },
+  {
+    label: "Assistente",
+    icon: <Sparkles size={20} />,
+    href: "/app/assistente",
+  },
 ];
 
 export const memberNavItems: NavItem[] = [
   { label: "Dashboard", icon: <LayoutDashboard size={20} />, href: "/app" },
   { label: "Produção", icon: <Leaf size={20} />, href: "/app/colheitas" },
-  { label: "Associações", icon: <Users size={20} />, href: "/app/associacoes" },
+  { label: "Atas", icon: <BookOpen size={20} />, href: "/app/atas" },
   {
     label: "Mensalidades",
     icon: <BanknoteArrowUp size={20} />,
     href: "/app/mensalidades",
+  },
+  {
+    label: "Transparência",
+    icon: <PieChart size={20} />,
+    href: "/app/transparencia",
+  },
+  {
+    label: "Assistente",
+    icon: <Sparkles size={20} />,
+    href: "/app/assistente",
   },
   {
     label: "Dicas",

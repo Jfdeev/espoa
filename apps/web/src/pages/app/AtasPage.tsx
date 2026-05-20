@@ -11,7 +11,9 @@ import {
   Trash2,
   WifiOff,
   Download,
+  Sparkles,
 } from "lucide-react";
+import { AtaResumoDialog } from "@/components/AtaResumoDialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -56,6 +58,7 @@ export default function AtasPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingAta, setEditingAta] = useState<Ata | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<Ata | null>(null);
+  const [resumoIaAta, setResumoIaAta] = useState<Ata | null>(null);
   const [atasApi, setAtasApi] = useState<Ata[] | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [fromLocal, setFromLocal] = useState(false);
@@ -484,6 +487,7 @@ export default function AtasPage() {
                 onEdit={() => openEdit(ata)}
                 onDelete={() => setShowDeleteConfirm(ata)}
                 onExportPdf={() => exportPdf(ata)}
+                onResumoIa={() => setResumoIaAta(ata)}
               />
             ))}
           </div>
@@ -527,6 +531,14 @@ export default function AtasPage() {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Resumo IA */}
+      <AtaResumoDialog
+        ataId={resumoIaAta?.id ?? null}
+        tituloAta={resumoIaAta?.titulo ?? null}
+        open={!!resumoIaAta}
+        onClose={() => setResumoIaAta(null)}
+      />
 
       {/* Delete confirmation */}
       <Dialog
@@ -572,11 +584,13 @@ function AtaCard({
   onEdit,
   onDelete,
   onExportPdf,
+  onResumoIa,
 }: {
   ata: Ata;
   onEdit: () => void;
   onDelete: () => void;
   onExportPdf: () => void;
+  onResumoIa: () => void;
 }) {
   return (
     <div className="rounded-xl border border-[#c1c8c4]/30 bg-white p-4 flex flex-col gap-3 hover:border-[#1a3c34]/40 hover:shadow-sm transition-all">
@@ -606,6 +620,14 @@ function AtaCard({
       </div>
 
       <div className="flex items-center gap-2 pt-2 border-t border-[#f0ede8]">
+        <button
+          onClick={onResumoIa}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#1A3C34] bg-[#1A3C34]/5 hover:bg-[#1A3C34]/10 transition-colors"
+          title="Resumo simples gerado por IA"
+        >
+          <Sparkles size={12} />
+          Resumo IA
+        </button>
         <button
           onClick={onEdit}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-md-primary hover:bg-[#f6f3ee] transition-colors"
