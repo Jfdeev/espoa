@@ -138,7 +138,7 @@ export default function ColheitasPage() {
       // Ordena alfabeticamente pelo nome
       return lista.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
     },
-    undefined as MembroDropdown[] | undefined,
+    [] as MembroDropdown[],
     [associacaoAtiva?.associacaoId, perfil?.id, perfil?.nome],
   );
 
