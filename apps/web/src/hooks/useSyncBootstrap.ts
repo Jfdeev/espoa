@@ -3,6 +3,7 @@ import { syncManager } from "@/sync/manager";
 import { getDeviceId } from "@/lib/device-id";
 import { isOnline } from "@/lib/network";
 import { useAuthStore } from "@/store/auth.store";
+import { tryFlushProfileUpdate } from "@/lib/profile-queue";
 
 const SYNC_INTERVAL_MS = 30_000; // 30 segundos entre ciclos
 const BACKOFF_MIN_MS = 1_000;
@@ -54,6 +55,8 @@ export function useSyncBootstrap() {
           if (result.status !== "already_running") {
             backoffRef.current = BACKOFF_MIN_MS; // reset em sucesso
           }
+          // Flush oportunista de patches de perfil pendentes — silencioso
+          tryFlushProfileUpdate().catch(() => {/* tenta de novo no próximo ciclo */});
           if (!cancelled) schedule(SYNC_INTERVAL_MS);
         })
         .catch(() => {
