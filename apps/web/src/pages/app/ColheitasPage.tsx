@@ -13,7 +13,6 @@ import { syncManager } from "@/sync/manager";
 import { getDeviceId } from "@/lib/device-id";
 import { useAuthStore } from "@/store/auth.store";
 import { db } from "@/database/db";
-import api from "@/lib/api";
 import type { Associado } from "@/database/types";
 import AppLayout from "./AppLayout";
 import { adminNavItems, memberNavItems } from "./nav-items";
@@ -88,73 +87,78 @@ export default function ColheitasPage() {
     [],
   );
 
-  // Quando online, busca produções da API e popula o Dexie para exibição
+  // Dropdown "Quem fez a colheita": lê do Dexie (funciona offline).
+  // O syncManager popula db.associado + db.usuario_associacao via pull do servidor,
+  // então o dropdown reflete o que estiver sincronizado localmente.
+  // Quando online, dispara um sync no mount para puxar dados frescos — o useLiveQuery
+  // reage automaticamente quando novos dados chegam.
+  type MembroDropdown = { id: string; nome: string; usuario_id: string | null; status: string };
+
+  const associadosLocal = useLiveQuery<MembroDropdown[]>(
+    async () => {
+      const assocId = associacaoAtiva?.associacaoId;
+      if (!assocId) return [];
+
+      // Fonte 1: tabela associado (membros cadastrados pelo admin, fonte primária de id de colheita)
+      const associadosRows = await db.associado
+        .where("associacao_id").equals(assocId)
+        .filter((a) => !a.deleted_at && a.status === "ativo")
+        .toArray();
+
+      const lista: MembroDropdown[] = associadosRows.map((a) => ({
+        id: a.id!,
+        nome: a.nome,
+        usuario_id: a.usuario_id ?? null,
+        status: a.status,
+      }));
+
+      // Fonte 2: vínculos ativos via usuario_associacao + nome do próprio perfil (quando aplicável).
+      // Garante que o admin que ainda não tem registro na tabela associado também apareça no dropdown
+      // (útil quando o admin é um produtor mas só tem vínculo via usuario_associacao).
+      const vinculos = await db.usuario_associacao
+        .where("associacao_id").equals(assocId)
+        .filter((v) => v.status === "ativo")
+        .toArray();
+
+      const idsExistentes = new Set(lista.map((m) => m.usuario_id).filter(Boolean) as string[]);
+      for (const v of vinculos) {
+        if (idsExistentes.has(v.usuario_id)) continue;
+        // Se for o próprio usuário logado, usamos o nome do perfil; senão, usamos um placeholder
+        const nome = v.usuario_id === perfil?.id
+          ? (perfil?.nome ?? "Você")
+          : v.usuario_id.slice(0, 8);
+        lista.push({
+          id: v.usuario_id,
+          nome,
+          usuario_id: v.usuario_id,
+          status: v.status,
+        });
+      }
+
+      // Ordena alfabeticamente pelo nome
+      return lista.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+    },
+    undefined as MembroDropdown[] | undefined,
+    [associacaoAtiva?.associacaoId, perfil?.id, perfil?.nome],
+  );
+
+  // Refresh oportunista via API quando online — não bloqueia a UI, apenas dispara sync
+  // para puxar dados frescos. O useLiveQuery acima reage automaticamente.
   useEffect(() => {
     if (!online || !associacaoAtiva?.associacaoId) return;
-    api
-      .get<Array<Record<string, unknown>>>(`/producoes?associacao_id=${associacaoAtiva.associacaoId}`)
-      .then(async (res) => {
-        if (!res.data.length) return;
-        await db.producao.bulkPut(
-          res.data.map((r) => ({
-            id: r.id as string,
-            associado_id: (r.associado_id ?? r.associadoId) as string,
-            cultura: r.cultura as string,
-            quantidade: r.quantidade as number,
-            data: r.data as string,
-            version: (r.version ?? 1) as number,
-            updated_at: (r.updated_at ?? r.updatedAt ?? new Date().toISOString()) as string,
-            device_id: (r.device_id ?? r.deviceId ?? undefined) as string | undefined,
-            deleted_at: (r.deleted_at ?? r.deletedAt ?? undefined) as string | undefined,
-          })),
-        );
-      })
-      .catch(() => {/* mantém dados do Dexie */});
+    syncManager.run(getDeviceId()).catch(() => {/* offline ou erro — Dexie tem o que tem */});
   }, [online, associacaoAtiva?.associacaoId]);
 
-  // Dropdown "Quem fez a colheita": busca membros via usuario_associacao + usuario
-  const [associados, setAssociados] = useState<Array<{ id: string; nome: string; usuario_id: string | null; status: string }>>([]);
-
-  useEffect(() => {
-    if (!online || !associacaoAtiva?.associacaoId) return;
-    api
-      .get<Array<{ id: string; nome: string; usuarioId?: string; usuario_id?: string; status: string }>>(`/associacoes/${associacaoAtiva.associacaoId}/membros`)
-      .then((res) => {
-        const lista = res.data
-          .filter((m) => m.status === "ativo")
-          .map((m) => ({
-            id: m.id,
-            nome: m.nome,
-            usuario_id: m.usuario_id ?? m.usuarioId ?? null,
-            status: m.status,
-          }));
-        setAssociados(lista);
-      })
-      .catch(() => {
-        // Fallback: tenta Dexie
-        if (associacaoAtiva?.associacaoId) {
-          db.associado
-            .where("associacao_id").equals(associacaoAtiva.associacaoId)
-            .filter((a) => !a.deleted_at)
-            .toArray()
-            .then((local) => setAssociados(local.map((a) => ({ id: a.id!, nome: a.nome, usuario_id: a.usuario_id ?? null, status: a.status }))));
-        }
-      });
-  }, [online, associacaoAtiva?.associacaoId]);
+  const associados: MembroDropdown[] = associadosLocal ?? [];
 
   // Para o associado não-admin: encontra o próprio registro via usuario_id
-  // Tenta primeiro na lista da API, depois Dexie como fallback
-  const associadoSelfFromApi = associados.find((a) => a.usuario_id === perfil?.id);
-  const associadoSelfFromDexie = useLiveQuery<Associado | undefined | null>(
+  const associadoSelf = useLiveQuery<Associado | undefined | null>(
     () => perfil
       ? db.associado.filter((a) => a.usuario_id === perfil.id && !a.deleted_at).first()
       : Promise.resolve(null),
     null,
     [perfil?.id],
   );
-  const associadoSelf = associadoSelfFromApi
-    ? { id: associadoSelfFromApi.id, nome: associadoSelfFromApi.nome, usuario_id: associadoSelfFromApi.usuario_id }
-    : associadoSelfFromDexie;
 
   function nomeAssociado(id: string) {
     return associados?.find((a) => a.id === id)?.nome ?? "—";

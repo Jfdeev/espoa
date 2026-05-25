@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/store/auth.store";
 import { adminNavItems, memberNavItems } from "./nav-items";
 import AppLayout from "./AppLayout";
-import api from "@/lib/api";
+import { enqueueProfileUpdate } from "@/lib/profile-queue";
 
 function formatCpf(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -26,8 +26,6 @@ function formatTelefone(value: string) {
 
 export default function ConfiguracoesPage() {
   const perfil = useAuthStore((s) => s.perfil);
-  const setPerfil = useAuthStore((s) => s.setPerfil);
-  const vinculos = useAuthStore((s) => s.vinculos);
   const associacaoAtiva = useAuthStore((s) => s.associacaoAtiva);
   const isAdmin = associacaoAtiva?.role === "adm";
 
@@ -44,13 +42,16 @@ export default function ConfiguracoesPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      const { data } = await api.patch("/auth/profile", {
+      const result = await enqueueProfileUpdate({
         nome: nome.trim() || undefined,
         telefone: telefone.replace(/\D/g, "") || "",
         cpf: cpf.replace(/\D/g, "") || "",
       });
-      setPerfil(data.usuario, vinculos);
-      toast.success("Perfil atualizado com sucesso!");
+      if (result.mode === "queued") {
+        toast.success("Salvo no dispositivo. Será enviado quando você reconectar.");
+      } else {
+        toast.success("Perfil atualizado com sucesso!");
+      }
     } catch {
       toast.error("Erro ao atualizar perfil.");
     } finally {

@@ -6,7 +6,8 @@ import { adminNavItems, memberNavItems } from "./nav-items";
 import { useAuthStore } from "@/store/auth.store";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import api from "@/lib/api";
+import { enqueueProfileUpdate } from "@/lib/profile-queue";
+import { isOnline } from "@/lib/network";
 
 function formatCpf(value: string): string {
   const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -30,9 +31,7 @@ function formatPhone(value: string): string {
 
 export default function PerfilPage() {
   const perfil = useAuthStore((s) => s.perfil);
-  const vinculos = useAuthStore((s) => s.vinculos);
   const associacaoAtiva = useAuthStore((s) => s.associacaoAtiva);
-  const setPerfil = useAuthStore((s) => s.setPerfil);
 
   const [nome, setNome] = useState(perfil?.nome ?? "");
   const [telefone, setTelefone] = useState(formatPhone(perfil?.telefone ?? ""));
@@ -54,15 +53,15 @@ export default function PerfilPage() {
     setSucesso(false);
     setSalvando(true);
     try {
-      const { data } = await api.patch<{
-        usuario: typeof perfil;
-      }>("/auth/profile", {
+      const result = await enqueueProfileUpdate({
         nome: nome.trim(),
         telefone: telefone.trim(),
         cpf: cpf.trim(),
       });
-      setPerfil(data.usuario, vinculos);
       setSucesso(true);
+      if (result.mode === "queued" || !isOnline()) {
+        setErro(null);
+      }
       setTimeout(() => setSucesso(false), 3000);
     } catch (err) {
       const e = err as { response?: { data?: { error?: string } }; message?: string };

@@ -2,7 +2,12 @@ export interface Associado {
   id?: string;
   associacao_id?: string | null;
   nome: string;
-  contato?: string;
+  cpf?: string | null;
+  caf?: string | null;
+  telefone?: string | null;
+  endereco?: string | null;
+  comunidade?: string | null;
+  contato?: string | null;
   data_entrada: string;
   status: string;
   usuario_id?: string | null;
