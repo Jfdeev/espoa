@@ -691,7 +691,14 @@ function downloadBlob(blob: Blob, filename: string): void {
 }
 
 export function exportarCSV(aba: TabKey, data: RelatoriosData): void {
-  const periodoInicio = data[aba].meta.periodo.inicio;
+  const metaByTab = {
+    producao: data.producao.meta,
+    financeiro: data.financeiro.meta,
+    mensalidades: data.mensalidades.meta,
+    associados: data.associados.meta,
+    area_plantada: data.areaPlantada.meta,
+  };
+  const periodoInicio = metaByTab[aba].periodo.inicio;
   let rows: (string | number | null | undefined)[][];
 
   if (aba === "producao") {
