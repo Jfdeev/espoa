@@ -21,6 +21,15 @@ export interface ProducaoSummary {
   porMes: Array<{ month: string; quantidade: number; colheitas: number }>;
 }
 
+export interface AreaPlantadaSummary {
+  totalRegistros: number;
+  totalHa: number;
+  associadosUnicos: number;
+  culturasUnicas: number;
+  porCultura: Array<{ cultura: string; totalHa: number; registros: number }>;
+  porAssociado: Array<{ associadoId: string; totalHa: number; registros: number }>;
+}
+
 export interface FinancialSnapshot {
   associacaoId: string;
   generatedAt: string;
@@ -32,6 +41,7 @@ export interface FinancialSnapshot {
   porTipoEntrada: Record<string, number>;
   mensalidades: MensalidadeSummary;
   producao?: ProducaoSummary;
+  areaPlantada?: AreaPlantadaSummary;
 }
 
 export type InsightSeverity = "info" | "alerta" | "critico";
@@ -158,6 +168,7 @@ export interface SuggestionsSnapshot {
   generatedAt: string;
   financeiro: FinancialSnapshot;
   producao?: ProducaoSnapshot;
+  areaPlantada?: AreaPlantadaSummary;
   editaisAbertos?: number;
 }
 

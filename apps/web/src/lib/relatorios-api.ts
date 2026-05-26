@@ -128,9 +128,10 @@ export interface RelatoriosData {
   financeiro: RelatorioFinanceiro;
   mensalidades: RelatorioMensalidades;
   associados: RelatorioAssociados;
+  areaPlantada: RelatorioAreaPlantada;
 }
 
-export type TabKey = "producao" | "financeiro" | "mensalidades" | "associados";
+export type TabKey = "producao" | "financeiro" | "mensalidades" | "associados" | "area_plantada";
 
 // ── Parâmetros de busca ───────────────────────────────────────────────────────
 
@@ -637,6 +638,34 @@ export async function buscarRelatorioAssociados(p: BuscarParams): Promise<Relato
   };
 }
 
+// ── Área Plantada ─────────────────────────────────────────────────────────────
+
+export interface AreaPlantadaDetalhe {
+  id: string;
+  associadoId: string;
+  nomeAssociado: string;
+  cultura: string;
+  areaHa: number;
+  dataReferencia: string;
+  observacao?: string | null;
+}
+
+export interface RelatorioAreaPlantada {
+  meta: ReportMeta;
+  resumo: {
+    totalHa: number;
+    totalRegistros: number;
+    associadosUnicos: number;
+    culturasUnicas: number;
+  };
+  agregacoes: {
+    porCultura: { cultura: string; totalHa: number; registros: number }[];
+    porAssociado: { associadoId: string; nome: string; totalHa: number; registros: number }[];
+    porMes: { mes: string; totalHa: number; registros: number }[];
+  };
+  detalhes: AreaPlantadaDetalhe[];
+}
+
 // ── Exportar CSV ──────────────────────────────────────────────────────────────
 
 /** Separador `;` + BOM para compatibilidade com Excel PT-BR */
@@ -680,6 +709,16 @@ export function exportarCSV(aba: TabKey, data: RelatoriosData): void {
       ["Nome", "CPF", "Valor Pendente (R$)"],
       ...data.mensalidades.detalhes.pendentes.map((r) => [r.nome, r.cpf ?? "", r.valor]),
     ];
+  } else if (aba === "area_plantada") {
+    rows = [
+      ["Associado", "Cultura", "Área (ha)", "Data Referência"],
+      ...data.areaPlantada.detalhes.map((r) => [
+        r.nomeAssociado,
+        r.cultura,
+        r.areaHa,
+        r.dataReferencia,
+      ]),
+    ];
   } else {
     rows = [
       ["Nome", "CPF", "Comunidade", "Status", "Data de Entrada"],
@@ -694,4 +733,104 @@ export function exportarCSV(aba: TabKey, data: RelatoriosData): void {
   }
 
   downloadBlob(buildCSV(rows), `relatorio-${aba}-${periodoInicio}.csv`);
+}
+
+export async function buscarRelatorioAreaPlantada(p: BuscarParams): Promise<RelatorioAreaPlantada> {
+  await refreshIfOnline();
+  const periodo = resolvePeriodoFromParams(p);
+
+  // Path A: associados com associacao_id direto
+  const pathA = await db.associado
+    .where("associacao_id").equals(p.associacao_id)
+    .filter((a) => !a.deleted_at)
+    .toArray();
+
+  // Path B: associados via usuario_id → usuario_associacao
+  const vinculosAtivos = await db.usuario_associacao
+    .where("associacao_id").equals(p.associacao_id)
+    .filter((v) => v.status === "ativo")
+    .toArray();
+  const usuarioIdsAssoc = new Set(vinculosAtivos.map((v) => v.usuario_id));
+
+  const pathB = usuarioIdsAssoc.size > 0
+    ? await db.associado
+        .filter((a) => !a.deleted_at && !!a.usuario_id && usuarioIdsAssoc.has(a.usuario_id))
+        .toArray()
+    : [];
+
+  const associadosMap = new Map<string, typeof pathA[number]>();
+  for (const a of pathA) if (a.id) associadosMap.set(a.id, a);
+  for (const a of pathB) if (a.id) associadosMap.set(a.id, a);
+  const associados = Array.from(associadosMap.values());
+
+  const nomePorAssociado = new Map(associados.map((a) => [a.id!, a.nome]));
+  const associadoIdsAssoc = new Set(associados.map((a) => a.id).filter(Boolean) as string[]);
+
+  const registros = await db.area_plantada
+    .filter((r) => {
+      if (r.deleted_at) return false;
+      if (r.data_referencia < periodo.inicio || r.data_referencia > periodo.fim) return false;
+      return associadoIdsAssoc.has(r.associado_id);
+    })
+    .toArray();
+
+  registros.sort((a, b) => a.data_referencia.localeCompare(b.data_referencia));
+
+  const rows: AreaPlantadaDetalhe[] = registros.map((r) => ({
+    id: r.id!,
+    associadoId: r.associado_id,
+    nomeAssociado: nomePorAssociado.get(r.associado_id) ?? r.associado_id.slice(0, 8),
+    cultura: r.cultura,
+    areaHa: r.area_ha,
+    dataReferencia: r.data_referencia,
+    observacao: r.observacao,
+  }));
+
+  let totalHa = 0;
+  const porCulturaMap = new Map<string, { cultura: string; totalHa: number; registros: number }>();
+  const porAssociadoMap = new Map<string, { associadoId: string; nome: string; totalHa: number; registros: number }>();
+  const porMesMap = new Map<string, { mes: string; totalHa: number; registros: number }>();
+
+  for (const row of rows) {
+    const ha = Number(row.areaHa) || 0;
+    totalHa += ha;
+
+    const cultura = row.cultura ?? "não informada";
+    const cultBucket = porCulturaMap.get(cultura) ?? { cultura, totalHa: 0, registros: 0 };
+    cultBucket.totalHa += ha;
+    cultBucket.registros += 1;
+    porCulturaMap.set(cultura, cultBucket);
+
+    const assocBucket = porAssociadoMap.get(row.associadoId) ?? {
+      associadoId: row.associadoId,
+      nome: row.nomeAssociado,
+      totalHa: 0,
+      registros: 0,
+    };
+    assocBucket.totalHa += ha;
+    assocBucket.registros += 1;
+    porAssociadoMap.set(row.associadoId, assocBucket);
+
+    const mes = monthKey(row.dataReferencia);
+    const mesBucket = porMesMap.get(mes) ?? { mes, totalHa: 0, registros: 0 };
+    mesBucket.totalHa += ha;
+    mesBucket.registros += 1;
+    porMesMap.set(mes, mesBucket);
+  }
+
+  return {
+    meta: makeMeta("area_plantada", p, periodo),
+    resumo: {
+      totalHa,
+      totalRegistros: rows.length,
+      associadosUnicos: porAssociadoMap.size,
+      culturasUnicas: porCulturaMap.size,
+    },
+    agregacoes: {
+      porCultura: Array.from(porCulturaMap.values()).sort((a, b) => b.totalHa - a.totalHa),
+      porAssociado: Array.from(porAssociadoMap.values()).sort((a, b) => b.totalHa - a.totalHa),
+      porMes: Array.from(porMesMap.values()).sort((a, b) => a.mes.localeCompare(b.mes)),
+    },
+    detalhes: rows,
+  };
 }

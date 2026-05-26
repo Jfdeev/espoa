@@ -2,6 +2,7 @@ import Dexie, { type EntityTable } from "dexie";
 import type {
   Associacao,
   Associado,
+  AreaPlantada,
   Mensalidade,
   TransacaoFinanceira,
   Ata,
@@ -21,6 +22,7 @@ const db = new Dexie("espoa_db") as Dexie & {
   ata: EntityTable<Ata, "id">;
   aviso: EntityTable<Aviso, "id">;
   producao: EntityTable<Producao, "id">;
+  area_plantada: EntityTable<AreaPlantada, "id">;
   edital_pnae: EntityTable<EditalPnae, "id">;
   usuario_associacao: EntityTable<UsuarioAssociacao, "id">;
   sync_queue: EntityTable<SyncQueue, "id">;
@@ -166,6 +168,26 @@ db.version(10)
     transacao_financeira: "id, associacao_id, tipo, data, deleted_at",
     ata: "id, associacao_id, data, deleted_at",
     producao: "id, associado_id, cultura, data, deleted_at",
+    usuario_associacao: "id, usuario_id, associacao_id, status, updated_at",
+    edital_pnae: "id, associacao_id, status, data_limite, deleted_at",
+    aviso: "id, associacao_id, expira_em, deleted_at, updated_at",
+    sync_queue: "++id, table_name, record_id, synced, created_at",
+    conflict_log: "++id, table_name, record_id, resolved, created_at",
+  })
+  .upgrade(() => {
+    // Nova tabela — sem migração de dados
+  });
+
+// v11 — adiciona tabela area_plantada (registro de área plantada por cultura)
+db.version(11)
+  .stores({
+    associacao: "id, nome, municipio, status, deleted_at",
+    associado: "id, nome, usuario_id, associacao_id, status, deleted_at",
+    mensalidade: "id, associado_id, usuario_id, data_pagamento, deleted_at",
+    transacao_financeira: "id, associacao_id, tipo, data, deleted_at",
+    ata: "id, associacao_id, data, deleted_at",
+    producao: "id, associado_id, cultura, data, deleted_at",
+    area_plantada: "id, associado_id, cultura, data_referencia, deleted_at",
     usuario_associacao: "id, usuario_id, associacao_id, status, updated_at",
     edital_pnae: "id, associacao_id, status, data_limite, deleted_at",
     aviso: "id, associacao_id, expira_em, deleted_at, updated_at",

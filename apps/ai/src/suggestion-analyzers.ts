@@ -181,6 +181,41 @@ const producaoIntermitente: Rule = (s) => {
   };
 };
 
+// ── Área Plantada ─────────────────────────────────────────────────────────────
+
+const areaPlantadaSemColheita: Rule = (s) => {
+  const area = s.areaPlantada;
+  if (!area || area.totalHa <= 0) return null;
+  const temColheita = (s.producao?.quantidadeTotal ?? 0) > 0;
+  if (temColheita) return null;
+  return {
+    id: "area_sem_colheita",
+    area: "producao",
+    prioridade: "media",
+    titulo: "Registrar colheitas das areas plantadas",
+    recomendacao:
+      "Ha area plantada registrada mas nenhuma colheita lancada. Considere registrar as colheitas para manter o historico completo e aumentar as chances em editais.",
+    justificativa: `${area.totalHa.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ha de area plantada sem colheitas correspondentes registradas.`,
+    apoio: true,
+  };
+};
+
+const areaPlantadaBaixoEngajamento: Rule = (s) => {
+  const area = s.areaPlantada;
+  if (!area || area.totalHa <= 0) return null;
+  if (area.associadosUnicos > 2) return null;
+  return {
+    id: "area_baixo_engajamento",
+    area: "producao",
+    prioridade: "baixa",
+    titulo: "Ampliar o registro de area plantada",
+    recomendacao:
+      "Apenas poucos produtores registraram area plantada. Considere orientar os demais associados a informarem suas areas para um levantamento mais completo.",
+    justificativa: `Somente ${area.associadosUnicos} associado(s) registraram area plantada.`,
+    apoio: true,
+  };
+};
+
 // ── PNAE ─────────────────────────────────────────────────────────────────────
 
 const pnaeSemProducao: Rule = (s) => {
@@ -228,6 +263,8 @@ const RULES: Rule[] = [
   producaoConcentrada,
   producaoPoucoEngajada,
   producaoIntermitente,
+  areaPlantadaSemColheita,
+  areaPlantadaBaixoEngajamento,
   pnaeSemProducao,
 ];
 

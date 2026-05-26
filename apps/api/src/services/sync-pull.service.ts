@@ -4,6 +4,7 @@ import {
   mensalidade as mensalidadeTable,
   associado as associadoTable,
   producao as producaoTable,
+  areaPlantada as areaPlantadaTable,
   editalPnae as editalPnaeTable,
   associacao as associacaoTable,
   usuarioAssociacao as usuarioAssociacaoTable,
@@ -25,6 +26,7 @@ import { toSnakeObject } from "../utils/case-mapper";
 const ASSOC_SCOPED = new Set<SyncTableName>([
   "associado",
   "producao",
+  "area_plantada",
   "edital_pnae",
   "associacao",
   "usuario_associacao",
@@ -104,6 +106,16 @@ async function fetchProducao(assocIds: string[], lastPulledAt: Date | null) {
   return rows.map((row: Record<string, unknown>) => toSnakeObject(row));
 }
 
+async function fetchAreaPlantada(assocIds: string[], lastPulledAt: Date | null) {
+  const cols = getTableColumns(areaPlantadaTable);
+  const join = eq(areaPlantadaTable.associadoId, associadoTable.id);
+  const baseWhere = inArray(associadoTable.associacaoId, assocIds);
+  const rows = lastPulledAt
+    ? await db.select(cols).from(areaPlantadaTable).innerJoin(associadoTable, join).where(and(baseWhere, gt(areaPlantadaTable.updatedAt, lastPulledAt)))
+    : await db.select(cols).from(areaPlantadaTable).innerJoin(associadoTable, join).where(baseWhere);
+  return rows.map((row: Record<string, unknown>) => toSnakeObject(row));
+}
+
 async function getPulledRows(
   tableName: SyncTableName,
   lastPulledAt: Date | null,
@@ -115,6 +127,8 @@ async function getPulledRows(
   if (tableName === "mensalidade" && userId) return fetchMensalidade(userId, lastPulledAt);
 
   if (tableName === "producao") return fetchProducao(assocIds, lastPulledAt);
+
+  if (tableName === "area_plantada") return fetchAreaPlantada(assocIds, lastPulledAt);
 
   // aviso: só pull das associações do usuário
   if (tableName === "aviso") {

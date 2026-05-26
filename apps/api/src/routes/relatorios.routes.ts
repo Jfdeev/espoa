@@ -5,6 +5,7 @@ import {
   getRelatoriofinanceiro,
   getRelatorioMensalidadesHandler,
   getRelatorioAssociadosHandler,
+  getRelatorioAreaPlantadaHandler,
 } from "../controllers/relatorios.controller";
 
 export const relatoriosRouter = Router();
@@ -15,3 +16,4 @@ relatoriosRouter.get("/relatorios/producao", getRelatorioproducao);
 relatoriosRouter.get("/relatorios/financeiro", getRelatoriofinanceiro);
 relatoriosRouter.get("/relatorios/mensalidades", getRelatorioMensalidadesHandler);
 relatoriosRouter.get("/relatorios/associados", getRelatorioAssociadosHandler);
+relatoriosRouter.get("/relatorios/area-plantada", getRelatorioAreaPlantadaHandler);

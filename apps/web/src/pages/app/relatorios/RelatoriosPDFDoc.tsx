@@ -328,7 +328,7 @@ interface Props {
 }
 
 export function RelatoriosPDFDoc({ data, associacao }: Props) {
-  const { producao, financeiro, mensalidades, associados } = data;
+  const { producao, financeiro, mensalidades, associados, areaPlantada } = data;
   const periodoStr = periodoLabel(producao.meta);
   const geradoEm = producao.meta.geradoEm;
 
@@ -508,6 +508,63 @@ export function RelatoriosPDFDoc({ data, associacao }: Props) {
             <Text style={{ fontSize: 7, color: C.grey, marginTop: 4 }}>
               + {associados.detalhes.length - 30} associados não exibidos. Exporte o CSV para a lista completa.
             </Text>
+          )}
+
+          {/* ── Área Plantada ── */}
+          <PDFSection title="Área Plantada" />
+          <PDFMetricRow
+            metrics={[
+              {
+                label: "Área Total",
+                value: `${areaPlantada.resumo.totalHa.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ha`,
+                sub: `${areaPlantada.resumo.culturasUnicas} cultura${areaPlantada.resumo.culturasUnicas !== 1 ? "s" : ""}`,
+                dark: true,
+              },
+              {
+                label: "Registros",
+                value: String(areaPlantada.resumo.totalRegistros),
+              },
+              {
+                label: "Produtores",
+                value: String(areaPlantada.resumo.associadosUnicos),
+              },
+            ]}
+          />
+          {areaPlantada.agregacoes.porCultura.length === 0 ? (
+            <Text style={{ fontSize: 8, color: C.grey, marginBottom: 8 }}>
+              Nenhuma área plantada registrada no período.
+            </Text>
+          ) : (
+            <PDFTable
+              headers={["Cultura", "Área Total (ha)", "Registros"]}
+              boldFirst
+              rows={areaPlantada.agregacoes.porCultura.map((c) => [
+                c.cultura,
+                c.totalHa.toLocaleString("pt-BR", { maximumFractionDigits: 2 }),
+                c.registros,
+              ])}
+            />
+          )}
+          {areaPlantada.agregacoes.porAssociado.length > 0 && (
+            <>
+              <Text style={{ fontSize: 7, color: C.grey, marginBottom: 4, marginTop: 6 }}>
+                POR PRODUTOR
+              </Text>
+              <PDFTable
+                headers={["Produtor", "Área Total (ha)", "Registros"]}
+                boldFirst
+                rows={areaPlantada.agregacoes.porAssociado.slice(0, 20).map((a) => [
+                  a.nome,
+                  a.totalHa.toLocaleString("pt-BR", { maximumFractionDigits: 2 }),
+                  a.registros,
+                ])}
+              />
+              {areaPlantada.agregacoes.porAssociado.length > 20 && (
+                <Text style={{ fontSize: 7, color: C.grey, marginTop: 4 }}>
+                  + {areaPlantada.agregacoes.porAssociado.length - 20} produtores não exibidos.
+                </Text>
+              )}
+            </>
           )}
         </View>
 

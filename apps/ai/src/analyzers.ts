@@ -5,6 +5,11 @@ import {
   analyzeProducaoTendencia,
   analyzeProducaoSazonalidade,
 } from "./producao-analyzers";
+import {
+  analyzeAreaPlantadaResumo,
+  analyzeAreaPlantadaConcentracao,
+  analyzeAreaPlantadaVsColheita,
+} from "./area-plantada-analyzers";
 
 function formatCurrency(value: number): string {
   return value.toLocaleString("pt-BR", {
@@ -257,6 +262,9 @@ export function generateInsights(snapshot: FinancialSnapshot): Insight[] {
     analyzeProducaoConcentracao(snapshot),
     analyzeProducaoTendencia(snapshot),
     analyzeProducaoSazonalidade(snapshot),
+    analyzeAreaPlantadaResumo(snapshot),
+    analyzeAreaPlantadaConcentracao(snapshot),
+    analyzeAreaPlantadaVsColheita(snapshot),
   ];
   return candidatos.filter((c): c is Insight => c !== null);
 }

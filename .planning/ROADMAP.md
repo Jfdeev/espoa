@@ -164,6 +164,17 @@
 
 **34/34 requirements mapped ✓ — No orphans**
 
+## Backlog
+
+### Phase 999.1: Registro de Área Plantada por Produtor (BACKLOG)
+
+**Goal:** Produtor pode registrar quantos hectares plantou por cadeia produtiva, separado do registro de colheita; gestor consegue ver o total consolidado remotamente para relatórios e levantamentos.
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd-review-backlog when ready)
+
 ---
 *Created: 2026-04-18*
-*Last updated: 2026-04-20 — Phase 2 refinada com auth dual, onboarding, multi-associação*
+*Last updated: 2026-05-26 — Backlog 999.1 adicionado (sugestão Nonato/ASMOJU); CULTURAS_SUGERIDAS expandidas para 8 cadeias produtivas ASMOJU + ciclos curtos futuros*

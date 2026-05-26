@@ -7,6 +7,7 @@ export { transacaoFinanceira } from "./transacao-financeira";
 export { ata } from "./ata";
 export { aviso } from "./aviso";
 export { producao } from "./producao";
+export { areaPlantada } from "./area-plantada";
 export { editalPnae } from "./edital-pnae";
 export { relatorioPnae } from "./relatorio-pnae";
 export { syncQueue } from "./sync-queue";

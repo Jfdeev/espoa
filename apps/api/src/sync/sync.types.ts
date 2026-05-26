@@ -5,6 +5,7 @@ export const SYNC_TABLE_NAMES = [
   "transacao_financeira",
   "ata",
   "producao",
+  "area_plantada",
   "usuario_associacao",
   "edital_pnae",
   "aviso",
