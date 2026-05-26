@@ -5,6 +5,7 @@ import {
   BanknoteArrowUp,
   Users,
   BarChart3,
+  MapPin,
   Download,
   FileDown,
   RefreshCw,
@@ -22,12 +23,14 @@ import {
   buscarRelatorioFinanceiro,
   buscarRelatorioMensalidades,
   buscarRelatorioAssociados,
+  buscarRelatorioAreaPlantada,
   exportarCSV,
   type RelatoriosData,
   type RelatorioProducao,
   type RelatorioFinanceiro,
   type RelatorioMensalidades,
   type RelatorioAssociados,
+  type RelatorioAreaPlantada,
   type TabKey,
 } from "@/lib/relatorios-api";
 
@@ -465,6 +468,93 @@ function AssociadosView({ data }: { data: RelatorioAssociados }) {
 
 // ── Estados auxiliares ────────────────────────────────────────────────────────
 
+function AreaPlantadaView({ data }: { data: RelatorioAreaPlantada }) {
+  const { resumo, agregacoes } = data;
+  return (
+    <div className="space-y-8">
+      {/* Métricas */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <MetricCard
+          label="Área Total"
+          value={`${resumo.totalHa.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ha`}
+          icon={<MapPin size={18} />}
+          variant="dark"
+        />
+        <MetricCard label="Registros" value={resumo.totalRegistros} />
+        <MetricCard label="Culturas Únicas" value={resumo.culturasUnicas} />
+        <MetricCard label="Produtores" value={resumo.associadosUnicos} icon={<Users size={18} />} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Por cultura */}
+        <div className="bg-white rounded-xl p-6 shadow-sm">
+          <h3 className="font-headline text-base font-bold text-[#01261f] mb-5">
+            Por Cultura
+          </h3>
+          <BarList
+            items={agregacoes.porCultura.map((c) => ({
+              label: c.cultura,
+              value: c.totalHa,
+              sub: `${c.registros} registro${c.registros !== 1 ? "s" : ""}`,
+            }))}
+            unit="ha"
+          />
+        </div>
+
+        {/* Por associado */}
+        <div className="bg-white rounded-xl p-6 shadow-sm">
+          <h3 className="font-headline text-base font-bold text-[#01261f] mb-5">
+            Por Produtor
+          </h3>
+          <BarList
+            items={agregacoes.porAssociado.map((a) => ({
+              label: a.nome,
+              value: a.totalHa,
+              sub: `${a.registros} registro${a.registros !== 1 ? "s" : ""}`,
+            }))}
+            unit="ha"
+          />
+        </div>
+      </div>
+
+      {/* Por mês */}
+      {agregacoes.porMes.length > 0 && (
+        <div className="bg-white rounded-xl p-6 shadow-sm">
+          <h3 className="font-headline text-base font-bold text-[#01261f] mb-5">
+            Por Mês
+          </h3>
+          <SimpleTable
+            headers={["Mês", "Área (ha)", "Registros"]}
+            rows={agregacoes.porMes.map((m) => [
+              m.mes,
+              m.totalHa.toLocaleString("pt-BR", { maximumFractionDigits: 2 }),
+              m.registros,
+            ])}
+          />
+        </div>
+      )}
+
+      {/* Detalhes */}
+      {data.detalhes.length > 0 && (
+        <div className="bg-white rounded-xl p-6 shadow-sm">
+          <h3 className="font-headline text-base font-bold text-[#01261f] mb-5">
+            Registros ({data.detalhes.length})
+          </h3>
+          <SimpleTable
+            headers={["Produtor", "Cultura", "Área (ha)", "Referência"]}
+            rows={data.detalhes.map((r) => [
+              r.nomeAssociado,
+              r.cultura,
+              r.areaHa.toLocaleString("pt-BR", { maximumFractionDigits: 2 }),
+              fDate(r.dataReferencia),
+            ])}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EmptyState({ onGerar }: { onGerar: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
@@ -531,6 +621,7 @@ const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: "financeiro", label: "Financeiro", icon: <Banknote size={15} /> },
   { key: "mensalidades", label: "Mensalidades", icon: <BanknoteArrowUp size={15} /> },
   { key: "associados", label: "Associados", icon: <Users size={15} /> },
+  { key: "area_plantada", label: "Área Plantada", icon: <MapPin size={15} /> },
 ];
 
 const PERIODOS = [
@@ -574,14 +665,15 @@ export default function RelatoriosPage() {
         ...(periodo === "personalizado" ? { inicio, fim } : {}),
       };
 
-      const [prod, fin, mens, assoc] = await Promise.all([
+      const [prod, fin, mens, assoc, area] = await Promise.all([
         buscarRelatorioProducao(params),
         buscarRelatorioFinanceiro(params),
         buscarRelatorioMensalidades(params),
         buscarRelatorioAssociados(params),
+        buscarRelatorioAreaPlantada(params),
       ]);
 
-      setData({ producao: prod, financeiro: fin, mensalidades: mens, associados: assoc });
+      setData({ producao: prod, financeiro: fin, mensalidades: mens, associados: assoc, areaPlantada: area });
       toast.success("Relatório gerado com sucesso!");
     } catch (err: unknown) {
       const message =
@@ -759,6 +851,7 @@ export default function RelatoriosPage() {
               {activeTab === "financeiro" && <FinanceiroView data={data.financeiro} />}
               {activeTab === "mensalidades" && <MensalidadesView data={data.mensalidades} />}
               {activeTab === "associados" && <AssociadosView data={data.associados} />}
+              {activeTab === "area_plantada" && <AreaPlantadaView data={data.areaPlantada} />}
             </>
           )}
         </div>

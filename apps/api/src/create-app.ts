@@ -18,6 +18,7 @@ import { relatoriosRouter } from "./routes/relatorios.routes";
 import { ataRouter } from "./routes/ata.routes";
 import { transparenciaRouter } from "./routes/transparencia.routes";
 import { avisoRouter } from "./routes/aviso.routes";
+import { areaPlantadaRouter } from "./routes/area-plantada.routes";
 
 const app = express();
 
@@ -42,5 +43,6 @@ app.use(relatoriosRouter);
 app.use(ataRouter);
 app.use(transparenciaRouter);
 app.use(avisoRouter);
+app.use(areaPlantadaRouter);
 
 export { app };

@@ -15,6 +15,7 @@ const tableMap = {
   transacao_financeira: db.transacao_financeira,
   ata: db.ata,
   producao: db.producao,
+  area_plantada: db.area_plantada,
   usuario_associacao: db.usuario_associacao,
   edital_pnae: db.edital_pnae,
   aviso: db.aviso,

@@ -6,6 +6,7 @@ import {
   usuarioAssociacao,
   usuario,
   producao,
+  areaPlantada,
 } from "@espoa/database";
 import { and, count, desc, eq, gte, isNull, lte, sum } from "drizzle-orm";
 
@@ -25,6 +26,22 @@ interface MensalidadeSummary {
   taxaInadimplencia: number;
 }
 
+export interface ProducaoSummary {
+  totalColheitas: number;
+  totalKg: number;
+  porCultura: Record<string, number>;
+  porMes: Array<{ month: string; quantidade: number; colheitas: number }>;
+}
+
+export interface AreaPlantadaSummary {
+  totalRegistros: number;
+  totalHa: number;
+  associadosUnicos: number;
+  culturasUnicas: number;
+  porCultura: Array<{ cultura: string; totalHa: number; registros: number }>;
+  porAssociado: Array<{ associadoId: string; totalHa: number; registros: number }>;
+}
+
 export interface FinancialSnapshot {
   associacaoId: string;
   generatedAt: string;
@@ -35,6 +52,8 @@ export interface FinancialSnapshot {
   porTipoSaida: Record<string, number>;
   porTipoEntrada: Record<string, number>;
   mensalidades: MensalidadeSummary;
+  producao?: ProducaoSummary;
+  areaPlantada?: AreaPlantadaSummary;
 }
 
 const ENTRADA_TIPOS = new Set(["entrada", "receita", "deposito", "doacao"]);
@@ -202,6 +221,7 @@ export async function buildFinancialSnapshot(
       taxaInadimplencia,
     },
     producao: await buildProducaoSummary(associacaoId),
+    areaPlantada: await buildAreaPlantadaSummary(associacaoId),
   };
 }
 
@@ -241,6 +261,56 @@ async function buildProducaoSummary(associacaoId: string) {
     totalKg,
     porCultura,
     porMes: Array.from(porMesMap.values()).sort((a, b) => a.month.localeCompare(b.month)),
+  };
+}
+
+async function buildAreaPlantadaSummary(associacaoId: string) {
+  const registros = await db
+    .select({
+      cultura: areaPlantada.cultura,
+      areaHa: areaPlantada.areaHa,
+      associadoId: areaPlantada.associadoId,
+    })
+    .from(areaPlantada)
+    .innerJoin(associado, eq(areaPlantada.associadoId, associado.id))
+    .where(and(eq(associado.associacaoId, associacaoId), isNull(areaPlantada.deletedAt)));
+
+  if (registros.length === 0) return undefined;
+
+  const porCulturaMap = new Map<string, { totalHa: number; registros: number }>();
+  const porAssociadoMap = new Map<string, { totalHa: number; registros: number }>();
+  const associadosUnicos = new Set<string>();
+  const culturasUnicas = new Set<string>();
+  let totalHa = 0;
+
+  for (const r of registros) {
+    const ha = r.areaHa ?? 0;
+    totalHa += ha;
+    associadosUnicos.add(r.associadoId);
+    culturasUnicas.add(r.cultura);
+
+    const culturaEntry = porCulturaMap.get(r.cultura) ?? { totalHa: 0, registros: 0 };
+    culturaEntry.totalHa += ha;
+    culturaEntry.registros += 1;
+    porCulturaMap.set(r.cultura, culturaEntry);
+
+    const assocEntry = porAssociadoMap.get(r.associadoId) ?? { totalHa: 0, registros: 0 };
+    assocEntry.totalHa += ha;
+    assocEntry.registros += 1;
+    porAssociadoMap.set(r.associadoId, assocEntry);
+  }
+
+  return {
+    totalRegistros: registros.length,
+    totalHa,
+    associadosUnicos: associadosUnicos.size,
+    culturasUnicas: culturasUnicas.size,
+    porCultura: Array.from(porCulturaMap.entries())
+      .map(([cultura, v]) => ({ cultura, ...v }))
+      .sort((a, b) => b.totalHa - a.totalHa),
+    porAssociado: Array.from(porAssociadoMap.entries())
+      .map(([associadoId, v]) => ({ associadoId, ...v }))
+      .sort((a, b) => b.totalHa - a.totalHa),
   };
 }
 

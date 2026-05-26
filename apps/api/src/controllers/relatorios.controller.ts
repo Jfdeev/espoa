@@ -7,6 +7,7 @@ import {
   getRelatorioFinanceiro,
   getRelatorioMensalidades,
   getRelatorioAssociados,
+  getRelatorioAreaPlantada,
 } from "../services/relatorios.service";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -110,6 +111,22 @@ export async function getRelatorioAssociadosHandler(
     return res.json(result);
   } catch (error) {
     console.error("GET /relatorios/associados error", error);
+    return res.status(500).json({ error: "relatorio_falhou" });
+  }
+}
+
+export async function getRelatorioAreaPlantadaHandler(
+  req: AuthenticatedRequest,
+  res: Response,
+) {
+  const params = await resolveReportParams(req, res);
+  if (!params) return;
+
+  try {
+    const result = await getRelatorioAreaPlantada(params);
+    return res.json(result);
+  } catch (error) {
+    console.error("GET /relatorios/area-plantada error", error);
     return res.status(500).json({ error: "relatorio_falhou" });
   }
 }

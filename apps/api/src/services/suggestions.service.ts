@@ -7,7 +7,7 @@
  * nunca decisão automática (garantido pelo `apps/ai`).
  */
 import { buildFinancialSnapshot } from "./insights.service";
-import type { FinancialSnapshot } from "./insights.service";
+import type { FinancialSnapshot, AreaPlantadaSummary } from "./insights.service";
 import { getRelatorioProducao } from "./relatorios.service";
 import { listEditaisPnae } from "./edital-pnae.service";
 import { callAiService } from "./ai-client";
@@ -26,6 +26,7 @@ interface SuggestionsSnapshot {
     porMes: { mes: string; quantidadeTotal: number; registros: number }[];
   };
   editaisAbertos: number;
+  areaPlantada?: AreaPlantadaSummary;
 }
 
 interface SuggestionsResponse {
@@ -72,6 +73,7 @@ export async function getSuggestions({
       porMes: producaoRel.agregacoes.porMes,
     },
     editaisAbertos: editaisAbertos.length,
+    areaPlantada: financeiro.areaPlantada,
   };
 
   const result = await callAiService<SuggestionsResponse>(

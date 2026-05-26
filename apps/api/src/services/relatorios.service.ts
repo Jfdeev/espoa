@@ -1,4 +1,4 @@
-import { db, associado, mensalidade, producao, usuarioAssociacao, usuario } from "@espoa/database";
+import { db, associado, mensalidade, producao, areaPlantada, usuarioAssociacao, usuario } from "@espoa/database";
 import { and, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import type { ResolvedPeriod } from "../utils/period";
 import { buildFinancialSnapshot } from "./insights.service";
@@ -508,5 +508,146 @@ export async function getRelatorioAssociados({
         .sort((a, b) => b.total - a.total),
     },
     detalhes: todosAssociados,
+  };
+}
+
+// ── Área Plantada ─────────────────────────────────────────────────────────────
+
+/**
+ * Relatório de área plantada por período.
+ *
+ * Usa o mesmo padrão dual-path de `getRelatorioProducao` para cobrir
+ * registros legados e registros via usuario_id → usuario_associacao.
+ */
+export async function getRelatorioAreaPlantada({
+  associacaoId,
+  periodo,
+  userId,
+}: {
+  associacaoId: string;
+  periodo: ResolvedPeriod;
+  userId: string;
+}) {
+  const vinculosUA = await db
+    .select({ usuarioId: usuarioAssociacao.usuarioId })
+    .from(usuarioAssociacao)
+    .where(
+      and(
+        eq(usuarioAssociacao.associacaoId, associacaoId),
+        eq(usuarioAssociacao.status, "ativo"),
+      ),
+    );
+  const usuarioIdsAssoc = vinculosUA.map((v) => v.usuarioId);
+
+  const selectFields = {
+    id: areaPlantada.id,
+    associadoId: areaPlantada.associadoId,
+    nomeAssociado: associado.nome,
+    cultura: areaPlantada.cultura,
+    areaHa: areaPlantada.areaHa,
+    dataReferencia: areaPlantada.dataReferencia,
+    observacao: areaPlantada.observacao,
+  } as const;
+
+  const pathA = await db
+    .select(selectFields)
+    .from(areaPlantada)
+    .innerJoin(associado, eq(areaPlantada.associadoId, associado.id))
+    .where(
+      and(
+        eq(associado.associacaoId, associacaoId),
+        gte(areaPlantada.dataReferencia, periodo.inicio),
+        lte(areaPlantada.dataReferencia, periodo.fim),
+        isNull(areaPlantada.deletedAt),
+        isNull(associado.deletedAt),
+      ),
+    )
+    .orderBy(areaPlantada.dataReferencia);
+
+  const pathB =
+    usuarioIdsAssoc.length > 0
+      ? await db
+          .select(selectFields)
+          .from(areaPlantada)
+          .innerJoin(associado, eq(areaPlantada.associadoId, associado.id))
+          .where(
+            and(
+              inArray(associado.usuarioId, usuarioIdsAssoc),
+              gte(areaPlantada.dataReferencia, periodo.inicio),
+              lte(areaPlantada.dataReferencia, periodo.fim),
+              isNull(areaPlantada.deletedAt),
+              isNull(associado.deletedAt),
+            ),
+          )
+          .orderBy(areaPlantada.dataReferencia)
+      : [];
+
+  const seenIds = new Set<string>();
+  const rows: typeof pathA = [];
+  for (const row of [...pathA, ...pathB]) {
+    if (!seenIds.has(row.id)) {
+      seenIds.add(row.id);
+      rows.push(row);
+    }
+  }
+  rows.sort((a, b) =>
+    (a.dataReferencia as string).localeCompare(b.dataReferencia as string),
+  );
+
+  let totalHa = 0;
+  const porCulturaMap = new Map<
+    string,
+    { cultura: string; totalHa: number; registros: number }
+  >();
+  const porAssociadoMap = new Map<
+    string,
+    { associadoId: string; nome: string; totalHa: number; registros: number }
+  >();
+  const porMesMap = new Map<
+    string,
+    { mes: string; totalHa: number; registros: number }
+  >();
+
+  for (const row of rows) {
+    const ha = Number(row.areaHa) || 0;
+    totalHa += ha;
+
+    const cultura = row.cultura ?? "não informada";
+    const cultBucket = porCulturaMap.get(cultura) ?? { cultura, totalHa: 0, registros: 0 };
+    cultBucket.totalHa += ha;
+    cultBucket.registros += 1;
+    porCulturaMap.set(cultura, cultBucket);
+
+    const assocBucket = porAssociadoMap.get(row.associadoId) ?? {
+      associadoId: row.associadoId,
+      nome: row.nomeAssociado,
+      totalHa: 0,
+      registros: 0,
+    };
+    assocBucket.totalHa += ha;
+    assocBucket.registros += 1;
+    porAssociadoMap.set(row.associadoId, assocBucket);
+
+    const mes = (row.dataReferencia as string).substring(0, 7);
+    const mesBucket = porMesMap.get(mes) ?? { mes, totalHa: 0, registros: 0 };
+    mesBucket.totalHa += ha;
+    mesBucket.registros += 1;
+    porMesMap.set(mes, mesBucket);
+  }
+
+  return {
+    meta: makeMeta("area_plantada", associacaoId, periodo, userId),
+    resumo: {
+      totalHa,
+      totalRegistros: rows.length,
+      associadosUnicos: porAssociadoMap.size,
+      culturasUnicas: porCulturaMap.size,
+    },
+    agregacoes: {
+      porCultura: Array.from(porCulturaMap.values()).sort((a, b) => b.totalHa - a.totalHa),
+      porAssociado: Array.from(porAssociadoMap.values()).sort((a, b) => b.totalHa - a.totalHa),
+      porMes: Array.from(porMesMap.values()).sort((a, b) => a.mes.localeCompare(b.mes)),
+    },
+    detalhes: rows,
   };
 }

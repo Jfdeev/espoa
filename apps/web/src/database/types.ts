@@ -83,6 +83,19 @@ export interface Producao {
   deleted_at?: string;
 }
 
+export interface AreaPlantada {
+  id?: string;
+  associado_id: string;
+  cultura: string;
+  area_ha: number;
+  data_referencia: string;
+  observacao?: string | null;
+  version: number;
+  updated_at: string;
+  device_id?: string;
+  deleted_at?: string;
+}
+
 export interface Associacao {
   id?: string;
   nome: string;
