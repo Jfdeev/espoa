@@ -619,7 +619,7 @@ function AtaCard({
         )}
       </div>
 
-      <div className="flex items-center gap-2 pt-2 border-t border-[#f0ede8]">
+      <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#f0ede8]">
         <button
           onClick={onResumoIa}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#1A3C34] bg-[#1A3C34]/5 hover:bg-[#1A3C34]/10 transition-colors"
@@ -644,7 +644,7 @@ function AtaCard({
         </button>
         <button
           onClick={onDelete}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#ba1a1a] hover:bg-[#ffdad6] transition-colors ml-auto"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#ba1a1a] hover:bg-[#ffdad6] transition-colors"
         >
           <Trash2 size={12} />
           Remover
