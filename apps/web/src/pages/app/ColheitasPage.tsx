@@ -101,6 +101,7 @@ export default function ColheitasPage() {
   const [excluindoId, setExcluindoId] = useState<string | null>(null);
   const [confirmandoId, setConfirmandoId] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [filtroAssociadoId, setFiltroAssociadoId] = useState<string>("todos");
 
   // ─── Estado: Área Plantada ─────────────────────────────────────────────────
   const [areaView, setAreaView] = useState<"lista" | "form">("lista");
@@ -110,6 +111,7 @@ export default function ColheitasPage() {
   const [areaExcluindoId, setAreaExcluindoId] = useState<string | null>(null);
   const [areaConfirmandoId, setAreaConfirmandoId] = useState<string | null>(null);
   const [areaShowSuccess, setAreaShowSuccess] = useState(false);
+  const [areaFiltroAssociadoId, setAreaFiltroAssociadoId] = useState<string>("todos");
 
   const producoes = useLiveQuery(
     async () => {
@@ -192,6 +194,10 @@ export default function ColheitasPage() {
   }, [online, associacaoAtiva?.associacaoId]);
 
   const associados: MembroDropdown[] = associadosLocal ?? [];
+
+  // Lista usada nos filtros (apenas associados reais — exclui entradas-placeholder
+  // criadas a partir de vínculos sem registro na tabela `associado`, cujo id é o usuario_id).
+  const associadosFiltro = associados.filter((a) => a.id !== a.usuario_id);
 
   // Para o associado não-admin: encontra o próprio registro via usuario_id
   const associadoSelf = useLiveQuery<Associado | undefined | null>(
@@ -430,8 +436,16 @@ export default function ColheitasPage() {
   const formCarregando = carregando || (!isAdmin && associadoSelf === null);
   const areaFormCarregando = areaCarregando || (!isAdmin && associadoSelf === null);
 
-  // Consolidação de área por cultura (para admins)
-  const areaPorCultura = (areasPlantadas ?? []).reduce<Record<string, number>>((acc, a) => {
+  // Listas filtradas por associado (filtro só é exposto na UI para admins)
+  const producoesFiltradas = (producoes ?? []).filter(
+    (p) => filtroAssociadoId === "todos" || p.associado_id === filtroAssociadoId,
+  );
+  const areasPlantadasFiltradas = (areasPlantadas ?? []).filter(
+    (a) => areaFiltroAssociadoId === "todos" || a.associado_id === areaFiltroAssociadoId,
+  );
+
+  // Consolidação de área por cultura (para admins) — respeita o filtro de associado
+  const areaPorCultura = areasPlantadasFiltradas.reduce<Record<string, number>>((acc, a) => {
     acc[a.cultura] = (acc[a.cultura] ?? 0) + a.area_ha;
     return acc;
   }, {});
@@ -505,6 +519,32 @@ export default function ColheitasPage() {
               </button>
             </div>
 
+            {/* Filtro por associado (apenas admins) */}
+            {isAdmin && associadosFiltro.length > 0 && (producoes?.length ?? 0) > 0 && (
+              <div className="flex items-center gap-2">
+                <Label htmlFor="filtro-colheita-associado" className="text-sm text-[#414846] shrink-0">
+                  Filtrar por
+                </Label>
+                <Select value={filtroAssociadoId} onValueChange={(v) => setFiltroAssociadoId(v ?? "todos")}>
+                  <SelectTrigger id="filtro-colheita-associado" className="w-full sm:w-64">
+                    <SelectValue placeholder="Todos os associados">
+                      {(value: string) =>
+                        value === "todos" || !value
+                          ? "Todos os associados"
+                          : associadosFiltro.find((a) => a.id === value)?.nome ?? "Todos os associados"
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos" label="Todos os associados">Todos os associados</SelectItem>
+                    {associadosFiltro.map((a) => (
+                      <SelectItem key={a.id} value={a.id} label={a.nome}>{a.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* Lista */}
             {carregando ? (
               <div className="space-y-3">
@@ -531,9 +571,13 @@ export default function ColheitasPage() {
                   Colheita
                 </button>
               </div>
+            ) : producoesFiltradas.length === 0 ? (
+              <div className="bg-[#f6f3ee] rounded-xl p-8 text-center text-sm text-[#414846]">
+                Nenhuma colheita para o associado selecionado.
+              </div>
             ) : (
               <div className="space-y-3">
-                {producoes?.map((p) => (
+                {producoesFiltradas.map((p) => (
                   <div
                     key={p.id}
                     className="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4"
@@ -764,6 +808,32 @@ export default function ColheitasPage() {
                   </button>
                 </div>
 
+                {/* Filtro por associado (apenas admins) */}
+                {isAdmin && associadosFiltro.length > 0 && (areasPlantadas?.length ?? 0) > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="filtro-area-associado" className="text-sm text-[#414846] shrink-0">
+                      Filtrar por
+                    </Label>
+                    <Select value={areaFiltroAssociadoId} onValueChange={(v) => setAreaFiltroAssociadoId(v ?? "todos")}>
+                      <SelectTrigger id="filtro-area-associado" className="w-full sm:w-64">
+                        <SelectValue placeholder="Todos os associados">
+                          {(value: string) =>
+                            value === "todos" || !value
+                              ? "Todos os associados"
+                              : associadosFiltro.find((a) => a.id === value)?.nome ?? "Todos os associados"
+                          }
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos" label="Todos os associados">Todos os associados</SelectItem>
+                        {associadosFiltro.map((a) => (
+                          <SelectItem key={a.id} value={a.id} label={a.nome}>{a.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 {/* Painel consolidado por cultura (admin) */}
                 {isAdmin && Object.keys(areaPorCultura).length > 0 && (
                   <div className="bg-white rounded-2xl shadow-sm p-5 space-y-3">
@@ -808,9 +878,13 @@ export default function ColheitasPage() {
                       Área
                     </button>
                   </div>
+                ) : areasPlantadasFiltradas.length === 0 ? (
+                  <div className="bg-[#f6f3ee] rounded-xl p-8 text-center text-sm text-[#414846]">
+                    Nenhuma área para o associado selecionado.
+                  </div>
                 ) : (
                   <div className="space-y-3">
-                    {areasPlantadas?.map((a) => (
+                    {areasPlantadasFiltradas.map((a) => (
                       <div
                         key={a.id}
                         className="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4"

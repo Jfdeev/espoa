@@ -17,6 +17,8 @@ import { db } from "@/database/db";
 import { useLiveQuery } from "@/hooks/useLiveQuery";
 import api from "@/lib/api";
 import { useOnlineStatus } from "@/lib/network";
+import { isVencido } from "@/lib/mensalidade-utils";
+import type { Mensalidade } from "@/database/types";
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
@@ -71,7 +73,9 @@ export default function AdminDashboard() {
   const [statsApi, setStatsApi] = useState<{
     totalAssociados: number;
     totalCaixa: number;
-    mensalidadesPendentes: number;
+    mensalidadesVencidas?: number;
+    /** @deprecated usar mensalidadesVencidas — mantido por compatibilidade com API antiga */
+    mensalidadesPendentes?: number;
     atividadesRecentes: Array<{ id: string; descricao: string; data: string }>;
   } | null>(null);
 
@@ -105,10 +109,44 @@ export default function AdminDashboard() {
     }, 0);
   }, 0, [assocId]);
 
-  const mensalidadesPendentesLocal = useLiveQuery(
-    () => db.mensalidade.filter((m) => !m.deleted_at && !m.data_pagamento).count(),
-    0,
-  );
+  // Mensalidades vencidas: itera membros ativos e conta quem não pagou o mês corrente
+  // após o vencimento (regra do isVencido — espelha MensalidadesPage).
+  const mensalidadesVencidasLocal = useLiveQuery(async () => {
+    if (!assocId) return 0;
+
+    // Coleta usuario_ids dos membros ativos (usuario_associacao + associado.usuario_id)
+    const vinculos = await db.usuario_associacao
+      .where("associacao_id").equals(assocId)
+      .filter((v) => v.status === "ativo")
+      .toArray();
+    const associados = await db.associado
+      .where("associacao_id").equals(assocId)
+      .filter((a) => !a.deleted_at && a.status === "ativo")
+      .toArray();
+
+    const usuarioIds = new Set<string>();
+    for (const v of vinculos) usuarioIds.add(v.usuario_id);
+    for (const a of associados) if (a.usuario_id) usuarioIds.add(a.usuario_id);
+
+    if (usuarioIds.size === 0) return 0;
+
+    const todasMensalidades = await db.mensalidade
+      .filter((m) => !m.deleted_at)
+      .toArray();
+    const porUsuario = new Map<string, Mensalidade[]>();
+    for (const m of todasMensalidades) {
+      if (!m.usuario_id) continue;
+      const arr = porUsuario.get(m.usuario_id) ?? [];
+      arr.push(m);
+      porUsuario.set(m.usuario_id, arr);
+    }
+
+    let vencidos = 0;
+    for (const id of usuarioIds) {
+      if (isVencido(porUsuario.get(id) ?? [])) vencidos += 1;
+    }
+    return vencidos;
+  }, 0, [assocId]);
 
   const atividadesRecentesLocal = useLiveQuery(async () => {
     if (!assocId) return [];
@@ -129,7 +167,8 @@ export default function AdminDashboard() {
   // Resolve dados: API quando disponível, Dexie como fallback
   const totalAssociados = statsApi?.totalAssociados ?? totalAssociadosLocal;
   const totalCaixa = statsApi?.totalCaixa ?? totalCaixaLocal;
-  const mensalidadesPendentes = statsApi?.mensalidadesPendentes ?? mensalidadesPendentesLocal;
+  const mensalidadesVencidas =
+    statsApi?.mensalidadesVencidas ?? statsApi?.mensalidadesPendentes ?? mensalidadesVencidasLocal;
   const atividadesRecentes = statsApi?.atividadesRecentes ?? atividadesRecentesLocal;
 
   const formatCurrency = (value: number) => {
@@ -221,15 +260,15 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Mensalidades Pendentes */}
+        {/* Mensalidades Vencidas */}
         <div className="bg-[#f6f3ee] rounded-xl p-6 relative overflow-hidden group border border-[#c1c8c4]/30">
           <div className="flex items-start justify-between mb-8">
             <div>
               <p className="font-label text-xs text-[#414846] uppercase tracking-wider mb-1">
-                Mensalidades Pendentes
+                Mensalidades Vencidas
               </p>
               <h3 className="font-headline text-4xl font-bold text-[#1c1c19]">
-                {mensalidadesPendentes}
+                {mensalidadesVencidas}
               </h3>
             </div>
             <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#381800] shadow-sm">
@@ -239,7 +278,7 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-2 text-sm text-[#414846]">
             <TriangleAlert size={16} className="text-[#E67E22]" />
             <span className="font-medium text-[#E67E22]">
-              {mensalidadesPendentes > 0 ? "Atenção Necessária" : "Em dia"}
+              {mensalidadesVencidas > 0 ? "Atenção Necessária" : "Em dia"}
             </span>
           </div>
         </div>
