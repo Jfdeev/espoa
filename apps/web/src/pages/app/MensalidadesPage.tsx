@@ -298,55 +298,55 @@ function AssociadoView() {
       {/* Status do mês */}
       <div
         className={cn(
-          "rounded-2xl p-6 flex items-center gap-4",
+          "rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center gap-4",
           vencido
             ? "bg-red-50 border border-red-200"
             : "bg-emerald-50 border border-emerald-200",
         )}
       >
-        <div
-          className={cn(
-            "w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0",
-            vencido ? "bg-red-100" : "bg-emerald-100",
-          )}
-        >
-          {vencido ? (
-            <AlertCircle size={24} className="text-red-600" />
-          ) : (
-            <CheckCircle size={24} className="text-emerald-600" />
-          )}
-        </div>
-        <div className="flex-1">
-          <p
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <div
             className={cn(
-              "font-bold text-base",
-              vencido ? "text-red-700" : "text-emerald-700",
+              "w-12 h-12 rounded-full flex items-center justify-center shrink-0",
+              vencido ? "bg-red-100" : "bg-emerald-100",
             )}
           >
-            {vencido ? "Mensalidade vencida" : "Em dia"}
-          </p>
-          <p className={cn("text-sm", vencido ? "text-red-600/80" : "text-emerald-600/80")}>
-            {labelVencimento()}
-          </p>
+            {vencido ? (
+              <AlertCircle size={24} className="text-red-600" />
+            ) : (
+              <CheckCircle size={24} className="text-emerald-600" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p
+              className={cn(
+                "font-bold text-base",
+                vencido ? "text-red-700" : "text-emerald-700",
+              )}
+            >
+              {vencido ? "Mensalidade vencida" : "Em dia"}
+            </p>
+            <p className={cn("text-sm", vencido ? "text-red-600/80" : "text-emerald-600/80")}>
+              {labelVencimento()}
+            </p>
+          </div>
         </div>
         {vencido && !billing && (
-          <div className="flex flex-col gap-2 flex-shrink-0">
-            <Button
-              onClick={handleGerarPix}
-              disabled={gerando}
-              className="bg-[#01261f] hover:bg-[#1a3c34] text-white h-10 px-5 rounded-xl font-medium flex items-center gap-2"
-            >
-              <QrCode size={18} />
-              {gerando ? "Gerando..." : "Pagar via PIX"}
-            </Button>
-          </div>
+          <Button
+            onClick={handleGerarPix}
+            disabled={gerando}
+            className="w-full sm:w-auto bg-[#01261f] hover:bg-[#1a3c34] text-white h-11 px-5 rounded-xl font-medium flex items-center justify-center gap-2 shrink-0"
+          >
+            <QrCode size={18} />
+            {gerando ? "Gerando..." : "Pagar via PIX"}
+          </Button>
         )}
         {vencido && billing && (
           <Button
             onClick={handleVerificar}
             disabled={verificando}
             variant="outline"
-            className="h-10 px-4 rounded-xl font-medium flex-shrink-0 text-sm"
+            className="w-full sm:w-auto h-11 px-4 rounded-xl font-medium shrink-0 text-sm"
           >
             {verificando ? "Verificando..." : "Verificar pagamento"}
           </Button>
