@@ -4,13 +4,14 @@ import {
   listMensalidadesDoUsuario,
   createMensalidade,
   jaPagouMes,
+  getAssociadoPorUsuario,
 } from "../services/mensalidade.service";
-
-const VALOR_MENSALIDADE_DEFAULT = 15;
 import { createPixBilling, checkBillingStatus, type WebhookPayload } from "../services/abacatepay.service";
 import { toSnakeObject } from "../utils/case-mapper";
 import { db, usuario } from "@espoa/database";
 import { eq } from "drizzle-orm";
+
+const VALOR_MENSALIDADE_DEFAULT = 15;
 
 /**
  * POST /pix/confirmar — registra pagamento quando o usuário retorna da página do AbacatePay.
@@ -32,14 +33,21 @@ export async function confirmarPix(req: AuthenticatedRequest, res: Response) {
     // Registra o pagamento confiando no completionUrl do AbacatePay
     const valorReais = typeof valor === "number" && valor > 0 ? valor : VALOR_MENSALIDADE_DEFAULT;
     const hoje = new Date().toISOString().slice(0, 10);
-    await createMensalidade({
+    const associadoRow = await getAssociadoPorUsuario(req.userId!);
+    const result = await createMensalidade({
+      associadoId: associadoRow?.id ?? null,
       usuarioId: req.userId!,
       valor: valorReais,
       dataPagamento: hoje,
       formaPagamento: "pix",
     });
 
-    return res.json({ pago: true });
+    if ("error" in result) {
+      if (result.error === "ja_pago_no_mes") return res.json({ pago: true, aviso: "ja_registrado" });
+      return res.status(500).json({ error: result.error });
+    }
+
+    return res.json({ pago: true, mensalidade: toSnakeObject(result.data as Record<string, unknown>) });
   } catch (err) {
     console.error("POST /pix/confirmar error", err);
     return res.status(500).json({ error: "confirmar_failed" });
@@ -156,7 +164,9 @@ export async function verificarPix(req: AuthenticatedRequest, res: Response) {
     // Registra o pagamento
     const valorReais = (result.amount ?? 0) / 100;
     const hoje = new Date().toISOString().slice(0, 10);
+    const associadoRow = await getAssociadoPorUsuario(req.userId!);
     await createMensalidade({
+      associadoId: associadoRow?.id ?? null,
       usuarioId: req.userId!,
       valor: valorReais,
       dataPagamento: hoje,
@@ -206,8 +216,10 @@ export async function pixWebhook(req: Request, res: Response) {
 
     const valorReais = (billing.amount ?? 0) / 100;
     const hoje = new Date().toISOString().slice(0, 10);
+    const associadoRow = await getAssociadoPorUsuario(usuarioId);
 
     await createMensalidade({
+      associadoId: associadoRow?.id ?? null,
       usuarioId,
       valor: valorReais,
       dataPagamento: hoje,

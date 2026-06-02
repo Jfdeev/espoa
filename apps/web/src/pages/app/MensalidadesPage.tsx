@@ -196,7 +196,7 @@ function AssociadoView() {
     // (só redireciona para cá após pagamento confirmado; não depende do status no billing/list)
     setVerificando(true);
     api
-      .post<{ pago: boolean; aviso?: string }>("pix/confirmar", {
+      .post<{ pago: boolean; aviso?: string; mensalidade?: Mensalidade }>("pix/confirmar", {
         billingId: billing.id,
         valor: billing.amount / 100,
       })
@@ -204,6 +204,11 @@ function AssociadoView() {
         if (data.pago) {
           toast.success("Pagamento confirmado! Atualizando...");
           setBilling(null);
+          // Grava diretamente no Dexie para não depender do cursor de sync
+          // (evita race condition onde o sync já avançou o cursor além do updated_at da nova mensalidade)
+          if (data.mensalidade) {
+            db.mensalidade.put(data.mensalidade).catch(() => {});
+          }
           sincronizar();
         }
       })
