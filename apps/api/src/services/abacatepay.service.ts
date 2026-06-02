@@ -118,6 +118,23 @@ export async function checkBillingStatus(
   billingId: string,
 ): Promise<{ status?: string; amount?: number; error?: string }> {
   try {
+    // Tenta primeiro pelo endpoint direto (mais confiável)
+    const resDirect = await fetch(
+      `${ABACATEPAY_BASE}/billing/get?id=${encodeURIComponent(billingId)}`,
+      { headers: headers() },
+    );
+
+    if (resDirect.ok) {
+      const textDirect = await resDirect.text();
+      try {
+        const json = JSON.parse(textDirect) as { data?: BillingData; error?: string };
+        if (json.data) return { status: json.data.status, amount: json.data.amount };
+      } catch {
+        // não era JSON, cai para o fallback abaixo
+      }
+    }
+
+    // Fallback: lista todos e filtra pelo id
     const res = await fetch(`${ABACATEPAY_BASE}/billing/list`, {
       headers: headers(),
     });

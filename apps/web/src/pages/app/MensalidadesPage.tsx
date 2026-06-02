@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useLiveQuery } from "@/hooks/useLiveQuery";
 import {
   BanknoteArrowUp,
@@ -126,6 +127,9 @@ function AssociadoView() {
   const [billing, setBillingState] = useState<PixBillingData | null>(loadBilling);
   const [copiado, setCopiado] = useState(false);
   const [comprovanteId, setComprovanteId] = useState<string | null>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   function setBilling(b: PixBillingData | null) {
     saveBilling(b);
@@ -151,6 +155,64 @@ function AssociadoView() {
   useEffect(() => {
     sincronizar();
   }, [sincronizar]);
+
+  /** Consulta apenas o banco (sem chamar AbacatePay) — usado para polling rápido */
+  const checkStatusNoBanco = useCallback(async (): Promise<boolean> => {
+    try {
+      const { data } = await api.get<{ pago: boolean }>("pix/status");
+      if (data.pago) {
+        setBilling(null);
+        await sincronizar();
+        return true;
+      }
+    } catch {
+      // offline ou erro — ignora silenciosamente
+    }
+    return false;
+  }, [sincronizar]);
+
+  // Inicia / para polling enquanto há billing pendente
+  useEffect(() => {
+    if (!billing) {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      return;
+    }
+    // Verifica imediatamente ao montar (webhook pode já ter chegado)
+    checkStatusNoBanco();
+    pollingRef.current = setInterval(() => { checkStatusNoBanco(); }, 15_000);
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [billing, checkStatusNoBanco]);
+
+  // Detecta retorno da página do AbacatePay (?pago=1) e auto-verifica
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (!params.has("pago")) return;
+    // Remove o param da URL sem recarregar
+    navigate(location.pathname, { replace: true });
+    if (!billing) return;
+    // Usa /pix/confirmar: o completionUrl é sinal confiável do AbacatePay
+    // (só redireciona para cá após pagamento confirmado; não depende do status no billing/list)
+    setVerificando(true);
+    api
+      .post<{ pago: boolean; aviso?: string }>("pix/confirmar", {
+        billingId: billing.id,
+        valor: billing.amount / 100,
+      })
+      .then(({ data }) => {
+        if (data.pago) {
+          toast.success("Pagamento confirmado! Atualizando...");
+          setBilling(null);
+          sincronizar();
+        }
+      })
+      .catch(() => {
+        toast.info("Verificando seu pagamento em segundo plano...");
+      })
+      .finally(() => setVerificando(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   async function handleGerarPix() {
     setGerando(true);
@@ -331,14 +393,13 @@ function AssociadoView() {
           )}
 
           {billing.url && (
-            <a
-              href={billing.url}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => { window.location.href = billing.url; }}
               className="block w-full py-3 text-center rounded-xl bg-[#01261f] text-white font-bold text-sm hover:bg-[#1a3c34] transition-colors"
             >
               Abrir página de pagamento
-            </a>
+            </button>
           )}
 
           <p className="text-xs text-[#414846]/60 text-center">

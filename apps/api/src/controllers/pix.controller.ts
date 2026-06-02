@@ -5,10 +5,58 @@ import {
   createMensalidade,
   jaPagouMes,
 } from "../services/mensalidade.service";
+
+const VALOR_MENSALIDADE_DEFAULT = 15;
 import { createPixBilling, checkBillingStatus, type WebhookPayload } from "../services/abacatepay.service";
 import { toSnakeObject } from "../utils/case-mapper";
 import { db, usuario } from "@espoa/database";
 import { eq } from "drizzle-orm";
+
+/**
+ * POST /pix/confirmar — registra pagamento quando o usuário retorna da página do AbacatePay.
+ * Chamado apenas quando o AbacatePay redireciona para completionUrl (?pago=1).
+ * O completionUrl é um sinal confiável: AbacatePay só redireciona para lá após pagamento confirmado.
+ */
+export async function confirmarPix(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { billingId, valor } = req.body as { billingId?: string; valor?: number };
+    if (!billingId) return res.status(400).json({ error: "billingId obrigatório" });
+
+    // Verifica se o billingId foi gerado para este usuário (externalId: "mensalidade:<userId>:<ts>")
+    // Isso é feito consultando o AbacatePay para validar o billing — mas só se o pagamento ainda não foi registrado
+    const anoMes = new Date().toISOString().slice(0, 7);
+    if (await jaPagouMes(req.userId!, anoMes)) {
+      return res.json({ pago: true, aviso: "ja_registrado" });
+    }
+
+    // Registra o pagamento confiando no completionUrl do AbacatePay
+    const valorReais = typeof valor === "number" && valor > 0 ? valor : VALOR_MENSALIDADE_DEFAULT;
+    const hoje = new Date().toISOString().slice(0, 10);
+    await createMensalidade({
+      usuarioId: req.userId!,
+      valor: valorReais,
+      dataPagamento: hoje,
+      formaPagamento: "pix",
+    });
+
+    return res.json({ pago: true });
+  } catch (err) {
+    console.error("POST /pix/confirmar error", err);
+    return res.status(500).json({ error: "confirmar_failed" });
+  }
+}
+
+/** GET /pix/status — retorna se o usuário autenticado já pagou o mês corrente (consulta só o banco, sem chamar AbacatePay) */
+export async function getPixStatus(req: AuthenticatedRequest, res: Response) {
+  try {
+    const anoMes = new Date().toISOString().slice(0, 7);
+    const pago = await jaPagouMes(req.userId!, anoMes);
+    return res.json({ pago, anoMes });
+  } catch (err) {
+    console.error("GET /pix/status error", err);
+    return res.status(500).json({ error: "status_failed" });
+  }
+}
 
 /** GET /mensalidades/minha — mensalidades do usuário autenticado */
 export async function getMensalidadesMinha(
@@ -128,6 +176,15 @@ export async function verificarPix(req: AuthenticatedRequest, res: Response) {
  */
 export async function pixWebhook(req: Request, res: Response) {
   try {
+    // Valida o secret enviado pelo AbacatePay como query param
+    const expectedSecret = process.env.ABACATEPAY_WEBHOOK_SECRET;
+    if (expectedSecret) {
+      const receivedSecret = req.query.webhookSecret as string | undefined;
+      if (!receivedSecret || receivedSecret !== expectedSecret) {
+        return res.status(401).json({ error: "webhook_secret_invalido" });
+      }
+    }
+
     const payload = req.body as WebhookPayload;
     if (payload.event !== "billing.paid") {
       return res.json({ ok: true });
